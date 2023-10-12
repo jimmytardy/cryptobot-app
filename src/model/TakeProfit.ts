@@ -14,9 +14,6 @@ export class TakeProfit {
     @Prop({ required: true })
     orderId: string;
 
-    @Prop()
-    clientOid: string;
-
     @Prop({ required: true, type: Types.ObjectId, ref: 'Order' })
     orderParentId: Types.ObjectId;
 

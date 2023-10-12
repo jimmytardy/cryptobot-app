@@ -80,7 +80,7 @@ export class BitgetActionService {
         await client.setMarginMode(symbol, this.marginCoin, 'fixed');
     }
 
-    async placeOrder(client: FuturesClient, symbolRules: FuturesSymbolRule, usdt: number, side: FuturesOrderSide, pe: number, tps: number[], stopLoss: number, linkOrderId?: Types.ObjectId, marginCoin = 'USDT') {
+    async placeOrder(client: FuturesClient, symbolRules: FuturesSymbolRule, usdt: number, side: FuturesOrderSide, pe: number, tps: number[], stopLoss: number, linkId?: Types.ObjectId, marginCoin = 'USDT') {
         try {
             const quantity = this.bitgetUtilsService.getQuantityForUSDT(usdt, pe, parseInt(this.getLeverage(pe)));
             const size = this.bitgetUtilsService.fixSizeByRules(quantity, symbolRules);
@@ -110,7 +110,7 @@ export class BitgetActionService {
                 orderId,
                 symbol: symbolRules.symbol,
                 side: side.split('_')[1] as FuturesHoldSide,
-                linkOrderId,
+                linkId,
                 quantity: size,
                 marginCoin
             }).save();
@@ -120,7 +120,44 @@ export class BitgetActionService {
         }
     }
 
-    async activeTPs(client: FuturesClient, symbolRules: FuturesSymbolRule, order: Order) {
+    async activeOrder(client: FuturesClient, orderId: string) {
+        try {
+            const order = await this.orderModel.findOne({ orderId });
+            if (!order) return null;
+            const symbolRules = await this.bitgetUtilsService.getSymbolBy(client, 'symbol', order.symbol);
+            if (!symbolRules) throw new Error('Symbol not found');
+            await this.activeTPs(client, symbolRules, order);
+            await this.activeSL(client, symbolRules, order);
+            order.activated = true;
+            await order.save();
+        } catch (e) {
+            console.log('error activeOrder', e);
+            throw e;
+        }
+    }
+
+    private async activeSL(client: FuturesClient, symbolRules: FuturesSymbolRule, order: Order) {
+        const params: NewFuturesPlanStopOrder = {
+            symbol: symbolRules.symbol,
+            marginCoin: order.marginCoin,
+            planType: 'loss_plan',
+            triggerType: 'fill_price',
+            triggerPrice: String(order.SL),
+            holdSide: order.side
+        };
+        const result = await client.submitStopOrder(params);
+        const { orderId } = result.data;
+        await new this.stopLossModel({
+            price: order.SL,
+            orderId,
+            orderParentId: order._id,
+            terminated: false,
+            symbol: symbolRules.symbol,
+            side: order.side,
+        }).save();
+    }
+
+    private async activeTPs(client: FuturesClient, symbolRules: FuturesSymbolRule, order: Order) {
         const TPconfig = this.TPSize[order.TPs.length];
         let additionnalSize = 0;
         try {
@@ -130,8 +167,6 @@ export class BitgetActionService {
                 const TP = order.TPs[i];
                 let size = 0;
                 if (isLast) {
-                    console.log('order.quantity', order.quantity)
-                    console.log('additionnalSize', additionnalSize)
                     size = this.bitgetUtilsService.fixSizeByRules(order.quantity - additionnalSize, symbolRules);
                 } else {
                     size = this.bitgetUtilsService.fixSizeByRules(TPconfig[i] * order.quantity, symbolRules);
@@ -148,7 +183,6 @@ export class BitgetActionService {
                         holdSide: order.side
                     };
                     const result = await client.submitStopOrder(params);
-                    console.log('activeTPs', i, result.data)
                     const { orderId } = result.data;
                     await new this.takeProfitModel({
                         triggerPrice: TP,
@@ -165,32 +199,14 @@ export class BitgetActionService {
                     console.error(e);
                 }
             }
-            // Stop loss
-            const params: NewFuturesPlanStopOrder = {
-                symbol: symbolRules.symbol,
-                marginCoin: order.marginCoin,
-                planType: 'loss_plan',
-                triggerType: 'fill_price',
-                triggerPrice: String(order.SL),
-                holdSide: order.side
-            };
-            const result = await client.submitStopOrder(params);
-            const { orderId } = result.data;
-            await new this.stopLossModel({
-                price: order.SL,
-                orderId,
-                orderParentId: order._id,
-                terminated: false,
-                symbol: symbolRules.symbol,
-                side: order.side,
-            }).save();
+            
         } catch (e) {
             console.error(e);
         }
 
     }
 
-    async upgradeSL(client: FuturesClient, order: Order) {
+    async upgradeSL(client: FuturesClient, order: Order): Promise<StopLoss> {
         const stopLoss = await this.stopLossModel
             .findOne({ orderParentId: order.orderId, terminated: { $ne: true } })
             .populate<{ orderParentId: Order }>('orderParentId', this.orderModel);
@@ -219,5 +235,6 @@ export class BitgetActionService {
         stopLoss.price = triggerPrice;
         stopLoss.step = newStep;
         await stopLoss.save();
+        return stopLoss.toObject() as StopLoss;
     }
 }

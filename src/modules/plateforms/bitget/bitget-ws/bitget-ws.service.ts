@@ -7,6 +7,7 @@ import { BitgetActionService } from '../bitget-action/bitget-action.service';
 import { BitgetService } from '../bitget.service';
 import { ConfigService } from '@nestjs/config';
 import { TakeProfit } from 'src/model/TakeProfit';
+import { OrderService } from 'src/modules/order/order.service';
 
 @Injectable()
 export class BitgetWsService implements OnModuleInit {
@@ -14,6 +15,7 @@ export class BitgetWsService implements OnModuleInit {
     constructor(
         @InjectModel(Order.name) private orderModel: Model<Order>,
         @InjectModel(Order.name) private takeProfitModel: Model<TakeProfit>,
+        private orderService: OrderService,
         private bitgetService: BitgetService,
         private configService: ConfigService,
     ) {
@@ -51,7 +53,7 @@ export class BitgetWsService implements OnModuleInit {
 
     private async onUpdatedOrderAlgo(e: any) {
         console.log('onUpdatedOrderAlgo', e);
-        
+
     }
 
     private async onUpdatedOrder(e: any) {
@@ -61,29 +63,51 @@ export class BitgetWsService implements OnModuleInit {
             switch (order.status) {
                 case 'full-fill':
                     if (order.side === 'buy') {
-                        const orderConfig = await this.orderModel.findOne({ terminated: { $ne: true }, orderId: order.ordId });
-                        if (!orderConfig) break;
-    
-                        await this.bitgetService.activeTPs(orderConfig);
-                    } else {
+                        await this.bitgetService.activeOrder(order.ordId);
+                    } else if (order.side === 'sell') {
+                        // close take profit
                         const takeProfit = await this.takeProfitModel.findOne({ orderId: order.ordId, terminated: { $ne: true } });
                         if (!takeProfit) break;
                         takeProfit.terminated = true;
                         await takeProfit.save();
-
+                            
+                        // upgrade SL
                         const orderConfig = await this.orderModel.findOne({ orderId: takeProfit.orderParentId });
 
                         if (takeProfit.num === orderConfig.TPs.length) {
                             orderConfig.terminated = true;
                             await orderConfig.save();
                         } else {
-                            await this.bitgetService.upgradeSL(orderConfig);
+                            const stopLoss = await this.bitgetService.upgradeSL(orderConfig);
+                            // disabled other order that not actived
+                            if (stopLoss.step === 1) {
+                                await this.orderModel.updateMany({ linkOrderId: orderConfig.linkOrderId, terminated: { $ne: true }, activated: false }, { terminated: true });
+                            }
                         }
-                        
-                        console.log('sell order', order)
+                    } else {
+                        console.log('order.side', order.side)
+                    }
+                    break;
+                case 'partial-fill':
+                    // stop loss activate
+                    if (order.side === 'sell') {
+                        const takeProfit = await this.takeProfitModel.findOne({ orderId: order.ordId, terminated: { $ne: true } });
+                        if (!takeProfit) break;
+                        takeProfit.terminated = true;
+                        await takeProfit.save();
+                        const numTakeProfitActivate = await this.takeProfitModel.countDocuments({ orderParentId: takeProfit.orderParentId, terminated: { $ne: true } });
+                        if (numTakeProfitActivate === 0) {
+                            await this.orderModel.updateOne({ orderId: takeProfit.orderParentId }, { terminated: true });
+                        }
+                    }
+                    break;
+                case 'new':
+                    if (order.side === 'sell') {
+                        const orderConfig = await this.orderModel.exists({ orderId: order.ordId });
+                        if (!orderConfig) break;
+                        await this.orderService.disableOrder(order.ordId);
                     }
                 default:
-                    console.log('order status', order.status)
                     break;
             }
         }

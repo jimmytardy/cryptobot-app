@@ -3,9 +3,10 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { BitgetUtilsService } from './bitget/bitget-utils/bitget-utils.service';
-import { BitgetModule } from './bitget/bitget.module';
+import { ModulesModule } from './modules/modules.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
 import configuration from './config/configuration';
+import { join } from 'path';
 
 @Module({
   imports: [
@@ -20,9 +21,13 @@ import configuration from './config/configuration';
       }),
       inject: [ConfigService],
     }),
-    BitgetModule
+    ServeStaticModule.forRoot({ 
+      rootPath: join(__dirname, 'client'),
+      exclude: ['/api/(.*)'],
+    }),
+    ModulesModule,
   ],
   controllers: [AppController],
-  providers: [AppService, BitgetUtilsService],
+  providers: [AppService],
 })
 export class AppModule { }

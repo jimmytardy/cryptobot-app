@@ -7,6 +7,7 @@ import { BitgetUtilsService } from './bitget-utils/bitget-utils.service';
 import { Types } from 'mongoose';
 import { Order } from 'src/model/Order';
 import { TakeProfit } from 'src/model/TakeProfit';
+import { StopLoss } from 'src/model/StopLoss';
 
 @Injectable()
 export class BitgetService {
@@ -52,13 +53,13 @@ export class BitgetService {
         return results;
     }
 
-    async activeTPs(order: Order) {
-        const symbolRules = await this.bitgetUtilsService.getSymbolBy(this.client, 'symbol', order.symbol);
-        await this.bitgetActionService.activeTPs(this.client, symbolRules, order);
+    async activeOrder(orderId: string) {
+        const order = await this.bitgetActionService.activeOrder(this.client, orderId);
+        return order;
     }
 
-    async upgradeSL(order: Order) {
-        await this.bitgetActionService.upgradeSL(this.client, order);
+    async upgradeSL(order: Order): Promise<StopLoss> {
+        return await this.bitgetActionService.upgradeSL(this.client, order);
     }
 
 }

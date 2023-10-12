@@ -10,6 +10,7 @@ export class BitgetController {
 
     @Post('placeOrder')
     async placeOrder(@Body() placeOrderDTO: PlaceOrderDTO) {
+        console.log('placeOrderDTO', placeOrderDTO);
         return await this.bitgetService.placeOrder(placeOrderDTO);
     }
 }

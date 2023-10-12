@@ -36,6 +36,9 @@ export class Order {
     marginCoin: string;
 
     @Prop({ default: false})
+    activated: boolean;
+    
+    @Prop({ default: false})
     terminated: boolean;
 }
 
