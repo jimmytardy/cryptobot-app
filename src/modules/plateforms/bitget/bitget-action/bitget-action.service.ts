@@ -80,7 +80,7 @@ export class BitgetActionService {
         await client.setMarginMode(symbol, this.marginCoin, 'fixed');
     }
 
-    async placeOrder(client: FuturesClient, symbolRules: FuturesSymbolRule, usdt: number, side: FuturesOrderSide, pe: number, tps: number[], stopLoss: number, linkId?: Types.ObjectId, marginCoin = 'USDT') {
+    async placeOrder(client: FuturesClient, userId: Types.ObjectId, symbolRules: FuturesSymbolRule, usdt: number, side: FuturesOrderSide, pe: number, tps: number[], stopLoss: number, linkId?: Types.ObjectId, marginCoin = 'USDT') {
         try {
             const quantity = this.bitgetUtilsService.getQuantityForUSDT(usdt, pe, parseInt(this.getLeverage(pe)));
             const size = this.bitgetUtilsService.fixSizeByRules(quantity, symbolRules);
@@ -101,8 +101,7 @@ export class BitgetActionService {
             const result = await client.submitOrder(newOrder);
 
             const { orderId } = result.data;
-            console.log('stopLoss', stopLoss)
-            console.log('placeOrder', result.data)
+            
             return await new this.orderModel({
                 PE: pe,
                 TPs: tps.sort(),
@@ -112,7 +111,8 @@ export class BitgetActionService {
                 side: side.split('_')[1] as FuturesHoldSide,
                 linkId,
                 quantity: size,
-                marginCoin
+                marginCoin,
+                userId
             }).save();
         } catch (e) {
             console.log('placeOrder', e)
@@ -154,6 +154,7 @@ export class BitgetActionService {
             terminated: false,
             symbol: symbolRules.symbol,
             side: order.side,
+            userId: order.userId
         }).save();
     }
 
@@ -193,7 +194,8 @@ export class BitgetActionService {
                         num: i + 1,
                         symbol: symbolRules.symbol,
                         side: order.side,
-                        marginCoin: order.marginCoin
+                        marginCoin: order.marginCoin,
+                        userId: order.userId
                     }).save();
                 } catch (e) {
                     console.error(e);

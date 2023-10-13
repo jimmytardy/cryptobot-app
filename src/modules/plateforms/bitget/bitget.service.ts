@@ -1,65 +1,115 @@
-import { Injectable } from '@nestjs/common';
-import { PlaceOrderDTO } from './bitget.dto';
-import { ConfigService } from '@nestjs/config';
-import { FuturesClient, FuturesOrderSide } from 'bitget-api';
-import { BitgetActionService } from './bitget-action/bitget-action.service';
-import { BitgetUtilsService } from './bitget-utils/bitget-utils.service';
-import { Types } from 'mongoose';
-import { Order } from 'src/model/Order';
-import { TakeProfit } from 'src/model/TakeProfit';
-import { StopLoss } from 'src/model/StopLoss';
+import {
+    Injectable,
+    OnApplicationBootstrap,
+    OnModuleInit,
+} from '@nestjs/common'
+import { PlaceOrderDTO } from './bitget.dto'
+import { ConfigService } from '@nestjs/config'
+import { FuturesClient, FuturesOrderSide } from 'bitget-api'
+import { BitgetActionService } from './bitget-action/bitget-action.service'
+import { BitgetUtilsService } from './bitget-utils/bitget-utils.service'
+import { Types } from 'mongoose'
+import { Order } from 'src/model/Order'
+import { TakeProfit } from 'src/model/TakeProfit'
+import { StopLoss } from 'src/model/StopLoss'
+import { UserService } from 'src/modules/user/user.service'
+import { User } from 'src/model/User'
+import { BitgetWsService } from './bitget-ws/bitget-ws.service'
 
 @Injectable()
 export class BitgetService {
-
-    client: FuturesClient;
+    client: {
+        [key: string]: FuturesClient
+    }
 
     constructor(
-        private configService: ConfigService, 
-        private bitgetUtilsService: BitgetUtilsService, 
-        private bitgetActionService: BitgetActionService
-        ) { 
-        const bitgetParams = this.configService.get('bitget');
-        this.client = new FuturesClient({
-            apiKey: bitgetParams.apiKey, 
-            apiPass: bitgetParams.passphrase,
-            apiSecret: bitgetParams.secretKey,
-        });
+        private bitgetUtilsService: BitgetUtilsService,
+        private bitgetActionService: BitgetActionService,
+    ) {
+        this.client = {}
     }
 
-    async placeOrder(placeOrderDTO: PlaceOrderDTO) {
-        let { PEs, SL, TPs, side, baseCoin, size, marginCoin = 'USDT' } = placeOrderDTO;
-        const symbolRules = await this.bitgetUtilsService.getSymbolBy(this.client, 'baseCoin', baseCoin);
+    async initializeTraders(users: User[]) {
+        for (const user of users) {
+            this.addNewTrader(user);
+        }
+    }
+
+    addNewTrader(user: User) {
+        if (!this.client[user._id.toString()]) {
+            this.client[user._id.toString()] = new FuturesClient({
+                apiKey: user.bitget.api_key,
+                apiSecret: user.bitget.api_secret_key,
+                apiPass: user.bitget.api_pass,
+            })
+        }
+    }
+
+    async placeOrder(placeOrderDTO: PlaceOrderDTO, userId: Types.ObjectId) {
+        const userIdStr = userId.toString()
+        let {
+            PEs,
+            SL,
+            TPs,
+            side,
+            baseCoin,
+            size,
+            marginCoin = 'USDT',
+        } = placeOrderDTO
+        const symbolRules = await this.bitgetUtilsService.getSymbolBy(
+            this.client[userIdStr],
+            'baseCoin',
+            baseCoin,
+        )
         if (!symbolRules) {
-            return;
+            return
         }
         if (!size) {
-            const balance = await this.bitgetUtilsService.getAccountUSDT(this.client, marginCoin);
-            size = balance * 0.06;
+            const balance = await this.bitgetUtilsService.getAccountUSDT(
+                this.client[userIdStr],
+                marginCoin,
+            )
+            size = balance * 0.06
         }
-        const fullSide = 'open_' + side as FuturesOrderSide;
-        const linkOrderId = new Types.ObjectId();
+        const fullSide = ('open_' + side) as FuturesOrderSide
+        const linkOrderId = new Types.ObjectId()
         const results = {
             errors: [],
-            success: []
-        };
+            success: [],
+        }
         for (const PE of PEs) {
             try {
-                results.success.push(await this.bitgetActionService.placeOrder(this.client, symbolRules, size, fullSide, PE, TPs, SL, linkOrderId));
+                results.success.push(
+                    await this.bitgetActionService.placeOrder(
+                        this.client[userIdStr],
+                        userId,
+                        symbolRules,
+                        size,
+                        fullSide,
+                        PE,
+                        TPs,
+                        SL,
+                        linkOrderId,
+                    ),
+                )
             } catch (error) {
-                results.errors.push(error);
+                results.errors.push(error)
             }
         }
-        return results;
+        return results
     }
 
-    async activeOrder(orderId: string) {
-        const order = await this.bitgetActionService.activeOrder(this.client, orderId);
-        return order;
+    async activeOrder(orderId: string, userId: Types.ObjectId) {
+        return await this.bitgetActionService.activeOrder(
+            this.client[userId.toString()],
+            orderId,
+        )
     }
 
     async upgradeSL(order: Order): Promise<StopLoss> {
-        return await this.bitgetActionService.upgradeSL(this.client, order);
+        return await this.bitgetActionService.upgradeSL(
+            this.client[order.userId.toString()],
+            order,
+        )
     }
-
 }

@@ -1,7 +1,9 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, Request, UseGuards } from '@nestjs/common';
 import { PlaceOrderDTO } from './bitget.dto';
 import { BitgetService } from './bitget.service';
+import { LocalAuthGuard } from 'src/guards/local-auth.guard';
 
+@UseGuards(LocalAuthGuard)
 @Controller('bitget')
 export class BitgetController {
 
@@ -9,8 +11,7 @@ export class BitgetController {
 
 
     @Post('placeOrder')
-    async placeOrder(@Body() placeOrderDTO: PlaceOrderDTO) {
-        console.log('placeOrderDTO', placeOrderDTO);
-        return await this.bitgetService.placeOrder(placeOrderDTO);
+    async placeOrder(@Body() placeOrderDTO: PlaceOrderDTO, @Request() req) {
+        return await this.bitgetService.placeOrder(placeOrderDTO, req.user._id);
     }
 }

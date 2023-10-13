@@ -1,19 +1,19 @@
 import { Type } from "class-transformer";
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsNumber, IsOptional, IsString, ValidateNested } from "class-validator";
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsNumber, IsNumberString, IsOptional, IsString } from "class-validator";
 
 export class PlaceOrderDTO {
     @IsArray()
     @ArrayMinSize(1)
     @ArrayMaxSize(6)
-    @Type(() => Number)
+    @IsNumberString()
     TPs: number[];
 
     @IsArray()
     @ArrayMinSize(1)
-    @Type(() => Number)
+    @IsNumberString()
     PEs: number[];
 
-    @Type(() => Number)
+    @IsNumberString()
     SL: number;
 
     @Type(() => String)
@@ -24,7 +24,7 @@ export class PlaceOrderDTO {
 
     @IsOptional()
     @IsNumber()
-    @Type(() => Number)
+    @IsNumberString()
     size?: number;
 
     @IsOptional()

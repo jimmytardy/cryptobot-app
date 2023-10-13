@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
+import { SchemaType, Types } from 'mongoose';
 import { HydratedDocument } from 'mongoose';
 
 export type TakeProfitDocument = HydratedDocument<TakeProfit>;
@@ -34,6 +34,9 @@ export class TakeProfit {
 
     @Prop({ default: 'USDT'})
     marginCoin: string;
+
+    @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+    userId: Types.ObjectId
 }
 
 export const TakeProfitSchema = SchemaFactory.createForClass(TakeProfit);

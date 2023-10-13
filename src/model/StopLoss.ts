@@ -28,6 +28,9 @@ export class StopLoss {
 
     @Prop({ default: false })
     terminated: boolean;
+
+    @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+    userId: Types.ObjectId
 }
 
 export const StopLossSchema = SchemaFactory.createForClass(StopLoss);
