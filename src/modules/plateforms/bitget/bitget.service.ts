@@ -75,7 +75,7 @@ export class BitgetService {
                 this.client[userIdStr],
                 marginCoin,
             )
-            size = balance * 0.06
+            size = balance * 0.08
         }
         const fullSide = ('open_' + side) as FuturesOrderSide
         const linkOrderId = new Types.ObjectId()
@@ -99,7 +99,17 @@ export class BitgetService {
                     ),
                 )
             } catch (error) {
-                results.errors.push(error)
+                results.errors.push({
+                    ...error,
+                    userId,
+                        symbolRules,
+                        size,
+                        fullSide,
+                        PE,
+                        TPs,
+                        SL,
+                        linkOrderId,
+                });
             }
         }
         return results

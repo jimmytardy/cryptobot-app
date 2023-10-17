@@ -210,23 +210,31 @@ export class BitgetActionService {
 
     async upgradeSL(client: FuturesClient, order: Order): Promise<StopLoss> {
         const stopLoss = await this.stopLossModel
-            .findOne({ orderParentId: order.orderId, terminated: { $ne: true } })
-            .populate<{ orderParentId: Order }>('orderParentId', this.orderModel);
+            .findOne({ orderParentId: order.orderId, terminated: { $ne: true } });
             
         if (!stopLoss) {
             return;
         }
+
         let newStep = stopLoss.step + 1;
         let triggerPrice = 0;
 
-        if (newStep === 0) {
-            triggerPrice = stopLoss.orderParentId.PE;
+        if (newStep === 0 || newStep === 1) {
+            let PEs = [order.PE];
+            const orderLinked = await this.orderModel.findOne({ linkOrderId: order.linkOrderId, terminated: { $ne: true } }, 'PE');
+            if (orderLinked) {
+                PEs.push(orderLinked.PE);
+                PEs = PEs.sort();
+            } else {
+                PEs.push(order.PE);
+            }
+            triggerPrice = PEs[newStep];
         } else {
-            triggerPrice = stopLoss.orderParentId.TPs[newStep - 1];
+            triggerPrice = order.TPs[newStep - 2];
         }
 
         const params: ModifyFuturesPlanStopOrder = {
-            marginCoin: stopLoss.orderParentId.marginCoin,
+            marginCoin: order.marginCoin,
             orderId: stopLoss.orderId,
             planType: 'loss_plan',
             symbol: order.symbol,

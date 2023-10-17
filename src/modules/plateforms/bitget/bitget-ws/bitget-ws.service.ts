@@ -69,7 +69,7 @@ export class BitgetWsService {
                             terminated: { $ne: true },
                             userId
                         })
-                        if (!takeProfit) break
+                        if (!takeProfit) break;
                         takeProfit.terminated = true
                         await takeProfit.save()
 
