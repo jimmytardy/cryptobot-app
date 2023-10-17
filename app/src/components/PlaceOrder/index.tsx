@@ -28,7 +28,7 @@ const PlaceOrder = () => {
     useEffect(() => {
         ;(async () => {
             const result = await axiosClient.get('/bitget/baseCoins')
-            setBaseCoins(result.data)
+            setBaseCoins(result.data.sort())
         })()
     }, [])
 
@@ -51,6 +51,11 @@ const PlaceOrder = () => {
         setFormData({ ...formData, SL })
     }
 
+    const handleSizeChange = (e: any) => {
+        const size = Number(e.target.value)
+        setFormData({ ...formData, size })
+    }
+
     // Gérer les changements dans les autres champs
     const handleChange = (e: any) => {
         const { name, value } = e.target
@@ -67,14 +72,18 @@ const PlaceOrder = () => {
             PEs: formData.PEs.filter((pe: number | undefined) => pe && pe > 0),
         }
         if (body.TPs.length === 0 || body.PEs.length === 0) return
-        const result = await axiosClient.post('/bitget/placeOrder', {
-            body: JSON.stringify(body),
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        })
-        console.log('result', result)
-        setSubmitDisabled(false)
+        try {
+            const response = await axiosClient.post('/bitget/placeOrder', body, {
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            console.log(response.data)
+        } catch (e) {
+            console.log(e);
+        } finally {
+            setSubmitDisabled(false)
+        }
         // Envoyer les données au serveur ici
     }
 
@@ -172,7 +181,7 @@ const PlaceOrder = () => {
                             id="size"
                             name="size"
                             value={formData.size}
-                            onChange={handleChange}
+                            onChange={handleSizeChange}
                         />
                     </Col>
                     <Col xs={6}>

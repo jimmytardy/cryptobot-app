@@ -1,33 +1,39 @@
-import { Type } from "class-transformer";
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsNumber, IsNumberString, IsOptional, IsString } from "class-validator";
+import { Type } from 'class-transformer'
+import {
+    ArrayMaxSize,
+    ArrayMinSize,
+    IsArray,
+    IsNumber,
+    IsOptional,
+    IsString,
+} from 'class-validator'
 
 export class PlaceOrderDTO {
     @IsArray()
     @ArrayMinSize(1)
     @ArrayMaxSize(6)
-    @IsNumberString()
-    TPs: number[];
+    @IsNumber({}, { each: true })
+    TPs: number[]
 
     @IsArray()
     @ArrayMinSize(1)
-    @IsNumberString()
-    PEs: number[];
+    @IsNumber({}, { each: true })
+    PEs: number[]
 
-    @IsNumberString()
-    SL: number;
-
-    @Type(() => String)
-    baseCoin: string;
+    @IsNumber()
+    SL: number
 
     @Type(() => String)
-    side: 'short' | 'long';
+    baseCoin: string
+
+    @Type(() => String)
+    side: 'short' | 'long'
 
     @IsOptional()
     @IsNumber()
-    @IsNumberString()
-    size?: number;
+    size?: number
 
     @IsOptional()
     @IsString()
-    marginCoin?: string;
+    marginCoin?: string
 }
