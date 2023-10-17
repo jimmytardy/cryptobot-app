@@ -1,4 +1,4 @@
-import React, {
+import {
     createContext,
     useContext,
     useState,
@@ -11,7 +11,7 @@ import { useNavigate } from 'react-router'
 // Créez le contexte d'authentification
 const AuthContext = createContext({
     user: null as null | any,
-    setToken: (t: string) => {},
+    setToken: (t: string) => {return !!t;},
     isLoading: true,
 })
 
@@ -37,6 +37,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             'Authorization'
         ] = `Bearer ${t}`;
         setStateToken(t);
+        return true;
     }
 
     useEffect(() => {
