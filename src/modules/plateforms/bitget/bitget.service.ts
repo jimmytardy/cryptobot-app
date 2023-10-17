@@ -45,6 +45,12 @@ export class BitgetService {
         }
     }
 
+    async getBaseCoins(userId: Types.ObjectId) {
+        return await this.bitgetUtilsService.getBaseCoins(
+            this.client[userId.toString()],
+        )
+    }
+
     async placeOrder(placeOrderDTO: PlaceOrderDTO, userId: Types.ObjectId) {
         const userIdStr = userId.toString()
         let {

@@ -16,7 +16,8 @@ import {
     Row,
 } from 'react-bootstrap'
 import { IUserPayload } from '../../interfaces/user.interface'
-import axiosClient from '../../axios.config'
+import axiosClient from '../../axiosClient'
+import { useEffect } from 'react'
 
 const SignUp = () => {
     const {
@@ -28,6 +29,18 @@ const SignUp = () => {
 
     const navigate = useNavigate()
 
+    useEffect(() => {
+        const submitOnEnter = (e: any) => {
+            if (e.key === 'Enter') {
+                handleSubmit(submitData);
+            }
+        };
+        document.addEventListener('keydown', submitOnEnter)
+        return () => {
+            document.removeEventListener('keydown', submitOnEnter)
+        }
+    }, []);
+
     const submitData = (data: IUserPayload) => {
         let params = {
             firstname: data.firstname,
@@ -37,7 +50,7 @@ const SignUp = () => {
             bitget: data.bitget,
         }
         axiosClient
-            .post('/signup', params)
+            .post('/auth/signup', params)
             .then(function (response) {
                 toast.success(response.data.message, {
                     position: 'top-right',
@@ -50,7 +63,7 @@ const SignUp = () => {
                     toastId: 'my_toast',
                 });
                 reset();
-                localStorage.setItem('toker', response.data.access_token)
+                localStorage.setItem('token', response.data.access_token)
                 navigate('/', { replace: true })
             })
 

@@ -1,6 +1,7 @@
 import {
     Body,
     Controller,
+    Get,
     HttpCode,
     HttpStatus,
     Post,
@@ -11,6 +12,7 @@ import { AuthService } from './auth.service'
 import { LocalAuthGuard } from 'src/guards/local-auth.guard'
 import { CreateUserDTO } from '../user/user.dto'
 import { UserService } from '../user/user.service'
+import { JwtAuthGuard } from 'src/guards/jwt-auth.guard'
 
 @Controller('auth')
 export class AuthController {
@@ -31,4 +33,11 @@ export class AuthController {
         }
     }
 
+    @Get('profile')
+    @UseGuards(JwtAuthGuard)
+    async isConnected(@Request() req) {
+        return {
+            user: req.user,
+        }
+    }
 }

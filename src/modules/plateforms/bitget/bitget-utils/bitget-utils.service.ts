@@ -21,6 +21,12 @@ export class BitgetUtilsService {
         return Number.parseFloat(candles[candles.length - 1][4]);
     }
 
+    async getBaseCoins(client: FuturesClient): Promise<string[]> {
+        const result = await client.getSymbols('umcbl');
+        const coins = result.data.map(currentCoin => currentCoin.baseCoin);
+        return coins;
+    }
+
     async getSymbolBy(client: FuturesClient, key: string, value: string | number): Promise<FuturesSymbolRule> {
         const result = await client.getSymbols('umcbl');
         const coin = result.data.find(currentCoin => currentCoin[key] == value);

@@ -2,9 +2,13 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { ToastContainer, toast, Flip } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.min.css'
-import axiosClient from '../../axios.config'
+import axiosClient from '../../axiosClient'
+import { useEffect } from 'react'
+import { Button, Card, CardBody, CardText, Col, Container, FormControl, FormLabel, Row } from 'react-bootstrap'
+import { useAuth } from '../../hooks/AuthContext'
 
 const Login = (): JSX.Element => {
+    const { setToken } = useAuth();
     const navigate = useNavigate()
 
     const {
@@ -13,65 +17,84 @@ const Login = (): JSX.Element => {
         formState: { errors },
     } = useForm()
 
-    const login = (data: any) => {
+    useEffect(() => {
+        const submitOnEnter = (e: any) => {
+            if (e.key === 'Enter') {
+                handleSubmit(login)
+            }
+        }
+        document.addEventListener('keydown', submitOnEnter)
+        return () => {
+            document.removeEventListener('keydown', submitOnEnter)
+        }
+    }, [])
+
+    const login = async (data: any) => {
         let params = {
             email: data.email,
             password: data.password,
         }
-        axiosClient
-            .post('/auth/login', params)
-            .then(function (response) {
-                //   IF EMAIL ALREADY EXISTS
-                if (response.data.success === false) {
-                    toast.error(response.data.error, {
-                        position: 'top-right',
-                        autoClose: 3000,
-                        hideProgressBar: true,
-                        closeOnClick: true,
-                        pauseOnHover: true,
-                        draggable: false,
-                        progress: 0,
-                        toastId: 'my_toast',
-                    })
-                } else {
-                    toast.success(response.data.message, {
-                        position: 'top-right',
-                        autoClose: 3000,
-                        hideProgressBar: true,
-                        closeOnClick: true,
-                        pauseOnHover: true,
-                        draggable: false,
-                        progress: 0,
-                        toastId: 'my_toast',
-                    })
-                    localStorage.setItem('token', response.data.access_token)
-                    navigate('/', { replace: true })
-                }
+        const response = await axiosClient.post('/auth/login', params)
+
+        if (!response.data.success) {
+            toast.error(response.data.error, {
+                position: 'top-right',
+                autoClose: 3000,
+                hideProgressBar: true,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: false,
+                progress: 0,
+                toastId: 'my_toast',
             })
-            .catch(function (error) {
-                console.log(error)
-            })
+        } else {
+            toast.success(response.data.message, {
+                position: 'top-right',
+                autoClose: 3000,
+                hideProgressBar: true,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: false,
+                progress: 0,
+                toastId: 'my_toast',
+            });
+            console.log('response.data.access_token', response.data.access_token)
+            setToken(response.data.access_token);
+            navigate('/home', { replace: true })
+        }
     }
 
     return (
         <>
-            <div className="container">
-                <div
-                    className="row d-flex justify-content-center align-items-center"
-                    style={{ height: '100vh' }}
+            <ToastContainer
+                position="top-right"
+                autoClose={5000}
+                hideProgressBar={false}
+                newestOnTop={false}
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+                theme="light"
+            />
+            <Container>
+                <Row
+                    className="justify-content-center align-items-center m-auto"
+                    style={{ height: '100vh', maxWidth: 600 }}
                 >
-                    <div className="card mb-3">
-                        <div className="col-md-12">
-                            <div className="card-body">
+                    <Card className="mb-3">
+                        <Col md={12}>
+                            <CardBody>
                                 <form
                                     autoComplete="off"
                                     onSubmit={handleSubmit(login)}
                                 >
                                     <div className="mb-3 mt-4">
-                                        <label className="form-label">
+                                        <FormLabel>
                                             Email
-                                        </label>
-                                        <input
+                                        </FormLabel>
+                                        <FormControl
                                             type="email"
                                             className="form-control shadow-none"
                                             id="exampleFormControlInput1"
@@ -90,12 +113,12 @@ const Login = (): JSX.Element => {
                                         )}
                                     </div>
                                     <div className="mb-3">
-                                        <label className="form-label">
+                                        <FormLabel>
                                             Mot de passe
-                                        </label>
-                                        <input
+                                        </FormLabel>
+                                        <FormControl
                                             type="password"
-                                            className="form-control shadow-none"
+                                            className="shadow-none"
                                             id="exampleFormControlInput2"
                                             {...register('password', {
                                                 required:
@@ -113,13 +136,14 @@ const Login = (): JSX.Element => {
                                         )}
                                     </div>
                                     <div className="text-center mt-4 ">
-                                        <button
-                                            className="btn btn-outline-primary text-center shadow-none mb-3"
+                                        <Button
+                                            variant="outline-primary"
+                                            className="text-center shadow-none mb-3"
                                             type="submit"
                                         >
                                             Se connecter
-                                        </button>
-                                        <p className="card-text pb-2">
+                                        </Button>
+                                        <CardText className="pb-2">
                                             Vous avez un compte ? <br />
                                             <Link
                                                 style={{
@@ -129,14 +153,14 @@ const Login = (): JSX.Element => {
                                             >
                                                 S'inscrire
                                             </Link>
-                                        </p>
+                                        </CardText>
                                     </div>
                                 </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                            </CardBody>
+                        </Col>
+                    </Card>
+                </Row>
+            </Container>
             <ToastContainer
                 position="top-right"
                 autoClose={5000}

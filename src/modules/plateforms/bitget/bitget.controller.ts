@@ -1,9 +1,9 @@
-import { Body, Controller, Post, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Request, UseGuards } from '@nestjs/common';
 import { PlaceOrderDTO } from './bitget.dto';
 import { BitgetService } from './bitget.service';
-import { LocalAuthGuard } from 'src/guards/local-auth.guard';
+import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 
-@UseGuards(LocalAuthGuard)
+@UseGuards(JwtAuthGuard)
 @Controller('bitget')
 export class BitgetController {
 
@@ -13,5 +13,10 @@ export class BitgetController {
     @Post('placeOrder')
     async placeOrder(@Body() placeOrderDTO: PlaceOrderDTO, @Request() req) {
         return await this.bitgetService.placeOrder(placeOrderDTO, req.user._id);
+    }
+
+    @Get('baseCoins')
+    async getBaseCoins(@Request() req) {
+        return await this.bitgetService.getBaseCoins(req.user._id);
     }
 }

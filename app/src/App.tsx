@@ -3,11 +3,12 @@ import { Route, Routes } from 'react-router-dom'
 import NotFound from './components/NotFound'
 import PlaceOrder from './components/PlaceOrder'
 import SignUp from './components/SignUp'
+import { useAuth } from './hooks/AuthContext'
 
 function App() {
-    const token = localStorage.getItem('token')
-
-    if (!token) {
+    const { user } = useAuth();
+    
+    if (!user) {
         return (
             <Routes>
                 <Route path="/" element={<Login />} />
@@ -19,6 +20,7 @@ function App() {
     }
     return (
         <Routes>
+            <Route path="/home" element={<PlaceOrder />} />
             <Route path="/" element={<PlaceOrder />} />
             <Route path="*" element={<NotFound />} />
         </Routes>
