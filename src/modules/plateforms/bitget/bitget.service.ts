@@ -1,5 +1,6 @@
 import {
     Injectable,
+    Logger,
     OnApplicationBootstrap,
     OnModuleInit,
 } from '@nestjs/common'
@@ -21,11 +22,13 @@ export class BitgetService {
     client: {
         [key: string]: FuturesClient
     }
+    logger: Logger;
 
     constructor(
         private bitgetUtilsService: BitgetUtilsService,
         private bitgetActionService: BitgetActionService,
     ) {
+        this.logger = new Logger('BitgetService')
         this.client = {}
     }
 
@@ -75,7 +78,7 @@ export class BitgetService {
                 this.client[userIdStr],
                 marginCoin,
             )
-            size = balance * 0.08
+            size = balance * 0.08 / PEs.length
         }
         const fullSide = ('open_' + side) as FuturesOrderSide
         const linkOrderId = new Types.ObjectId()
@@ -116,16 +119,25 @@ export class BitgetService {
     }
 
     async activeOrder(orderId: string, userId: Types.ObjectId) {
-        return await this.bitgetActionService.activeOrder(
-            this.client[userId.toString()],
-            orderId,
-        )
+        try {
+            return await this.bitgetActionService.activeOrder(
+                this.client[userId.toString()],
+                orderId,
+            )
+        } catch (e) {
+            this.logger.error('activeOrder', e);
+        }   
+        
     }
 
     async upgradeSL(order: Order): Promise<StopLoss> {
-        return await this.bitgetActionService.upgradeSL(
-            this.client[order.userId.toString()],
-            order,
-        )
+        try {
+            return await this.bitgetActionService.upgradeSL(
+                this.client[order.userId.toString()],
+                order,
+            )
+        } catch (e) {
+            this.logger.error('upgradeSL', e);
+        }
     }
 }

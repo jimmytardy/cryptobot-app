@@ -65,7 +65,7 @@ export class BitgetWsService {
                     } else if (order.side === 'sell') {
                         // close take profit
                         const takeProfit = await this.takeProfitModel.findOne({
-                            orderId: order.ordId,
+                            orderId: order.clOrdId,
                             terminated: { $ne: true },
                             userId
                         })
@@ -75,7 +75,7 @@ export class BitgetWsService {
 
                         // upgrade SL
                         const orderConfig = await this.orderModel.findOne({
-                            orderId: takeProfit.orderParentId,
+                            _id: takeProfit.orderParentId,
                             userId
                         })
 
@@ -86,7 +86,7 @@ export class BitgetWsService {
                             const stopLoss =
                                 await this.bitgetService.upgradeSL(orderConfig)
                             // disabled other order that not actived
-                            if (stopLoss.step === 1) {
+                            if (stopLoss.step === 0) {
                                 await this.orderModel.updateMany(
                                     {
                                         linkOrderId: orderConfig.linkOrderId,
