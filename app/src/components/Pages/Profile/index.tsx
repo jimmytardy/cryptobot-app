@@ -14,7 +14,7 @@ import { IUserConfig, useAuth } from '../../../hooks/AuthContext'
 import './index.scss'
 import { useEffect, useState } from 'react'
 import axiosClient from '../../../axiosClient'
-import { ArrowClockwise, InfoCircle, TriangleFill } from 'react-bootstrap-icons'
+import { ArrowClockwise, InfoCircle } from 'react-bootstrap-icons'
 import { useForm, useFormState } from 'react-hook-form'
 
 interface BitgetPosition {
