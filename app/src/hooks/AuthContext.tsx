@@ -8,26 +8,46 @@ import {
 import axiosClient from '../axiosClient'
 import { useNavigate } from 'react-router'
 
+export interface IUser {
+    firstname: string;
+    lastname: string;
+    email: string;
+    orderConfig?: IUserConfig;
+} 
+
+export interface IUserConfig {
+    quantity?: number
+    pourcentage?: number
+}
 // Créez le contexte d'authentification
 const AuthContext = createContext({
-    user: null as null | any,
-    setToken: (t: string) => {return !!t;},
+    user: {} as IUser,
+    setToken: (t: string) => {return !!t as boolean;},
+    setUserOrderConfig: (config: IUserConfig) => {return !!config as boolean;},
     isLoading: true,
+    isConnected: false
 })
 
 // Créez un composant fournisseur qui gérera l'état d'authentification
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [token, setStateToken] = useState<string | null>(null)
-    const [user, setUser] = useState<any>(null)
+    const [user, setUser] = useState<IUser>({} as IUser);
+    const [isConnected, setIsConnected] = useState<boolean>(false)
     const [isLoading, setIsLoading] = useState<boolean>(true)
     const navigate = useNavigate()
 
     const forceLogout = () => {
         localStorage.removeItem('token')
         setStateToken(null)
-        setUser(null);
+        setUser({} as IUser);
+        setIsConnected(false);
         delete axiosClient.defaults.headers.common['Authorization']
         navigate('/login', { replace: true })
+    }
+
+    const setUserOrderConfig = (config: IUserConfig) => {
+        setUser({...user, orderConfig: config});
+        return true;
     }
 
     const setToken = (t: string) => {
@@ -67,6 +87,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     forceLogout()
                 } else {
                     setUser(user);
+                    setIsConnected(true);
                     setStateToken(token);
                 }
             }
@@ -79,7 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     return (
-        <AuthContext.Provider value={{ user, setToken, isLoading }}>
+        <AuthContext.Provider value={{ user, setUserOrderConfig, setToken, isLoading, isConnected }}>
             {children}
         </AuthContext.Provider>
     )

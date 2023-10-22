@@ -2,10 +2,10 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { ToastContainer, toast, Flip } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.min.css'
-import axiosClient from '../../axiosClient'
+import axiosClient from '../../../axiosClient'
 import { useEffect } from 'react'
 import { Button, Card, CardBody, CardText, Col, Container, FormControl, FormLabel, Row } from 'react-bootstrap'
-import { useAuth } from '../../hooks/AuthContext'
+import { useAuth } from '../../../hooks/AuthContext'
 
 const Login = (): JSX.Element => {
     const { setToken } = useAuth();

@@ -48,6 +48,12 @@ export class BitgetService {
         }
     }
 
+    async getProfile(userId: Types.ObjectId) {
+        return await this.bitgetUtilsService.getProfile(
+            this.client[userId.toString()],
+        )
+    }
+
     async getBaseCoins(userId: Types.ObjectId) {
         return await this.bitgetUtilsService.getBaseCoins(
             this.client[userId.toString()],
@@ -74,12 +80,12 @@ export class BitgetService {
             return
         }
         if (!size) {
-            const balance = await this.bitgetUtilsService.getAccountUSDT(
+            size = await this.bitgetUtilsService.getQuantityForOrder(
                 this.client[userIdStr],
-                marginCoin,
+                userIdStr
             )
-            size = balance * 0.08 / PEs.length
         }
+        console.log('size', size)
         const fullSide = ('open_' + side) as FuturesOrderSide
         const linkOrderId = new Types.ObjectId()
         const results = {

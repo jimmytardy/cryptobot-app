@@ -1,0 +1,70 @@
+.profile {
+    padding: 2rem;
+
+    & > .row {
+        margin-bottom: 1rem;
+    }
+
+    .warning-config {
+        color: orange;
+        font-weight: 700;
+        font-size: 1em;
+        display: flex;
+        align-items: center;
+        svg {
+            margin-right: 0.5rem;
+        }
+    }
+
+    .submit-form {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 1rem;
+    }
+    .form-title {
+        .btn {
+            margin-left: 1rem;
+        }
+    }
+
+    .accordion-button {
+        background-color: transparent!important;
+        height: auto!important;
+        padding: 0!important;
+        border-bottom: 1px solid #dee2e6!important;
+    }
+
+    .accordion-button:focus {
+        box-shadow: none;
+    }
+
+    .accordion-button:not(.collapsed) {
+        color: #212529;
+    }
+
+    .accordion-item {
+        border: none!important;
+    }
+    .positions {
+        .position {
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            padding: 1rem;
+            &.position-long {
+                background-color: green;
+                color: white;
+            }
+            &.position-short {
+                background-color: red;
+            }
+        }
+
+        .position:not(:last-child) {
+            border-bottom: 1px dashed #dee2e6;
+        }
+    }
+    
+
+
+}

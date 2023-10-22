@@ -1,17 +1,20 @@
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common'
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
-import { Model } from 'mongoose'
-import { User } from 'src/model/User'
-import { CreateUserDTO } from './user.dto'
+import { Model, Types } from 'mongoose'
+import { IUserOrderConfig, User } from 'src/model/User'
+import { CreateUserDTO, UpdateConfigDTO } from './user.dto'
 import { genSalt, hash } from 'bcrypt'
 import { PlateformsService } from '../plateforms/plateforms.service'
 
 @Injectable()
 export class UserService implements OnApplicationBootstrap {
+    logger: Logger
     constructor(
         @InjectModel(User.name) private userModel: Model<User>,
         private plateformsService: PlateformsService,
-    ) {}
+    ) {
+        this.logger = new Logger('UserService')
+    }
 
     async onApplicationBootstrap() {
         const users = await this.getListOfTraders()
@@ -19,11 +22,11 @@ export class UserService implements OnApplicationBootstrap {
     }
 
     async findByEmail(email: string): Promise<User | undefined> {
-        return await this.userModel.findOne({ email }).lean();;
+        return await this.userModel.findOne({ email }).lean()
     }
 
     async findById(id: string): Promise<User | undefined> {
-        return await this.userModel.findById(id).lean();
+        return await this.userModel.findById(id).lean()
     }
 
     async create(user: CreateUserDTO) {
@@ -37,6 +40,29 @@ export class UserService implements OnApplicationBootstrap {
     }
 
     async getListOfTraders(): Promise<User[]> {
-        return await this.userModel.find();
+        return await this.userModel.find()
     }
+
+    async updateConfig(
+        userId: Types.ObjectId,
+        updateOrderConfig: UpdateConfigDTO,
+    ) {
+        try {
+            const updatedOrder: IUserOrderConfig = {};
+            if (updateOrderConfig.quantity) {
+                updatedOrder.quantity = updateOrderConfig.quantity;
+            }
+            if (updateOrderConfig.pourcentage) {
+                updatedOrder.pourcentage = updateOrderConfig.pourcentage;
+            }
+            await this.userModel.updateOne(
+                { _id: userId },
+                { $set: { orderConfig: updatedOrder } },
+            )
+            return { success: true }
+        } catch (e) {
+            this.logger.error(e)
+            return { success: false }
+        }
+    }    
 }

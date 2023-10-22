@@ -15,8 +15,8 @@ import {
     FormLabel,
     Row,
 } from 'react-bootstrap'
-import { IUserPayload } from '../../interfaces/user.interface'
-import axiosClient from '../../axiosClient'
+import { IUserPayload } from '../../../interfaces/user.interface'
+import axiosClient from '../../../axiosClient'
 import { useEffect } from 'react'
 
 const SignUp = () => {

@@ -1,39 +1,55 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { SchemaTypes, Types } from 'mongoose';
-import { HydratedDocument } from 'mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
+import { SchemaTypes, Types } from 'mongoose'
+import { HydratedDocument } from 'mongoose'
 
-export type UserDocument = HydratedDocument<User>;
+export type UserDocument = HydratedDocument<User>
 
 @Schema({ _id: false })
 export class IUserCryptoExchange {
     @Prop()
-    api_key: string;
+    api_key: string
 
     @Prop()
-    api_secret_key: string;
+    api_secret_key: string
 
     @Prop()
-    api_pass: string;
+    api_pass: string
 }
 
-@Schema({ timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true }})
+@Schema({ _id: false })
+export class IUserOrderConfig {
+    @Prop({ type: Number })
+    pourcentage?: number
+
+    @Prop({ type: Number })
+    quantity?: number
+}
+
+@Schema({
+    timestamps: true,
+    toObject: { virtuals: true },
+    toJSON: { virtuals: true },
+})
 export class User {
     _id: Types.ObjectId
-    
-    @Prop({ required: true })
-    firstname: string;
 
     @Prop({ required: true })
-    lastname: string;
+    firstname: string
+
+    @Prop({ required: true })
+    lastname: string
 
     @Prop({ unique: true, require: true, index: true })
-    email: string;
+    email: string
 
     @Prop({ required: true })
     password: string
 
     @Prop({ type: SchemaTypes.Mixed })
     bitget: IUserCryptoExchange
+
+    @Prop({ type: SchemaTypes.Mixed, default: {} })
+    orderConfig?: IUserOrderConfig
 }
 
-export const UserSchema = SchemaFactory.createForClass(User);
+export const UserSchema = SchemaFactory.createForClass(User)

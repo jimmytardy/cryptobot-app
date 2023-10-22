@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import './index.scss'
 import { Form, Button, Row, Col, Container } from 'react-bootstrap'
-import axiosClient from '../../axiosClient'
+import axiosClient from '../../../../axiosClient'
 
-interface FormData {
+interface PlaceOrderPayload {
     TPs: (number | undefined)[]
     PEs: (number | undefined)[]
     SL: number
@@ -13,7 +13,7 @@ interface FormData {
     marginCoin: string
 }
 const PlaceOrder = () => {
-    const [formData, setFormData] = useState<FormData>({
+    const [formData, setFormData] = useState<PlaceOrderPayload>({
         TPs: [undefined, undefined, undefined, undefined, undefined, undefined], // Un tableau pour stocker les TP
         PEs: [undefined, undefined], // Un tableau pour stocker les PE
         SL: 0,
@@ -89,7 +89,7 @@ const PlaceOrder = () => {
 
     return (
         <Container>
-            <h1>Formulaire</h1>
+            <h2>Ordre Bitget</h2>
             <Form onSubmit={handleSubmit}>
                 <Row className="mb-4">
                     {formData.PEs.map((pe, index) => (
@@ -110,7 +110,7 @@ const PlaceOrder = () => {
                 </Row>
                 <Row className="mb-4">
                     {formData.TPs.map((tp, index) => (
-                        <Col key={'tp-' + index}>
+                        <Col key={'tp-' + index} xs={4} lg={2}>
                             <Form.Label htmlFor={'tp-' + index}>
                                 TP {index + 1}
                             </Form.Label>

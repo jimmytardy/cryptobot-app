@@ -1,20 +1,37 @@
-import { Type } from "class-transformer";
-import { IsObject, IsString, Validate, ValidateNested } from "class-validator";
-import { IUserCryptoExchange } from "src/model/User";
+import { Type } from 'class-transformer'
+import {
+    IsNumber,
+    IsObject,
+    IsOptional,
+    IsString,
+    Validate,
+    ValidateNested,
+} from 'class-validator'
+import { IUserCryptoExchange } from 'src/model/User'
 
 export class CreateUserDTO {
     @IsString()
-    firstname: string;
+    firstname: string
 
     @IsString()
-    lastname: string;
+    lastname: string
 
     @IsString()
-    email: string;
+    email: string
 
     @IsString()
     password: string
 
     @Type(() => IUserCryptoExchange)
     bitget: IUserCryptoExchange
+}
+
+export class UpdateConfigDTO {
+    @IsNumber()
+    @IsOptional()
+    quantity: number
+
+    @IsNumber()
+    @IsOptional()
+    pourcentage: number
 }

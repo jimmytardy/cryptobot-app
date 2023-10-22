@@ -1,30 +1,15 @@
-import Login from './components/Login'
-import { Route, Routes } from 'react-router-dom'
-import NotFound from './components/NotFound'
-import PlaceOrder from './components/PlaceOrder'
-import SignUp from './components/SignUp'
 import { useAuth } from './hooks/AuthContext'
+import Auth from './components/Auth'
+import Pages from './components/Pages'
+import './App.scss';
 
 function App() {
-    const { user } = useAuth();
-    
-    if (!user) {
-        return (
-            <Routes>
-                <Route path="/" element={<Login />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<SignUp />} />
-                <Route path="*" element={<NotFound />} />
-            </Routes>
-        )
+    const { isConnected } = useAuth()
+
+    if (!isConnected) {
+        return <Auth />
     }
-    return (
-        <Routes>
-            <Route path="/home" element={<PlaceOrder />} />
-            <Route path="/" element={<PlaceOrder />} />
-            <Route path="*" element={<NotFound />} />
-        </Routes>
-    )
+    return <Pages />
 }
 
 export default App

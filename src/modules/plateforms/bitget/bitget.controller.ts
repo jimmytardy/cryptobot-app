@@ -9,7 +9,6 @@ export class BitgetController {
 
     constructor(private bitgetService: BitgetService) { }
 
-
     @Post('placeOrder')
     async placeOrder(@Body() placeOrderDTO: PlaceOrderDTO, @Request() req) {
         return await this.bitgetService.placeOrder(placeOrderDTO, req.user._id);
@@ -18,5 +17,10 @@ export class BitgetController {
     @Get('baseCoins')
     async getBaseCoins(@Request() req) {
         return await this.bitgetService.getBaseCoins(req.user._id);
+    }
+
+    @Get('profile')
+    async getProfile(@Request() req) {
+        return await this.bitgetService.getProfile(req.user._id);
     }
 }

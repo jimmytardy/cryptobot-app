@@ -58,7 +58,6 @@ export class BitgetWsService {
         const data = e.data
 
         for (const order of data) {
-            console.log('order', order)
             switch (order.status) {
                 case 'full-fill':
                     if (order.side === 'buy') {
