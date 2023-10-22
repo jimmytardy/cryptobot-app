@@ -140,4 +140,15 @@ export class BitgetService {
             this.logger.error('upgradeSL', e);
         }
     }
+
+    async cancelOrder(order: Order) {
+        try {
+            return await this.bitgetActionService.cancelOrder(
+                this.client[order.userId.toString()],
+                order,
+            )
+        } catch (e) {
+            this.logger.error('removeOrder', e);
+        }
+    }
 }

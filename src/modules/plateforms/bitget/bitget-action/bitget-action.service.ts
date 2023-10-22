@@ -257,47 +257,62 @@ export class BitgetActionService {
     }
 
     async upgradeSL(client: FuturesClient, order: Order): Promise<StopLoss> {
-        const stopLoss = await this.stopLossModel.findOne({
-            orderParentId: order._id,
-            terminated: { $ne: true },
-        })
+        try {
+            const stopLoss = await this.stopLossModel.findOne({
+                orderParentId: order._id,
+                terminated: { $ne: true },
+            })
 
-        if (!stopLoss) {
-            return
-        }
+            if (!stopLoss) {
+                return
+            }
 
-        let newStep = stopLoss.step + 1
-        let triggerPrice = 0
+            let newStep = stopLoss.step + 1
 
-        if (newStep === 0 || newStep === 1) {
-            let PEs = [order.PE]
+            let stepsTriggers = [order.PE]
             const orderLinked = await this.orderModel.findOne(
-                { linkOrderId: order.linkOrderId },
+                { linkOrderId: order.linkOrderId, _id: { $ne: order._id } },
                 'PE',
             )
             if (orderLinked) {
-                PEs.push(orderLinked.PE)
-                PEs = PEs.sort()
+                stepsTriggers.push(orderLinked.PE)
             } else {
-                PEs.push(order.PE)
+                stepsTriggers.push(order.PE)
             }
-            triggerPrice = PEs[newStep]
-        } else {
-            triggerPrice = order.TPs[newStep - 2]
+            // Array of PE + TPs for triggerPrice
+            stepsTriggers = stepsTriggers.concat(order.TPs).sort();
+            const params: ModifyFuturesPlanStopOrder = {
+                marginCoin: order.marginCoin,
+                orderId: stopLoss.orderId,
+                planType: 'loss_plan',
+                symbol: order.symbol,
+                triggerPrice: stepsTriggers[newStep].toString(),
+            }
+            const result = await client.modifyStopOrder(params)
+            stopLoss.orderId = result.data.orderId
+            stopLoss.price = stepsTriggers[newStep]
+            stopLoss.step = newStep
+            await stopLoss.save()
+            return stopLoss.toObject() as StopLoss
+        } catch (e) {
+            console.log('upgradeSL', e);
+            throw e;
         }
+    }
 
-        const params: ModifyFuturesPlanStopOrder = {
-            marginCoin: order.marginCoin,
-            orderId: stopLoss.orderId,
-            planType: 'loss_plan',
-            symbol: order.symbol,
-            triggerPrice: triggerPrice.toString(),
+    async cancelOrder(client: FuturesClient, order: Order) {
+        try {
+            await client.cancelOrder(
+                order.symbol,
+                order.marginCoin,
+                order.orderId,
+            )
+            await this.orderModel.updateOne(
+                { _id: order._id },
+                { terminated: true },
+            )
+        } catch (e) {
+            console.log('removeOrder', e)
         }
-        const result = await client.modifyStopOrder(params)
-        stopLoss.orderId = result.data.orderId
-        stopLoss.price = triggerPrice
-        stopLoss.step = newStep
-        await stopLoss.save()
-        return stopLoss.toObject() as StopLoss
     }
 }

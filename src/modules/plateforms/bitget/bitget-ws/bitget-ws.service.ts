@@ -58,6 +58,7 @@ export class BitgetWsService {
         const data = e.data
 
         for (const order of data) {
+            console.log('order', order)
             switch (order.status) {
                 case 'full-fill':
                     if (order.side === 'buy') {
@@ -73,29 +74,30 @@ export class BitgetWsService {
                         takeProfit.terminated = true
                         await takeProfit.save()
 
-                        // upgrade SL
                         const orderConfig = await this.orderModel.findOne({
                             _id: takeProfit.orderParentId,
                             userId
                         })
-
+                        // close order if has take all TPs
                         if (takeProfit.num === orderConfig.TPs.length) {
                             orderConfig.terminated = true
                             await orderConfig.save()
                         } else {
+                            // upgrade stop loss
                             const stopLoss =
                                 await this.bitgetService.upgradeSL(orderConfig)
-                            // disabled other order that not actived
-                            if (stopLoss.step === 0) {
-                                await this.orderModel.updateMany(
-                                    {
-                                        linkOrderId: orderConfig.linkOrderId,
-                                        terminated: { $ne: true },
-                                        activated: false,
-                                        userId
-                                    },
-                                    { terminated: true },
-                                )
+                            // cancel other order that not actived
+                            if (stopLoss.step >= 0) {
+                                const orders = await this.orderModel.find({
+                                    linkOrderId: orderConfig.linkOrderId,
+                                    terminated: { $ne: true },
+                                    activated: false,
+                                    userId,
+                                    _id: { $ne: orderConfig._id },
+                                });
+                                for (const order of orders) {
+                                    await this.bitgetService.cancelOrder(order);
+                                }
                             }
                         }
                     } else {
