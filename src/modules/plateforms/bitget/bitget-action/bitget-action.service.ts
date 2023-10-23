@@ -7,6 +7,7 @@ import {
     FuturesSymbolRule,
     ModifyFuturesPlanStopOrder,
     NewFuturesOrder,
+    NewFuturesPlanPositionTPSL,
     NewFuturesPlanStopOrder,
 } from 'bitget-api'
 import { BitgetUtilsService } from '../bitget-utils/bitget-utils.service'
@@ -208,7 +209,12 @@ export class BitgetActionService {
         order: Order,
     ) {
         const TPconfig = this.TPSize[order.TPs.length]
-        let additionnalSize = 0
+        const position = await client.getPosition(symbolRules.symbol, order.marginCoin);
+        const available = parseFloat(
+            position.data.filter((pos) => pos.holdSide === order.side)[0]
+                .available,
+        )
+        let additionnalSize = 0;
         // Take profits
         for (let i = 0; i < order.TPs.length; i++) {
             const isLast = i === order.TPs.length - 1
@@ -216,12 +222,12 @@ export class BitgetActionService {
             let size = 0
             if (isLast) {
                 size = this.bitgetUtilsService.fixSizeByRules(
-                    order.quantity - additionnalSize,
+                    available - additionnalSize,
                     symbolRules,
                 )
             } else {
                 size = this.bitgetUtilsService.fixSizeByRules(
-                    TPconfig[i] * order.quantity,
+                    TPconfig[i] * available,
                     symbolRules,
                 )
                 additionnalSize += size
@@ -231,12 +237,13 @@ export class BitgetActionService {
                     symbol: symbolRules.symbol,
                     marginCoin: order.marginCoin,
                     planType: 'profit_plan',
+                    triggerPrice: String(TP),
                     size: size.toString(),
                     triggerType: 'fill_price',
-                    triggerPrice: String(TP),
                     holdSide: order.side,
                 }
                 const result = await client.submitStopOrder(params)
+
                 const { orderId } = result.data
                 await new this.takeProfitModel({
                     triggerPrice: TP,
@@ -251,7 +258,20 @@ export class BitgetActionService {
                     userId: order.userId,
                 }).save()
             } catch (e) {
-                console.error('activeTPs 1', e)
+                console.error(
+                    'activeTPs',
+                    i,
+                    {
+                        symbol: symbolRules.symbol,
+                        marginCoin: order.marginCoin,
+                        planType: 'profit_plan',
+                        size: size.toString(),
+                        triggerType: 'fill_price',
+                        triggerPrice: String(TP),
+                        holdSide: order.side,
+                    },
+                    e,
+                )
             }
         }
     }
@@ -280,7 +300,7 @@ export class BitgetActionService {
                 stepsTriggers.push(order.PE)
             }
             // Array of PE + TPs for triggerPrice
-            stepsTriggers = stepsTriggers.concat(order.TPs).sort();
+            stepsTriggers = stepsTriggers.concat(order.TPs).sort()
             const params: ModifyFuturesPlanStopOrder = {
                 marginCoin: order.marginCoin,
                 orderId: stopLoss.orderId,
@@ -295,8 +315,8 @@ export class BitgetActionService {
             await stopLoss.save()
             return stopLoss.toObject() as StopLoss
         } catch (e) {
-            console.log('upgradeSL', e);
-            throw e;
+            console.log('upgradeSL', e)
+            throw e
         }
     }
 

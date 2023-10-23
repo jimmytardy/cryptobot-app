@@ -22,9 +22,10 @@ export class BitgetWsService {
     }
     constructor(
         @InjectModel(Order.name) private orderModel: Model<Order>,
-        @InjectModel(TakeProfit.name) private takeProfitModel: Model<TakeProfit>,
+        @InjectModel(TakeProfit.name)
+        private takeProfitModel: Model<TakeProfit>,
         private orderService: OrderService,
-        private bitgetService: BitgetService
+        private bitgetService: BitgetService,
     ) {
         this.client = {}
     }
@@ -41,7 +42,7 @@ export class BitgetWsService {
 
     async initializeTraders(users: User[]) {
         for (const user of users) {
-            this.addNewTrader(user);
+            this.addNewTrader(user)
         }
     }
 
@@ -61,42 +62,53 @@ export class BitgetWsService {
             switch (order.status) {
                 case 'full-fill':
                     if (order.side === 'buy') {
-                        await this.bitgetService.activeOrder(order.ordId, userId)
+                        await this.bitgetService.activeOrder(
+                            order.ordId,
+                            userId,
+                        )
                     } else if (order.side === 'sell') {
                         // close take profit
                         const takeProfit = await this.takeProfitModel.findOne({
                             orderId: order.clOrdId,
                             terminated: { $ne: true },
-                            userId
+                            userId,
                         })
-                        if (!takeProfit) break;
+                        if (!takeProfit) break
                         takeProfit.terminated = true
                         await takeProfit.save()
 
                         const orderConfig = await this.orderModel.findOne({
                             _id: takeProfit.orderParentId,
-                            userId
+                            userId,
                         })
                         // close order if has take all TPs
                         if (takeProfit.num === orderConfig.TPs.length) {
                             orderConfig.terminated = true
                             await orderConfig.save()
                         } else {
-                            // upgrade stop loss
-                            const stopLoss =
-                                await this.bitgetService.upgradeSL(orderConfig)
-                            // cancel other order that not actived
-                            if (stopLoss.step >= 0) {
-                                const orders = await this.orderModel.find({
-                                    linkOrderId: orderConfig.linkOrderId,
-                                    terminated: { $ne: true },
-                                    activated: false,
-                                    userId,
-                                    _id: { $ne: orderConfig._id },
-                                });
-                                for (const order of orders) {
-                                    await this.bitgetService.cancelOrder(order);
+                            try {
+                                // upgrade stop loss
+                                const stopLoss =
+                                    await this.bitgetService.upgradeSL(
+                                        orderConfig,
+                                    )
+                                // cancel other order that not actived
+                                if (stopLoss.step >= 0) {
+                                    const orders = await this.orderModel.find({
+                                        linkOrderId: orderConfig.linkOrderId,
+                                        terminated: { $ne: true },
+                                        activated: false,
+                                        userId,
+                                        _id: { $ne: orderConfig._id },
+                                    })
+                                    for (const order of orders) {
+                                        await this.bitgetService.cancelOrder(
+                                            order,
+                                        )
+                                    }
                                 }
+                            } catch (e) {
+                                console.log('upgradeSL', order, e)
                             }
                         }
                     } else {

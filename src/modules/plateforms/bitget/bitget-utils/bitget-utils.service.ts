@@ -8,7 +8,9 @@ import { UserService } from 'src/modules/user/user.service'
 @Injectable()
 export class BitgetUtilsService {
     DEFAULT_PERCENTAGE_ORDER = 4
-    constructor(@InjectModel(User.name) private readonly userModel: Model<User>) {}
+    constructor(
+        @InjectModel(User.name) private readonly userModel: Model<User>,
+    ) {}
 
     async getAccount(client: FuturesClient): Promise<any> {
         const account = await client.getAccounts('umcbl')
@@ -21,18 +23,28 @@ export class BitgetUtilsService {
             this.getAccount(client),
             await client.getPositionsV2('umcbl'),
         ])
+
+        const fullPositions = []
+        for (const position of positions.data) {
+            if (position.symbol.includes('BTC')) {
+                console.log('position', position);
+                console.log(await client.getPosition(position.symbol, 'USDT'))
+            };
+            fullPositions.push({
+                leverage: position.leverage,
+                baseCoin: position.symbol.replace('USDT_UMCBL', ''),
+                margin: Number(position.margin),
+                holdSide: position.holdSide,
+            })
+        }
+
         const result = {
             available: Number(accountFuture.available),
             totalPnL:
                 Number(accountFuture.usdtEquity) -
                 Number(accountFuture.unrealizedPL),
             unrealizedPL: Number(accountFuture.unrealizedPL),
-            positions: positions.data.map((position) => ({
-                leverage: position.leverage,
-                baseCoin: position.symbol.replace('USDT_UMCBL', ''),
-                margin: Number(position.margin),
-                holdSide: position.holdSide,
-            })),
+            positions: fullPositions,
         }
         return result
     }

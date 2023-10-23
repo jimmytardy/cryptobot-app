@@ -29,10 +29,10 @@
     }
 
     .accordion-button {
-        background-color: transparent!important;
-        height: auto!important;
-        padding: 0!important;
-        border-bottom: 1px solid #dee2e6!important;
+        background-color: transparent !important;
+        height: auto !important;
+        padding: 0 !important;
+        border-bottom: 1px solid #dee2e6 !important;
     }
 
     .accordion-button:focus {
@@ -44,27 +44,6 @@
     }
 
     .accordion-item {
-        border: none!important;
+        border: none !important;
     }
-    .positions {
-        .position {
-            margin-bottom: 1rem;
-            border-radius: 8px;
-            padding: 1rem;
-            &.position-long {
-                background-color: green;
-                color: white;
-            }
-            &.position-short {
-                background-color: red;
-            }
-        }
-
-        .position:not(:last-child) {
-            border-bottom: 1px dashed #dee2e6;
-        }
-    }
-    
-
-
 }

@@ -16,13 +16,8 @@ import { useEffect, useState } from 'react'
 import axiosClient from '../../../axiosClient'
 import { ArrowClockwise, InfoCircle } from 'react-bootstrap-icons'
 import { useForm, useFormState } from 'react-hook-form'
+import Positions, { BitgetPosition } from './Positions'
 
-interface BitgetPosition {
-    baseCoin: string
-    holdSide: 'long' | 'short'
-    leverage: number
-    margin: number
-}
 interface BitgetProfile {
     available: number
     totalPnL: number
@@ -45,7 +40,6 @@ const Profile = () => {
     })
     const { reset, handleSubmit, register, setValue, getValues, control } =
         useForm<IUserConfig>()
-    console.log('user', user)
     const { errors } = useFormState({ control })
 
     const loadBitGetProfile = async () => {
@@ -249,47 +243,7 @@ const Profile = () => {
                                 </Row>
                             </Form>
                         </Col>
-                        <Accordion as={Col}>
-                            <Accordion.Item as={Row} eventKey="0">
-                                <Accordion.Header as={Col}>
-                                    <Row>
-                                        <Col xs={12}>
-                                            <div className="form-title">
-                                                <b>Positions</b>
-                                            </div>
-                                        </Col>
-                                    </Row>
-                                </Accordion.Header>
-                                <Accordion.Body as={Col} className="positions">
-                                    {bitGetProfile.positions.map(
-                                        (position, index: number) => (
-                                            <Row
-                                                className={
-                                                    'position position-' +
-                                                    position.holdSide
-                                                }
-                                                key={index + position.baseCoin}
-                                            >
-                                                <Col xs={4}>
-                                                    <b>{position.baseCoin}</b>
-                                                    <br />x{position.leverage}
-                                                </Col>
-                                                <Col xs={8}>
-                                                    <b>
-                                                        {position.margin.toFixed(
-                                                            2,
-                                                        )}{' '}
-                                                        USDT
-                                                    </b>
-                                                    <br />
-                                                    {position.holdSide.toUpperCase()}
-                                                </Col>
-                                            </Row>
-                                        ),
-                                    )}
-                                </Accordion.Body>
-                            </Accordion.Item>
-                        </Accordion>
+                        <Positions positions={bitGetProfile.positions} />
                     </>
                 )}
             </Row>
