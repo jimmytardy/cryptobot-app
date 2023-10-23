@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react'
 import './index.scss'
 import { Form, Button, Row, Col, Container } from 'react-bootstrap'
 import axiosClient from '../../../../axiosClient'
-import { Controller, FormProvider, useForm } from 'react-hook-form'
+import { FormProvider, useForm } from 'react-hook-form'
 import ControllerArrayNumber from './ControllerArrayNumber'
-import { register } from 'module'
 
 interface IPlaceOrderPayload {
     TPs: (string | undefined)[]

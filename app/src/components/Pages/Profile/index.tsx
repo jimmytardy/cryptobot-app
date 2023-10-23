@@ -1,5 +1,4 @@
 import {
-    Accordion,
     Button,
     Col,
     Container,
