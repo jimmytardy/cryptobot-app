@@ -9,6 +9,9 @@ export class Order {
     _id: Types.ObjectId
 
     @Prop({ required: true })
+    clOrderId: Types.ObjectId;
+
+    @Prop({ required: true })
     PE: number;
 
     @Prop({ required: true })
@@ -40,6 +43,9 @@ export class Order {
     
     @Prop({ default: false})
     terminated: boolean;
+
+    @Prop({ default: false})
+    cancelled: boolean;
 
     @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
     userId: Types.ObjectId

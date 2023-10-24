@@ -12,6 +12,9 @@ export class TakeProfit {
     triggerPrice: number;
 
     @Prop({ required: true })
+    clOrderId: Types.ObjectId;
+
+    @Prop({ required: true })
     orderId: string;
 
     @Prop({ required: true, type: Types.ObjectId, ref: 'Order' })
@@ -22,6 +25,12 @@ export class TakeProfit {
 
     @Prop({ default: false})
     terminated: boolean;
+
+    @Prop({ default: false })
+    cancelled: boolean;
+    
+    @Prop({ default: false })
+    updated: boolean;
 
     @Prop()
     num: number

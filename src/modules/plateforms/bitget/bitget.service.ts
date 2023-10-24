@@ -85,7 +85,6 @@ export class BitgetService {
                 userIdStr
             )
         }
-        console.log('size', size)
         const fullSide = ('open_' + side) as FuturesOrderSide
         const linkOrderId = new Types.ObjectId()
         const results = {
@@ -155,6 +154,17 @@ export class BitgetService {
             )
         } catch (e) {
             this.logger.error('removeOrder', e);
+        }
+    }
+
+    async disabledOrderLink(userId: Types.ObjectId, linkId: Types.ObjectId) {
+        try {
+            await this.bitgetActionService.disabledOrderLink(
+                this.client[userId.toString()],
+                linkId,
+            )
+        } catch (e) {
+            this.logger.error('disabledOrderLink', e);
         }
     }
 }

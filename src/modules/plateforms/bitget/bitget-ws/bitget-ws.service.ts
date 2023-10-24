@@ -6,14 +6,15 @@ import {
 import { InjectModel } from '@nestjs/mongoose'
 import { WebsocketClient } from 'bitget-api'
 import { Model, Types } from 'mongoose'
-import { Order } from 'src/model/Order'
+import { Order, OrderDocument } from 'src/model/Order'
 import { BitgetActionService } from '../bitget-action/bitget-action.service'
 import { BitgetService } from '../bitget.service'
 import { ConfigService } from '@nestjs/config'
-import { TakeProfit } from 'src/model/TakeProfit'
+import { TakeProfit, TakeProfitDocument } from 'src/model/TakeProfit'
 import { OrderService } from 'src/modules/order/order.service'
 import { UserService } from 'src/modules/user/user.service'
 import { User } from 'src/model/User'
+import { StopLoss, StopLossDocument } from 'src/model/StopLoss'
 
 @Injectable()
 export class BitgetWsService {
@@ -22,6 +23,7 @@ export class BitgetWsService {
     }
     constructor(
         @InjectModel(Order.name) private orderModel: Model<Order>,
+        @InjectModel(StopLoss.name) private stopLossModel: Model<StopLoss>,
         @InjectModel(TakeProfit.name)
         private takeProfitModel: Model<TakeProfit>,
         private orderService: OrderService,
@@ -50,105 +52,175 @@ export class BitgetWsService {
         const userIdStr = userId.toString()
         // client.subscribeTopic('UMCBL', 'ordersAlgo');
         this.client[userIdStr].subscribeTopic('UMCBL', 'orders')
-        this.client[userIdStr].on('update', (e) =>
-            this.onUpdatedOrder(e, userId),
-        )
+        this.client[userIdStr].subscribeTopic('UMCBL', 'ordersAlgo')
+        this.client[userIdStr].on('update', async (e) => {
+            switch (e.arg.channel) {
+                case 'orders':
+                    await this.onUpdatedOrder(e, userId)
+                    break
+                case 'ordersAlgo':
+                    await this.onUpdatedOrderAlgo(e, userId)
+                    break
+                default:
+                    console.log('topic not implemented', e)
+            }
+        })
+    }
+
+    private async onUpdatedOrderAlgo(e: any, userId: Types.ObjectId) {
+        const data = e.data
+        for (const orderAlgoEvent of data) {
+            if (!Types.ObjectId.isValid(orderAlgoEvent.cOid)) return;
+            const clOrderId = new Types.ObjectId(orderAlgoEvent.cOid);
+
+            const takeProfit = await this.takeProfitModel.findOne({
+                clOrderId,
+                terminated: { $ne: true },
+                userId,
+            })
+            if (takeProfit) {
+                return await this.onUpdatedOrderAlgoTP(orderAlgoEvent, takeProfit);
+            }
+                
+
+            const stopLoss = await this.stopLossModel.findOne({
+                clOrderId,
+                terminated: { $ne: true },
+                userId,
+            })
+
+            if (stopLoss) {
+                return await this.onUpdatedOrderAlgoSL(orderAlgoEvent, stopLoss);
+            }
+        }
+    }
+
+    private async onUpdatedOrderAlgoSL(
+        orderAlgoEvent: any,
+        stopLoss: StopLossDocument,
+    ) {
+        switch (orderAlgoEvent.state) {
+            case 'cancel':
+                stopLoss.terminated = true;
+                stopLoss.cancelled = true;
+                await stopLoss.save();
+                break;
+            case 'not_trigger':
+                if (stopLoss.triggerPrice !== Number(orderAlgoEvent.triggerPx)) {
+                    stopLoss.triggerPrice = Number(orderAlgoEvent.triggerPx);
+                    stopLoss.updated = true;
+                    await stopLoss.save();
+                }
+                break;
+            case 'triggered':
+                await this.onStopLossTriggered(stopLoss);
+                break;
+            default:
+                console.log(
+                    'onUpdatedOrderAlgoSL',
+                    orderAlgoEvent.status,
+                    'not implemented',
+                )
+        }
+    }
+
+    private async onUpdatedOrderAlgoTP(
+        orderAlgoEvent: any,
+        takeProfit: TakeProfitDocument,
+    ) {
+        console.log('orderAlgoEvent.state', orderAlgoEvent.state)
+        switch (orderAlgoEvent.state) {
+            case 'cancel':
+                takeProfit.terminated = true;
+                takeProfit.cancelled = true;
+                await takeProfit.save();
+                const takesProfitsNotTerminated = await this.takeProfitModel.countDocuments({
+                    orderParentId: takeProfit.orderParentId,
+                    terminated: { $ne: true },
+                });
+                if (takesProfitsNotTerminated === 0) {
+                    await this.orderService.cancelOrder(takeProfit.orderParentId);
+                }
+                break;
+            case 'not_trigger':
+                if (takeProfit.triggerPrice !== Number(orderAlgoEvent.triggerPx)) {
+                    takeProfit.triggerPrice = Number(orderAlgoEvent.triggerPx);
+                    takeProfit.updated = true;
+                    await takeProfit.save();
+                }
+                break;
+            case 'triggered':
+                await this.onTakeProfitTriggered(takeProfit);
+                break;
+            default:
+                console.log(
+                    'onUpdatedOrderAlgoTP',
+                    orderAlgoEvent.status,
+                    'not implemented',
+                )
+        }
     }
 
     private async onUpdatedOrder(e: any, userId: Types.ObjectId) {
         const data = e.data
 
-        for (const order of data) {
-            switch (order.status) {
-                case 'full-fill':
-                    if (order.side === 'buy') {
-                        await this.bitgetService.activeOrder(
-                            order.ordId,
-                            userId,
-                        )
-                    } else if (order.side === 'sell') {
-                        // close take profit
-                        const takeProfit = await this.takeProfitModel.findOne({
-                            orderId: order.clOrdId,
-                            terminated: { $ne: true },
-                            userId,
-                        })
-                        if (!takeProfit) break
-                        takeProfit.terminated = true
-                        await takeProfit.save()
-
-                        const orderConfig = await this.orderModel.findOne({
-                            _id: takeProfit.orderParentId,
-                            userId,
-                        })
-                        // close order if has take all TPs
-                        if (takeProfit.num === orderConfig.TPs.length) {
-                            orderConfig.terminated = true
-                            await orderConfig.save()
-                        } else {
-                            try {
-                                // upgrade stop loss
-                                const stopLoss =
-                                    await this.bitgetService.upgradeSL(
-                                        orderConfig,
-                                    )
-                                // cancel other order that not actived
-                                if (stopLoss.step >= 0) {
-                                    const orders = await this.orderModel.find({
-                                        linkOrderId: orderConfig.linkOrderId,
-                                        terminated: { $ne: true },
-                                        activated: false,
-                                        userId,
-                                        _id: { $ne: orderConfig._id },
-                                    })
-                                    for (const order of orders) {
-                                        await this.bitgetService.cancelOrder(
-                                            order,
-                                        )
-                                    }
-                                }
-                            } catch (e) {
-                                console.log('upgradeSL', order, e)
-                            }
-                        }
-                    } else {
-                        console.log('order.side', order.side)
-                    }
-                    break
-                case 'partial-fill':
-                    // stop loss activate
-                    if (order.side === 'sell') {
-                        const takeProfit = await this.takeProfitModel.findOne({
-                            orderId: order.ordId,
-                            terminated: { $ne: true },
-                        })
-                        if (!takeProfit) break
-                        takeProfit.terminated = true
-                        await takeProfit.save()
-                        const numTakeProfitActivate =
-                            await this.takeProfitModel.countDocuments({
-                                orderParentId: takeProfit.orderParentId,
-                                terminated: { $ne: true },
-                            })
-                        if (numTakeProfitActivate === 0) {
-                            await this.orderModel.updateOne(
-                                { orderId: takeProfit.orderParentId },
-                                { terminated: true },
-                            )
-                        }
-                    }
-                    break
-                case 'new':
-                    if (order.side === 'sell') {
-                        const orderConfig = await this.orderModel.exists({
-                            orderId: order.ordId,
-                        })
-                        if (!orderConfig) break
-                        await this.orderService.disableOrder(order.ordId)
-                    }
-                default:
-                    break
-            }
+        for (const orderEvent of data) {
+            if (orderEvent.status === 'new') return
+            if (!Types.ObjectId.isValid(orderEvent.clOrdId)) return
+            const clOrderId = new Types.ObjectId(orderEvent.clOrdId)
+            const order = await this.orderModel.findOne({
+                clOrderId,
+                terminated: { $ne: true },
+                userId,
+            })
+            if (order) return this.onOrderEvent(orderEvent, order);
         }
+    }
+
+    private async onOrderEvent(orderEvent: any, order: OrderDocument) {
+        switch (orderEvent.status) {
+            case 'full-fill':
+            case 'partial-fill':
+                if (orderEvent.side === 'buy') {
+                    await this.bitgetService.activeOrder(
+                        orderEvent.ordId,
+                        order.userId,
+                    )
+                    break
+                }
+            case 'cancelled':
+                await this.orderService.cancelOrder(order._id)
+                break
+            default:
+                console.log('onOrderEvent', orderEvent, 'not implemented')
+        }
+    }
+
+    private async onTakeProfitTriggered(takeProfit: TakeProfitDocument) {
+        takeProfit.terminated = true
+        await takeProfit.save()
+        const order = await this.orderModel.findById(takeProfit.orderParentId)
+        // close order if has take all TPs
+        try {
+            // upgrade stop loss
+            const stopLoss = await this.bitgetService.upgradeSL(order)
+            // cancel other order that not actived
+            if (stopLoss.step >= 0) {
+                await this.bitgetService.disabledOrderLink(
+                    order.userId,
+                    order.linkOrderId,
+                )
+            }
+        } catch (e) {
+            console.error('onTakeProfitTriggered', order, e)
+        }
+    }
+
+    private async onStopLossTriggered(stopLoss: StopLossDocument) {
+        const order = await this.orderModel.findOne({
+            _id: stopLoss.orderParentId,
+            userId: stopLoss.userId,
+        })
+        await this.orderService.cancelOrder(order._id)
     }
 }

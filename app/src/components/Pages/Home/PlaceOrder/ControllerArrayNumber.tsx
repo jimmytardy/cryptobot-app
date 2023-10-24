@@ -30,9 +30,9 @@ const ControllerArrayNumber = <T extends object>({
                 <Row className="mb-4">
                     {(renderField.value as (number | undefined)[]).map(
                         (elem: number | undefined, index) => (
-                            <Col key={'pe-' + index} xs={4} lg={2}>
+                            <Col key={field + '-' + index} xs={4} lg={2}>
                                 <Form.Label htmlFor={'pe-' + index}>
-                                    PE {index + 1}
+                                    {field.slice(0, -1)} {index + 1}
                                 </Form.Label>
                                 <Form.Control
                                     type="text"

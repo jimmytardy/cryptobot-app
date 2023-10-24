@@ -16,6 +16,7 @@ import { Order } from 'src/model/Order'
 import { Model, Types } from 'mongoose'
 import { TakeProfit } from 'src/model/TakeProfit'
 import { StopLoss } from 'src/model/StopLoss'
+import { OrderService } from 'src/modules/order/order.service'
 
 @Injectable()
 export class BitgetActionService {
@@ -58,6 +59,7 @@ export class BitgetActionService {
 
     constructor(
         private bitgetUtilsService: BitgetUtilsService,
+        private orderService: OrderService,
         @InjectModel(Order.name) private orderModel: Model<Order>,
         @InjectModel(TakeProfit.name)
         private takeProfitModel: Model<TakeProfit>,
@@ -104,7 +106,7 @@ export class BitgetActionService {
         pe: number,
         tps: number[],
         stopLoss: number,
-        linkId?: Types.ObjectId,
+        linkOrderId?: Types.ObjectId,
         marginCoin = 'USDT',
     ) {
         try {
@@ -121,34 +123,37 @@ export class BitgetActionService {
             await Promise.all([
                 this.setLeverage(client, symbolRules.symbol, pe),
                 this.setMarginMode(client, symbolRules.symbol),
-            ])
+            ]);
 
+            const clOrderId = new Types.ObjectId()
             const newOrder: NewFuturesOrder = {
                 marginCoin,
                 orderType: 'limit',
                 price: String(pe),
                 side: side,
-                size: String(quantity),
+                size: String(size),
                 symbol: symbolRules.symbol,
+                clientOid: clOrderId.toString(),
             }
             const result = await client.submitOrder(newOrder)
 
             const { orderId } = result.data
 
             return await new this.orderModel({
+                clOrderId,
                 PE: pe,
                 TPs: tps.sort(),
                 SL: stopLoss,
                 orderId,
                 symbol: symbolRules.symbol,
                 side: side.split('_')[1] as FuturesHoldSide,
-                linkId,
+                linkOrderId,
                 quantity: size,
                 marginCoin,
                 userId,
             }).save()
         } catch (e) {
-            console.log('placeOrder', e)
+            console.error('placeOrder', e)
             throw e
         }
     }
@@ -163,12 +168,12 @@ export class BitgetActionService {
                 order.symbol,
             )
             if (!symbolRules) throw new Error('Symbol not found')
-            await this.activeTPs(client, symbolRules, order)
             await this.activeSL(client, symbolRules, order)
+            await this.activeTPs(client, symbolRules, order)
             order.activated = true
             await order.save()
         } catch (e) {
-            console.log('error activeOrder', e)
+            console.error('error activeOrder', e)
             throw e
         }
     }
@@ -179,20 +184,25 @@ export class BitgetActionService {
         order: Order,
     ) {
         try {
+            const clientOid = new Types.ObjectId()
             const params: NewFuturesPlanStopOrder = {
                 symbol: symbolRules.symbol,
+                size: order.quantity.toString(),
                 marginCoin: order.marginCoin,
                 planType: 'loss_plan',
                 triggerType: 'fill_price',
                 triggerPrice: String(order.SL),
                 holdSide: order.side,
+                clientOid: clientOid.toString(),
             }
             const result = await client.submitStopOrder(params)
             const { orderId } = result.data
             await new this.stopLossModel({
+                clOrderId: clientOid,
                 price: order.SL,
                 orderId,
                 orderParentId: order._id,
+                triggerPrice: order.SL,
                 terminated: false,
                 symbol: symbolRules.symbol,
                 side: order.side,
@@ -208,13 +218,8 @@ export class BitgetActionService {
         symbolRules: FuturesSymbolRule,
         order: Order,
     ) {
-        const TPconfig = this.TPSize[order.TPs.length]
-        const position = await client.getPosition(symbolRules.symbol, order.marginCoin);
-        const available = parseFloat(
-            position.data.filter((pos) => pos.holdSide === order.side)[0]
-                .available,
-        )
-        let additionnalSize = 0;
+        const TPconfig = this.TPSize[order.TPs.length];
+        let additionnalSize = 0
         // Take profits
         for (let i = 0; i < order.TPs.length; i++) {
             const isLast = i === order.TPs.length - 1
@@ -222,17 +227,18 @@ export class BitgetActionService {
             let size = 0
             if (isLast) {
                 size = this.bitgetUtilsService.fixSizeByRules(
-                    available - additionnalSize,
+                    order.quantity - additionnalSize,
                     symbolRules,
                 )
             } else {
                 size = this.bitgetUtilsService.fixSizeByRules(
-                    TPconfig[i] * available,
+                    TPconfig[i] * order.quantity,
                     symbolRules,
                 )
                 additionnalSize += size
             }
             try {
+                const clOrderId = new Types.ObjectId()
                 const params: NewFuturesPlanStopOrder = {
                     symbol: symbolRules.symbol,
                     marginCoin: order.marginCoin,
@@ -241,12 +247,15 @@ export class BitgetActionService {
                     size: size.toString(),
                     triggerType: 'fill_price',
                     holdSide: order.side,
+                    clientOid: clOrderId.toString(),
                 }
                 const result = await client.submitStopOrder(params)
 
                 const { orderId } = result.data
+
                 await new this.takeProfitModel({
                     triggerPrice: TP,
+                    clOrderId,
                     orderId,
                     orderParentId: order._id,
                     quantity: size,
@@ -258,6 +267,7 @@ export class BitgetActionService {
                     userId: order.userId,
                 }).save()
             } catch (e) {
+                additionnalSize -= size;
                 console.error(
                     'activeTPs',
                     i,
@@ -289,7 +299,7 @@ export class BitgetActionService {
 
             let newStep = stopLoss.step + 1
 
-            let stepsTriggers = [order.PE]
+            let stepsTriggers: number[] = [order.PE]
             const orderLinked = await this.orderModel.findOne(
                 { linkOrderId: order.linkOrderId, _id: { $ne: order._id } },
                 'PE',
@@ -308,14 +318,18 @@ export class BitgetActionService {
                 symbol: order.symbol,
                 triggerPrice: stepsTriggers[newStep].toString(),
             }
+            console.log('stepsTriggers', stepsTriggers);
+            console.log('stepsTriggers[newStep]', stepsTriggers[newStep])
             const result = await client.modifyStopOrder(params)
             stopLoss.orderId = result.data.orderId
-            stopLoss.price = stepsTriggers[newStep]
-            stopLoss.step = newStep
+            stopLoss.price = stepsTriggers[newStep];
+            stopLoss.historyTrigger = [...stopLoss.historyTrigger, stopLoss.triggerPrice]
+            stopLoss.triggerPrice = stepsTriggers[newStep];
+            stopLoss.step = newStep;
             await stopLoss.save()
             return stopLoss.toObject() as StopLoss
         } catch (e) {
-            console.log('upgradeSL', e)
+            console.error('upgradeSL', e)
             throw e
         }
     }
@@ -327,12 +341,25 @@ export class BitgetActionService {
                 order.marginCoin,
                 order.orderId,
             )
-            await this.orderModel.updateOne(
-                { _id: order._id },
-                { terminated: true },
-            )
+            await this.orderService.cancelOrder(order._id)
         } catch (e) {
-            console.log('removeOrder', e)
+            console.error('removeOrder', e)
         }
+    }
+
+    async disabledOrderLink(client: FuturesClient, linkId: Types.ObjectId) {
+        const orders = await this.orderModel.find({
+            linkOrderId: linkId,
+            terminated: false,
+            activated: false,
+        })
+        for (const order of orders) {
+            await client.cancelOrder(
+                order.symbol,
+                order.marginCoin,
+                order.orderId,
+            )
+        }
+        await this.orderService.disabledOrderLink(linkId)
     }
 }

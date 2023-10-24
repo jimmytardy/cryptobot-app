@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Order } from 'src/model/Order';
 import { StopLoss } from 'src/model/StopLoss';
 import { TakeProfit } from 'src/model/TakeProfit';
@@ -14,11 +14,26 @@ export class OrderService {
         @InjectModel(StopLoss.name) private readonly stopLossModel: Model<StopLoss>
     ) { }
 
-    async disableOrder(orderId: string) {
+    async cancelOrder(orderId: string | Types.ObjectId) {
         // disabled order
         const order = await this.orderModel.findOneAndUpdate({ orderId: orderId }, { terminated: true });
-        await this.takeProfitModel.updateMany({ orderParentId: order._id }, { terminated: true });
-        await this.stopLossModel.updateMany({ orderParentId: order._id }, { terminated: true });
-        await this.orderModel.updateMany({ linkOrderId: order.linkOrderId, terminated: false, activated: false }, { terminated: true });
+        if (order) {
+            await this.takeProfitModel.updateMany({ orderParentId: order._id, }, { terminated: true, cancelled: true });
+            await this.stopLossModel.updateMany({ orderParentId: order._id }, { terminated: true, cancelled: true });
+            await this.orderModel.updateMany({ linkOrderId: order.linkOrderId, terminated: false, activated: false, cancelled: true }, { terminated: true });
+        }
+    }
+
+    async disabledOrderLink(linkId: Types.ObjectId) {
+        // disabled order
+        await this.orderModel.updateMany({ linkOrderId: linkId, terminated: false, activated: false }, { terminated: true });
+    }
+
+    async terminateOrder(orderId: string | Types.ObjectId) {
+        try {
+            await this.orderModel.updateOne({ _id: orderId }, { terminated: true });
+        } catch (e) {
+            console.log('terminateOrder', e)
+        }
     }
 }
