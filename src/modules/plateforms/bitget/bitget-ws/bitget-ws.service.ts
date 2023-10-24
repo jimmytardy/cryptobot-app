@@ -62,7 +62,7 @@ export class BitgetWsService {
                     await this.onUpdatedOrderAlgo(e, userId)
                     break
                 default:
-                    console.log('topic not implemented', e)
+                    console.info('topic not implemented', e)
             }
         })
     }
@@ -116,7 +116,7 @@ export class BitgetWsService {
                 await this.onStopLossTriggered(stopLoss);
                 break;
             default:
-                console.log(
+                console.info(
                     'onUpdatedOrderAlgoSL',
                     orderAlgoEvent.status,
                     'not implemented',
@@ -128,7 +128,6 @@ export class BitgetWsService {
         orderAlgoEvent: any,
         takeProfit: TakeProfitDocument,
     ) {
-        console.log('orderAlgoEvent.state', orderAlgoEvent.state)
         switch (orderAlgoEvent.state) {
             case 'cancel':
                 takeProfit.terminated = true;
@@ -153,7 +152,7 @@ export class BitgetWsService {
                 await this.onTakeProfitTriggered(takeProfit);
                 break;
             default:
-                console.log(
+                console.info(
                     'onUpdatedOrderAlgoTP',
                     orderAlgoEvent.status,
                     'not implemented',
@@ -192,7 +191,7 @@ export class BitgetWsService {
                 await this.orderService.cancelOrder(order._id)
                 break
             default:
-                console.log('onOrderEvent', orderEvent, 'not implemented')
+                console.info('onOrderEvent', orderEvent, 'not implemented')
         }
     }
 

@@ -33,7 +33,7 @@ export class OrderService {
         try {
             await this.orderModel.updateOne({ _id: orderId }, { terminated: true });
         } catch (e) {
-            console.log('terminateOrder', e)
+            console.error('terminateOrder', e)
         }
     }
 }

@@ -318,8 +318,6 @@ export class BitgetActionService {
                 symbol: order.symbol,
                 triggerPrice: stepsTriggers[newStep].toString(),
             }
-            console.log('stepsTriggers', stepsTriggers);
-            console.log('stepsTriggers[newStep]', stepsTriggers[newStep])
             const result = await client.modifyStopOrder(params)
             stopLoss.orderId = result.data.orderId
             stopLoss.price = stepsTriggers[newStep];

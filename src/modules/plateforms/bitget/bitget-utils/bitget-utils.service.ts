@@ -26,16 +26,12 @@ export class BitgetUtilsService {
 
         const fullPositions = []
         for (const position of positions.data) {
-            if (position.symbol.includes('BTC')) {
-                console.log('position', position);
-                console.log(await client.getPosition(position.symbol, 'USDT'))
-            };
             fullPositions.push({
                 leverage: position.leverage,
                 baseCoin: position.symbol.replace('USDT_UMCBL', ''),
                 margin: Number(position.margin),
                 holdSide: position.holdSide,
-            })
+            });
         }
 
         const result = {
