@@ -1,7 +1,6 @@
 import { Route, Routes } from "react-router"
 import Login from "./Login"
 import SignUp from "./SignUp"
-import NotFound from "../utils/NotFound"
 
 const Auth = () => {
     return (
@@ -9,7 +8,7 @@ const Auth = () => {
             <Route path="/" element={<Login />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<SignUp />} />
-            <Route path="*" element={<NotFound />} />
+            <Route path="*" element={<Login />} />
         </Routes>
     )
 }

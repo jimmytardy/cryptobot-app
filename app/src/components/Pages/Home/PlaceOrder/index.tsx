@@ -3,7 +3,7 @@ import './index.scss'
 import { Form, Button, Row, Col, Container } from 'react-bootstrap'
 import axiosClient from '../../../../axiosClient'
 import { FormProvider, useForm } from 'react-hook-form'
-import ControllerArrayNumber from './ControllerArrayNumber'
+import ControllerArrayNumber from '../../../utils/form/ControllerArrayNumber'
 
 interface IPlaceOrderPayload {
     TPs: (string | undefined)[]
@@ -77,7 +77,6 @@ const PlaceOrder = () => {
                 },
             )
             setResults(response.data)
-            console.log(response.data)
             methods.reset()
         } catch (e) {
             console.log(e)
@@ -121,6 +120,7 @@ const PlaceOrder = () => {
                                         <option
                                             key={coin}
                                             value={coin}
+                                            defaultValue={coin}
                                             selected={
                                                 methods.getValues(
                                                     'baseCoin',

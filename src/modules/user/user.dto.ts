@@ -1,5 +1,9 @@
 import { Type } from 'class-transformer'
 import {
+    ArrayNotEmpty,
+    IsArray,
+    IsDefined,
+    IsNotEmptyObject,
     IsNumber,
     IsObject,
     IsOptional,
@@ -7,7 +11,7 @@ import {
     Validate,
     ValidateNested,
 } from 'class-validator'
-import { IUserCryptoExchange } from 'src/model/User'
+import { IUserCryptoExchange, IUserPreferences, LeviersSizeType, TPSizeType } from 'src/model/User'
 
 export class CreateUserDTO {
     @IsString()
@@ -26,12 +30,37 @@ export class CreateUserDTO {
     bitget: IUserCryptoExchange
 }
 
-export class UpdateConfigDTO {
-    @IsNumber()
+class UpdatePreferencesOrderDTO {
     @IsOptional()
-    quantity: number
+    @IsNumber()
+    pourcentage?: number
 
-    @IsNumber()
     @IsOptional()
-    pourcentage: number
+    @IsNumber()
+    quantity?: number
+
+    @IsObject()
+    @IsNotEmptyObject()
+    @ValidateNested()
+    @Type(() => Object)
+    TPSize: TPSizeType
+
+    @IsArray()
+    @ArrayNotEmpty()
+    @ValidateNested()
+    @Type(() => Array)
+    levierSize: LeviersSizeType[]
+
+    @IsOptional()
+    @IsString()
+    marginCoin: string
+}
+
+export class UpdatePreferencesDTO {
+    @IsDefined()
+    @IsNotEmptyObject()
+    @IsObject()
+    @ValidateNested()
+    @Type(() => UpdatePreferencesOrderDTO)
+    order: UpdatePreferencesOrderDTO
 }

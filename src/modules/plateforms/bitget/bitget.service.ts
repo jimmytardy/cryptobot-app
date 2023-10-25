@@ -22,7 +22,7 @@ export class BitgetService {
     client: {
         [key: string]: FuturesClient
     }
-    logger: Logger;
+    logger: Logger
 
     constructor(
         private bitgetUtilsService: BitgetUtilsService,
@@ -34,7 +34,7 @@ export class BitgetService {
 
     async initializeTraders(users: User[]) {
         for (const user of users) {
-            this.addNewTrader(user);
+            this.addNewTrader(user)
         }
     }
 
@@ -60,8 +60,8 @@ export class BitgetService {
         )
     }
 
-    async placeOrder(placeOrderDTO: PlaceOrderDTO, userId: Types.ObjectId) {
-        const userIdStr = userId.toString()
+    async placeOrder(placeOrderDTO: PlaceOrderDTO, user: User) {
+        const userIdStr = user._id.toString()
         let {
             PEs,
             SL,
@@ -82,7 +82,7 @@ export class BitgetService {
         if (!size) {
             size = await this.bitgetUtilsService.getQuantityForOrder(
                 this.client[userIdStr],
-                userIdStr
+                userIdStr,
             )
         }
         const fullSide = ('open_' + side) as FuturesOrderSide
@@ -91,48 +91,59 @@ export class BitgetService {
             errors: [],
             success: [],
         }
+
+        const peAvg = PEs.reduce((a, b) => a + b, 0) / PEs.length
+        const leverage = await this.bitgetActionService.setLeverage(
+            this.client[userIdStr],
+            user,
+            symbolRules.symbol,
+            peAvg,
+        )
+
         for (const PE of PEs) {
             try {
                 results.success.push(
                     await this.bitgetActionService.placeOrder(
                         this.client[userIdStr],
-                        userId,
+                        user,
                         symbolRules,
                         size,
                         fullSide,
                         PE,
                         TPs,
                         SL,
+                        leverage,
                         linkOrderId,
                     ),
                 )
             } catch (error) {
                 results.errors.push({
                     ...error,
-                    userId,
-                        symbolRules,
-                        size,
-                        fullSide,
-                        PE,
-                        TPs,
-                        SL,
-                        linkOrderId,
-                });
+                    userId: user._id,
+                    symbolRules,
+                    size,
+                    fullSide,
+                    PE,
+                    TPs,
+                    SL,
+                    leverage,
+                    linkOrderId,
+                })
             }
         }
         return results
     }
 
-    async activeOrder(orderId: string, userId: Types.ObjectId) {
+    async activeOrder(orderId: string, user: User) {
         try {
             return await this.bitgetActionService.activeOrder(
-                this.client[userId.toString()],
+                this.client[user._id.toString()],
+                user,
                 orderId,
             )
         } catch (e) {
-            this.logger.error('activeOrder', e);
-        }   
-        
+            this.logger.error('activeOrder', e)
+        }
     }
 
     async upgradeSL(order: Order): Promise<StopLoss> {
@@ -142,7 +153,7 @@ export class BitgetService {
                 order,
             )
         } catch (e) {
-            this.logger.error('upgradeSL', e);
+            this.logger.error('upgradeSL', e)
         }
     }
 
@@ -153,7 +164,7 @@ export class BitgetService {
                 order,
             )
         } catch (e) {
-            this.logger.error('removeOrder', e);
+            this.logger.error('removeOrder', e)
         }
     }
 
@@ -164,7 +175,7 @@ export class BitgetService {
                 linkId,
             )
         } catch (e) {
-            this.logger.error('disabledOrderLink', e);
+            this.logger.error('disabledOrderLink', e)
         }
     }
 }

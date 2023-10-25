@@ -39,7 +39,7 @@ export class BitgetWsService {
             apiPass: user.bitget.api_pass,
             apiSecret: user.bitget.api_secret_key,
         })
-        this.activateWebSocket(user._id)
+        this.activateWebSocket(user)
     }
 
     async initializeTraders(users: User[]) {
@@ -48,18 +48,18 @@ export class BitgetWsService {
         }
     }
 
-    activateWebSocket(userId: Types.ObjectId) {
-        const userIdStr = userId.toString()
+    activateWebSocket(user: User) {
+        const userIdStr = user._id.toString()
         // client.subscribeTopic('UMCBL', 'ordersAlgo');
         this.client[userIdStr].subscribeTopic('UMCBL', 'orders')
         this.client[userIdStr].subscribeTopic('UMCBL', 'ordersAlgo')
         this.client[userIdStr].on('update', async (e) => {
             switch (e.arg.channel) {
                 case 'orders':
-                    await this.onUpdatedOrder(e, userId)
+                    await this.onUpdatedOrder(e, user)
                     break
                 case 'ordersAlgo':
-                    await this.onUpdatedOrderAlgo(e, userId)
+                    await this.onUpdatedOrderAlgo(e, user)
                     break
                 default:
                     console.info('topic not implemented', e)
@@ -67,7 +67,7 @@ export class BitgetWsService {
         })
     }
 
-    private async onUpdatedOrderAlgo(e: any, userId: Types.ObjectId) {
+    private async onUpdatedOrderAlgo(e: any, user: User) {
         const data = e.data
         for (const orderAlgoEvent of data) {
             if (!Types.ObjectId.isValid(orderAlgoEvent.cOid)) return;
@@ -76,7 +76,7 @@ export class BitgetWsService {
             const takeProfit = await this.takeProfitModel.findOne({
                 clOrderId,
                 terminated: { $ne: true },
-                userId,
+                user,
             })
             if (takeProfit) {
                 return await this.onUpdatedOrderAlgoTP(orderAlgoEvent, takeProfit);
@@ -86,7 +86,7 @@ export class BitgetWsService {
             const stopLoss = await this.stopLossModel.findOne({
                 clOrderId,
                 terminated: { $ne: true },
-                userId,
+                user,
             })
 
             if (stopLoss) {
@@ -160,7 +160,7 @@ export class BitgetWsService {
         }
     }
 
-    private async onUpdatedOrder(e: any, userId: Types.ObjectId) {
+    private async onUpdatedOrder(e: any, user: User) {
         const data = e.data
 
         for (const orderEvent of data) {
@@ -170,20 +170,20 @@ export class BitgetWsService {
             const order = await this.orderModel.findOne({
                 clOrderId,
                 terminated: { $ne: true },
-                userId,
+                userId: user._id,
             })
-            if (order) return this.onOrderEvent(orderEvent, order);
+            if (order) return this.onOrderEvent(orderEvent, user, order);
         }
     }
 
-    private async onOrderEvent(orderEvent: any, order: OrderDocument) {
+    private async onOrderEvent(orderEvent: any, user: User, order: OrderDocument) {
         switch (orderEvent.status) {
             case 'full-fill':
             case 'partial-fill':
                 if (orderEvent.side === 'buy') {
                     await this.bitgetService.activeOrder(
                         orderEvent.ordId,
-                        order.userId,
+                        user,
                     )
                     break
                 }

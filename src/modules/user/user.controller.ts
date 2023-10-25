@@ -1,8 +1,8 @@
-import { Body, Controller, Post, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Request, UseGuards } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from 'src/model/User';
-import { CreateUserDTO, UpdateConfigDTO } from './user.dto';
+import { CreateUserDTO, UpdatePreferencesDTO } from './user.dto';
 import { UserService } from './user.service';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 
@@ -17,8 +17,14 @@ export class UserController {
     }
 
     @UseGuards(JwtAuthGuard)
-    @Post('config')
-    async updateConfig(@Request() req, @Body() configDTO: UpdateConfigDTO) {
-        return this.userService.updateConfig(req.user._id, configDTO);
+    @Get('preferences')
+    async getPreferences(@Request() req) {
+        return this.userService.getPreferences(req.user._id);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Post('preferences')
+    async setPreferences(@Request() req, @Body() preferences: UpdatePreferencesDTO) {
+        return this.userService.setPreferences(req.user._id, preferences);
     }
 }

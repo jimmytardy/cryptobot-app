@@ -1,0 +1,46 @@
+.preferences {
+    .preferences-tp {
+        border-bottom: 2px solid #e5e5e5;
+    }
+
+    .warning-config {
+        color: orange;
+        font-weight: 700;
+        font-size: 1em;
+        display: flex;
+        align-items: center;
+        svg {
+            margin-right: 0.5rem;
+        }
+    }
+
+    .submit-form {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 1rem;
+    }
+
+    .stategie {
+        background-color: #eee;
+        border-radius: 1rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        .stategie-part {
+            border-left: 2px solid black;
+            padding-left: 1rem;
+            margin-bottom: 1rem;
+            .stategie-action {
+                font-weight: 700;
+                margin-bottom: 0.5rem;
+            }
+            .stategie-list {
+                margin-left: 1rem;
+                li {
+                    margin-bottom: 0.5rem;
+                }
+            }
+        }
+    }
+    
+}

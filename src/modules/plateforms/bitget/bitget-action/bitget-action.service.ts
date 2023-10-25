@@ -17,46 +17,10 @@ import { Model, Types } from 'mongoose'
 import { TakeProfit } from 'src/model/TakeProfit'
 import { StopLoss } from 'src/model/StopLoss'
 import { OrderService } from 'src/modules/order/order.service'
+import { User } from 'src/model/User'
 
 @Injectable()
 export class BitgetActionService {
-    TPSize: { [x: string]: number[] } = {
-        1: [1],
-        2: [0.5, 0.5],
-        3: [0.25, 0.5, 0.25],
-        4: [0.2, 0.3, 0.3, 0.2],
-        5: [0.15, 0.2, 0.3, 0.2, 0.15],
-        6: [0.1, 0.15, 0.25, 0.25, 0.15, 0.1],
-    }
-    marginCoin = 'USDT'
-    // [prix max d'une crypto, levier]
-    leviersSettings: { minPrice: number; value: string }[] = [
-        {
-            minPrice: 0,
-            value: '10',
-        }, // 0-1€, levier 10
-        {
-            minPrice: 1,
-            value: '15',
-        }, // 1-10€, levier 15
-        {
-            minPrice: 10,
-            value: '20',
-        }, // 10-50€, levier 20
-        {
-            minPrice: 50,
-            value: '20',
-        }, // 50-100, levier 20
-        {
-            minPrice: 250,
-            value: '25',
-        }, // 250-1000, levier 25
-        {
-            minPrice: 1000,
-            value: '30',
-        }, // 1000+, levier 30
-    ]
-
     constructor(
         private bitgetUtilsService: BitgetUtilsService,
         private orderService: OrderService,
@@ -66,46 +30,38 @@ export class BitgetActionService {
         @InjectModel(StopLoss.name) private stopLossModel: Model<StopLoss>,
     ) {}
 
-    getLeverage(price: number): string {
-        let levierSelect = this.leviersSettings[0]
-        for (const levierSetting of this.leviersSettings) {
-            if (
-                levierSelect.minPrice < levierSetting.minPrice &&
-                levierSetting.minPrice < price
-            ) {
-                levierSelect = levierSetting
-            }
-        }
-        return levierSelect.value
-    }
 
-    async setLeverage(client: FuturesClient, symbol: string, price: number) {
+    async setLeverage(client: FuturesClient, user: User, symbol: string, price: number): Promise<number> {
+        const position = await client.getPosition(symbol, user.preferences.order.marginCoin);
+        if (position?.data?.length > 0) return Number(position.data[0].leverage);
         if (!price) {
             price = await this.bitgetUtilsService.getCurrentPrice(
                 client,
                 symbol,
             )
         }
-        let leverage = this.getLeverage(price)
+        let leverage = user.getLeverage(price);
         await Promise.all([
-            client.setLeverage(symbol, this.marginCoin, leverage, 'long'),
-            client.setLeverage(symbol, this.marginCoin, leverage, 'short'),
-        ])
+            client.setLeverage(symbol, user.preferences.order.marginCoin, String(leverage), 'long'),
+            client.setLeverage(symbol, user.preferences.order.marginCoin, String(leverage), 'short'),
+        ]);
+        return Number(leverage);
     }
 
-    async setMarginMode(client: FuturesClient, symbol: string) {
-        await client.setMarginMode(symbol, this.marginCoin, 'fixed')
+    async setMarginMode(client: FuturesClient, user: User, symbol: string) {
+        await client.setMarginMode(symbol, user.preferences.order.marginCoin, 'fixed')
     }
 
     async placeOrder(
         client: FuturesClient,
-        userId: Types.ObjectId,
+        user: User,
         symbolRules: FuturesSymbolRule,
         usdt: number,
         side: FuturesOrderSide,
         pe: number,
         tps: number[],
         stopLoss: number,
+        leverage: number,
         linkOrderId?: Types.ObjectId,
         marginCoin = 'USDT',
     ) {
@@ -113,17 +69,13 @@ export class BitgetActionService {
             const quantity = this.bitgetUtilsService.getQuantityForUSDT(
                 usdt,
                 pe,
-                parseInt(this.getLeverage(pe)),
+                leverage,
             )
             const size = this.bitgetUtilsService.fixSizeByRules(
                 quantity,
                 symbolRules,
             )
-            if (size <= 0) return
-            await Promise.all([
-                this.setLeverage(client, symbolRules.symbol, pe),
-                this.setMarginMode(client, symbolRules.symbol),
-            ]);
+            if (size <= 0) return;
 
             const clOrderId = new Types.ObjectId()
             const newOrder: NewFuturesOrder = {
@@ -150,7 +102,7 @@ export class BitgetActionService {
                 linkOrderId,
                 quantity: size,
                 marginCoin,
-                userId,
+                userId: user._id,
             }).save()
         } catch (e) {
             console.error('placeOrder', e)
@@ -158,7 +110,7 @@ export class BitgetActionService {
         }
     }
 
-    async activeOrder(client: FuturesClient, orderId: string) {
+    async activeOrder(client: FuturesClient, user: User, orderId: string) {
         try {
             const order = await this.orderModel.findOne({ orderId })
             if (!order) return null
@@ -169,7 +121,7 @@ export class BitgetActionService {
             )
             if (!symbolRules) throw new Error('Symbol not found')
             await this.activeSL(client, symbolRules, order)
-            await this.activeTPs(client, symbolRules, order)
+            await this.activeTPs(client, user, symbolRules, order)
             order.activated = true
             await order.save()
         } catch (e) {
@@ -215,10 +167,11 @@ export class BitgetActionService {
 
     private async activeTPs(
         client: FuturesClient,
+        user: User,
         symbolRules: FuturesSymbolRule,
         order: Order,
     ) {
-        const TPconfig = this.TPSize[order.TPs.length];
+        const TPconfig = user.preferences.order.TPSize[order.TPs.length];
         let additionnalSize = 0
         // Take profits
         for (let i = 0; i < order.TPs.length; i++) {

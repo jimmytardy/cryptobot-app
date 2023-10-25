@@ -12,18 +12,11 @@ export interface IUser {
     firstname: string;
     lastname: string;
     email: string;
-    orderConfig?: IUserConfig;
 } 
-
-export interface IUserConfig {
-    quantity?: number
-    pourcentage?: number
-}
 // Créez le contexte d'authentification
 const AuthContext = createContext({
     user: {} as IUser,
     setToken: (t: string) => {return !!t as boolean;},
-    setUserOrderConfig: (config: IUserConfig) => {return !!config as boolean;},
     isLoading: true,
     isConnected: false
 })
@@ -43,11 +36,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsConnected(false);
         delete axiosClient.defaults.headers.common['Authorization']
         navigate('/login', { replace: true })
-    }
-
-    const setUserOrderConfig = (config: IUserConfig) => {
-        setUser({...user, orderConfig: config});
-        return true;
     }
 
     const setToken = (t: string) => {
@@ -100,7 +88,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     return (
-        <AuthContext.Provider value={{ user, setUserOrderConfig, setToken, isLoading, isConnected }}>
+        <AuthContext.Provider value={{ user, setToken, isLoading, isConnected }}>
             {children}
         </AuthContext.Provider>
     )

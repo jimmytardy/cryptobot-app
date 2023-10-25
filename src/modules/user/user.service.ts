@@ -1,8 +1,8 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model, Types } from 'mongoose'
-import { IUserOrderConfig, User } from 'src/model/User'
-import { CreateUserDTO, UpdateConfigDTO } from './user.dto'
+import { IUserPreferencesOrder, User } from 'src/model/User'
+import { CreateUserDTO, UpdatePreferencesDTO } from './user.dto'
 import { genSalt, hash } from 'bcrypt'
 import { PlateformsService } from '../plateforms/plateforms.service'
 
@@ -34,7 +34,7 @@ export class UserService implements OnApplicationBootstrap {
         const newUser = await new this.userModel({
             ...user,
             password: await hash(user.password, salt),
-        }).save()
+        }).save();
         this.plateformsService.addNewTrader(newUser)
         return newUser
     }
@@ -43,21 +43,18 @@ export class UserService implements OnApplicationBootstrap {
         return await this.userModel.find()
     }
 
-    async updateConfig(
+    async getPreferences(userId: Types.ObjectId) {
+        return (await this.userModel.findById(userId, 'preferences').lean()).preferences
+    }
+
+    async setPreferences(
         userId: Types.ObjectId,
-        updateOrderConfig: UpdateConfigDTO,
+        updatePreferencesDTO: UpdatePreferencesDTO,
     ) {
         try {
-            const updatedOrder: IUserOrderConfig = {};
-            if (updateOrderConfig.quantity) {
-                updatedOrder.quantity = updateOrderConfig.quantity;
-            }
-            if (updateOrderConfig.pourcentage) {
-                updatedOrder.pourcentage = updateOrderConfig.pourcentage;
-            }
             await this.userModel.updateOne(
                 { _id: userId },
-                { $set: { orderConfig: updatedOrder } },
+                { $set: { preferences: updatePreferencesDTO } },
             )
             return { success: true }
         } catch (e) {
