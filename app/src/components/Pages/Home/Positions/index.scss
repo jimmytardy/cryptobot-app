@@ -115,11 +115,16 @@
                 align-items: center;
                 svg {
                     margin-left: 0.5rem;
+                    border-radius: 100%;
 
                     &.icon-check {
                         color: white;
-                        border-radius: 100%;
                         background-color: green;
+                    }
+
+                    &.icon-cancelled {
+                        color: white;
+                        background-color: orangered;
                     }
                 }
             }

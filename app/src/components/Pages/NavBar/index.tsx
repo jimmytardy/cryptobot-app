@@ -15,8 +15,9 @@ const NavBarCryptobot = () => {
                 <Navbar.Toggle aria-controls="basic-navbar-nav" />
                 <Navbar.Collapse id="basic-navbar-nav">
                     <Nav className="me-auto">
-                        <Nav.Link onClick={() => navigate('home')}>Accueil</Nav.Link>
-                        <Nav.Link onClick={() => navigate('preferences')}>Préférences</Nav.Link>
+                        <Nav.Link className='ml-3' onClick={() => navigate('home')}>Accueil</Nav.Link>
+                        <Nav.Link className='ml-3' onClick={() => navigate('preferences')}>Préférences</Nav.Link>
+                        <Nav.Link className='ml-3' onClick={() => navigate('positions')}>Positions</Nav.Link>
                     </Nav>
                 </Navbar.Collapse>
             </Container>

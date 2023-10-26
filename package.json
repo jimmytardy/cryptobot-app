@@ -10,7 +10,7 @@
     "build:app": "cd app && pnpm run build",
     "build:all": "pnpm run build:app && pnpm run build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "nest start",
+    "start": "pnpm run start:dev",
     "start:app": "cd app && pnpm run start:dev",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
