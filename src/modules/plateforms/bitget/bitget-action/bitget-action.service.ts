@@ -102,6 +102,7 @@ export class BitgetActionService {
                 linkOrderId,
                 quantity: size,
                 marginCoin,
+                usdt,
                 userId: user._id,
             }).save()
         } catch (e) {

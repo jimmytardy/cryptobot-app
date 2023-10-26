@@ -1,23 +1,14 @@
-import {
-    Button,
-    Col,
-    Container,
-    Form,
-    FormText,
-    Row,
-} from 'react-bootstrap'
-import { useAuth } from '../../../hooks/AuthContext'
+import { Button, Col, Container, FormText, Row } from 'react-bootstrap'
+import { useAuth } from '../../../../hooks/AuthContext'
 import './index.scss'
 import { useEffect, useState } from 'react'
-import axiosClient from '../../../axiosClient'
+import axiosClient from '../../../../axiosClient'
 import { ArrowClockwise } from 'react-bootstrap-icons'
-import Positions, { BitgetPosition } from './Positions'
 
 interface BitgetProfile {
     available: number
     totalPnL: number
     unrealizedPL: number
-    positions: BitgetPosition[]
 }
 
 const Profile = () => {
@@ -95,7 +86,6 @@ const Profile = () => {
                                 </b>
                             </FormText>
                         </Col>
-                        <Positions positions={bitGetProfile.positions} />
                     </>
                 )}
             </Row>

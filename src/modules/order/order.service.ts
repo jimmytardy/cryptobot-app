@@ -36,4 +36,40 @@ export class OrderService {
             console.error('terminateOrder', e)
         }
     }
+
+    async getOrders(userId: Types.ObjectId) {
+        try {
+            const results = await this.orderModel.aggregate([
+                {
+                    $match: {
+                        userId: userId,
+                        terminated: false,
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'takeprofits',
+                        localField: '_id',
+                        foreignField: 'orderParentId',
+                        as: 'TPs'
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'stoplosses',
+                        localField: '_id',
+                        foreignField: 'orderParentId',
+                        as: 'SL'
+                    }
+                },
+                {
+                    $unwind: '$SL'
+                }
+            ]);
+            return results
+
+        } catch (e) {
+            console.error('getOrders', e)
+        }
+    }
 }

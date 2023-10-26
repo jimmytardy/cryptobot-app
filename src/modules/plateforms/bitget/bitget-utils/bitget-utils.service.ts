@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { FuturesClient, FuturesSymbolRule } from 'bitget-api'
+import BaseRestClient from 'bitget-api/lib/util/BaseRestClient'
 import { Model, Types } from 'mongoose'
 import { User } from 'src/model/User'
+import { OrderService } from 'src/modules/order/order.service'
 import { UserService } from 'src/modules/user/user.service'
 
 @Injectable()
@@ -19,20 +21,7 @@ export class BitgetUtilsService {
     }
 
     async getProfile(client: FuturesClient): Promise<any> {
-        const [accountFuture, positions] = await Promise.all([
-            this.getAccount(client),
-            await client.getPositionsV2('umcbl'),
-        ])
-
-        const fullPositions = []
-        for (const position of positions.data) {
-            fullPositions.push({
-                leverage: position.leverage,
-                baseCoin: position.symbol.replace('USDT_UMCBL', ''),
-                margin: Number(position.margin),
-                holdSide: position.holdSide,
-            });
-        }
+        const accountFuture = await this.getAccount(client)
 
         const result = {
             available: Number(accountFuture.available),
@@ -40,7 +29,6 @@ export class BitgetUtilsService {
                 Number(accountFuture.usdtEquity) -
                 Number(accountFuture.unrealizedPL),
             unrealizedPL: Number(accountFuture.unrealizedPL),
-            positions: fullPositions,
         }
         return result
     }

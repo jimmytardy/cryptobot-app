@@ -49,6 +49,9 @@ export class Order {
 
     @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
     userId: Types.ObjectId
+
+    @Prop()
+    usdt: number
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);

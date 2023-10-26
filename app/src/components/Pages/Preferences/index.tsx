@@ -61,7 +61,7 @@ const Preferences = () => {
             });
             setIsLoading(false)
         })()
-    }, [])
+    }, []);
 
     const handleCheckboxDisabledChange = (
         field: 'quantity' | 'pourcentage',
