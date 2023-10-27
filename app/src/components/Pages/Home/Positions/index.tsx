@@ -8,7 +8,6 @@ import { Check, CurrencyDollar, HourglassSplit, X } from 'react-bootstrap-icons'
 interface IOrderStatus {
     cancelled: boolean
     terminated: boolean
-    activated: boolean
     orderId: string
     symbol: string
 }
@@ -28,6 +27,7 @@ interface IUserOrder extends IOrderStatus {
     PE: number
     usdt: number
     quantity: number
+    activated: boolean
 }
 
 interface IPosition {
@@ -81,22 +81,19 @@ const Positions = () => {
                     </Col>
                 </Row>
                 {Object.entries(positions).map(([key, orders]) => {
-                    const baseCoin = orders[0].symbol.replace(
-                        'USDT_UMCBL',
-                        '',
-                    )
-                    let TpTerminated = 0;
-                    let TpCancelled = 0;
-                    let TpActivated = 0;
+                    const baseCoin = orders[0].symbol.replace('USDT_UMCBL', '')
+                    let TpTerminated = 0
+                    let TpCancelled = 0
+                    let TpInProgress = 0
 
                     for (const order of orders) {
                         for (const tp of order.TPs) {
                             if (tp.terminated) {
-                                TpTerminated++;
+                                TpTerminated++
                             } else if (tp.cancelled) {
-                                TpCancelled++;
-                            } else if (tp.activated) {
-                                TpActivated++;
+                                TpCancelled++
+                            } else {
+                                TpInProgress++
                             }
                         }
                     }
@@ -113,9 +110,7 @@ const Positions = () => {
                                     className={`position`}
                                 >
                                     <Col md={4} className="position-title">
-                                        <b>
-                                            {baseCoin}
-                                        </b>
+                                        <b>{baseCoin}</b>
                                     </Col>
                                     <Col md={4} className="position-TP">
                                         <span>
@@ -127,7 +122,7 @@ const Positions = () => {
                                             <X className="icon-cancelled" />
                                         </span>
                                         <span>
-                                            {TpActivated}{' '}
+                                            {TpInProgress}{' '}
                                             <HourglassSplit className="icon-pending" />
                                         </span>
                                     </Col>
@@ -224,19 +219,12 @@ const Positions = () => {
                                                                 >
                                                                     <Check />
                                                                 </span>
-                                                            ) : tp.activated ? (
-                                                                <span
-                                                                    className="activated"
-                                                                    title="Activé"
-                                                                >
-                                                                    <HourglassSplit />
-                                                                </span>
                                                             ) : (
                                                                 <span
-                                                                    className="pending"
+                                                                    className="wait"
                                                                     title="En attente"
                                                                 >
-                                                                    <CurrencyDollar />
+                                                                    <HourglassSplit />
                                                                 </span>
                                                             )}
                                                         </Col>
@@ -260,10 +248,13 @@ const Positions = () => {
                                                             className="order-quantity"
                                                         >
                                                             {tp.quantity
-                                                                ? tp.quantity /
-                                                                      order.quantity +
+                                                                ? (
+                                                                      tp.quantity /
+                                                                      order.quantity
+                                                                  ).toFixed(2) +
                                                                   '%'
                                                                 : order.quantity +
+                                                                  ' ' +
                                                                   baseCoin}
                                                         </Col>
                                                     </Row>

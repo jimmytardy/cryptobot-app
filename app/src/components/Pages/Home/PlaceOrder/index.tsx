@@ -177,18 +177,37 @@ const PlaceOrder = () => {
                     </Col>
                     {results && (
                         <Col xs={12}>
-                            <h2>Résultats</h2>
-                            <p>
-                                Nombre d'ordre réussis: {results.success.length}
-                            </p>
-                            <p>
-                                Nombre d'ordre échoués: {results.errors.length}
-                            </p>
                             {results.errors.length > 0 && (
-                                <pre>
-                                    {JSON.stringify(results.errors, null, 2)}
-                                </pre>
+                                <Row>
+                                    <Col>
+                                        {results.errors.map((error) => (
+                                            <div className="text-danger">
+                                                {error.message}
+                                            </div>
+                                        ))}
+                                    </Col>
+                                </Row>
                             )}
+                            {results.success.length > 0 &&
+                                results.success.map((data) => (
+                                    <Row>
+                                        <Col xs={6}>
+                                            <ul>
+                                                <li>PE: {data.PE}</li>
+                                                <li>
+                                                    TPs: {data.TPs.join(', ')}
+                                                </li>
+                                                <li>SL: {data.SL}</li>
+                                                <li>Symbol: {data.symbol}</li>
+                                                <li>
+                                                    Quantity: {data.quantity}
+                                                </li>
+                                                <li>Type: {data.side}</li>
+                                                <li>USDT: {data.usdt}</li>
+                                            </ul>
+                                        </Col>
+                                    </Row>
+                                ))}
                         </Col>
                     )}
                 </Form>

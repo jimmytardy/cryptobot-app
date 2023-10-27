@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
-import { FuturesClient, FuturesSymbolRule } from 'bitget-api'
+import { FuturesClient, FuturesSymbolRule, SymbolRules } from 'bitget-api'
 import BaseRestClient from 'bitget-api/lib/util/BaseRestClient'
 import { Model, Types } from 'mongoose'
-import { User } from 'src/model/User'
+import { TPSizeType, User } from 'src/model/User'
 import { OrderService } from 'src/modules/order/order.service'
 import { UserService } from 'src/modules/user/user.service'
 
@@ -135,5 +135,33 @@ export class BitgetUtilsService {
             pourcentage = this.DEFAULT_PERCENTAGE_ORDER
         }
         return quantity * (pourcentage / 100)
+    }
+
+    caculateTPsToUse(
+        tps: number[],
+        size: number,
+        TPSize: TPSizeType,
+        symbolRules: FuturesSymbolRule,
+    ): number[] {
+        const newTps: number[] = [...tps];
+        while(newTps.length > 0) {
+            const TPSizeValue = TPSize[newTps.length];
+            let value0Find = false;
+            for (const tpSize of TPSizeValue) {
+                const sizeTP = this.formatNumberByRules(
+                    size * tpSize,
+                    symbolRules,
+                );
+                if (sizeTP <= 0) {
+                    value0Find= true;
+                    break;
+                }
+            }
+            if (value0Find) {
+                return newTps;
+            } else {
+                newTps.pop();
+            }
+        }
     }
 }

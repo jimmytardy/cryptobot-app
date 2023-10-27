@@ -70,13 +70,19 @@ export class BitgetActionService {
                 usdt,
                 pe,
                 leverage,
-            )
+            );
             const size = this.bitgetUtilsService.fixSizeByRules(
                 quantity,
                 symbolRules,
             )
             if (size <= 0) return;
-
+            const TPsCalculate = this.bitgetUtilsService.caculateTPsToUse(
+                tps,
+                size,
+                user.preferences.order.TPSize,
+                symbolRules
+            );
+            if (TPsCalculate.length === 0) throw new Error('La quantité demandé est trop petite');
             const clOrderId = new Types.ObjectId()
             const newOrder: NewFuturesOrder = {
                 marginCoin,
@@ -94,7 +100,7 @@ export class BitgetActionService {
             return await new this.orderModel({
                 clOrderId,
                 PE: pe,
-                TPs: tps.sort(),
+                TPsCalculate: tps.sort(),
                 SL: stopLoss,
                 orderId,
                 symbol: symbolRules.symbol,
@@ -173,9 +179,10 @@ export class BitgetActionService {
         order: Order,
     ) {
         const TPconfig = user.preferences.order.TPSize[order.TPs.length];
-        let additionnalSize = 0
+        let additionnalSize = 0;
         // Take profits
         for (let i = 0; i < order.TPs.length; i++) {
+            const num = i + 1;
             const isLast = i === order.TPs.length - 1
             const TP = order.TPs[i]
             let size = 0
@@ -214,7 +221,7 @@ export class BitgetActionService {
                     orderParentId: order._id,
                     quantity: size,
                     terminated: false,
-                    num: i + 1,
+                    num,
                     symbol: symbolRules.symbol,
                     side: order.side,
                     marginCoin: order.marginCoin,
