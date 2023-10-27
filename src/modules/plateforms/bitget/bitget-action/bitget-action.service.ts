@@ -100,7 +100,7 @@ export class BitgetActionService {
             return await new this.orderModel({
                 clOrderId,
                 PE: pe,
-                tps: TPsCalculate.sort(),
+                TPs: TPsCalculate.sort(),
                 SL: stopLoss,
                 orderId,
                 symbol: symbolRules.symbol,
