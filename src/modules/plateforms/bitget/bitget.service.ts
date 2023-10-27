@@ -82,7 +82,7 @@ export class BitgetService {
         if (!size) {
             size = await this.bitgetUtilsService.getQuantityForOrder(
                 this.client[userIdStr],
-                userIdStr,
+                user,
             )
         }
         const fullSide = ('open_' + side) as FuturesOrderSide

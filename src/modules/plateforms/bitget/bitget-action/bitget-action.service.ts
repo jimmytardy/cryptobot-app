@@ -40,7 +40,7 @@ export class BitgetActionService {
                 symbol,
             )
         }
-        let leverage = user.getLeverage(price);
+        let leverage = this.bitgetUtilsService.getLeverage(user, price);
         await Promise.all([
             client.setLeverage(symbol, user.preferences.order.marginCoin, String(leverage), 'long'),
             client.setLeverage(symbol, user.preferences.order.marginCoin, String(leverage), 'short'),
@@ -82,7 +82,7 @@ export class BitgetActionService {
                 user.preferences.order.TPSize,
                 symbolRules
             );
-            if (TPsCalculate.length === 0) throw new Error('La quantité demandé est trop petite');
+            if (TPsCalculate.length === 0) throw new Error(`La quantité ${usdt} est trop petite pour un ordre`);
             const clOrderId = new Types.ObjectId()
             const newOrder: NewFuturesOrder = {
                 marginCoin,
