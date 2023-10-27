@@ -123,9 +123,7 @@ export class BitgetUtilsService {
         return number
     }
 
-    async getQuantityForOrder(client: FuturesClient, userId: string) {
-        const user = await this.userModel.findById(userId, 'orderConfig')
-        if (!user) return 0
+    async getQuantityForOrder(client: FuturesClient, user: User) {
         let { quantity, pourcentage } = user.preferences.order || {}
         if (!quantity) {
             const account = await this.getAccount(client)
@@ -157,11 +155,25 @@ export class BitgetUtilsService {
                     break;
                 }
             }
-            if (value0Find) {
+            if (!value0Find) {
                 return newTps;
             } else {
                 newTps.pop();
             }
         }
+        return newTps;
+    }
+
+    getLeverage(user: User, price: number) {
+        let levierSelect = user.preferences.order.levierSize[0]
+        for (const levierSetting of user.preferences.order.levierSize) {
+            if (
+                levierSelect.minPrice < levierSetting.minPrice &&
+                levierSetting.minPrice < price
+            ) {
+                levierSelect = levierSetting
+            }
+        }
+        return levierSelect.value
     }
 }

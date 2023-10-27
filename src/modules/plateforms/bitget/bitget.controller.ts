@@ -11,7 +11,7 @@ export class BitgetController {
 
     @Post('placeOrder')
     async placeOrder(@Body() placeOrderDTO: PlaceOrderDTO, @Request() req) {
-        return await this.bitgetService.placeOrder(placeOrderDTO, req.user._id);
+        return await this.bitgetService.placeOrder(placeOrderDTO, req.user);
     }
 
     @Get('baseCoins')

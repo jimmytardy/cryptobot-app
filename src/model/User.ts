@@ -107,19 +107,6 @@ export class User {
 
     @Prop({ type: SchemaTypes.Mixed, default: defaultUserPreference })
     preferences: IUserPreferences
-
-    getLeverage(price: number): number {
-        let levierSelect = this.preferences.order.levierSize[0]
-        for (const levierSetting of this.preferences.order.levierSize) {
-            if (
-                levierSelect.minPrice < levierSetting.minPrice &&
-                levierSetting.minPrice < price
-            ) {
-                levierSelect = levierSetting
-            }
-        }
-        return levierSelect.value
-    }
 }
 
-export const UserSchema = SchemaFactory.createForClass(User)
+export const UserSchema = SchemaFactory.createForClass(User);
