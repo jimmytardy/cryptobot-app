@@ -17,6 +17,7 @@ export interface IUser {
 const AuthContext = createContext({
     user: {} as IUser,
     setToken: (t: string) => {return !!t as boolean;},
+    logout: () => {return;},
     isLoading: true,
     isConnected: false
 })
@@ -88,7 +89,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     return (
-        <AuthContext.Provider value={{ user, setToken, isLoading, isConnected }}>
+        <AuthContext.Provider value={{ user, setToken, isLoading, isConnected, logout: forceLogout }}>
             {children}
         </AuthContext.Provider>
     )

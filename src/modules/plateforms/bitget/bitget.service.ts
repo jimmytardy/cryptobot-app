@@ -147,6 +147,7 @@ export class BitgetService {
     }
 
     async upgradeSL(order: Order): Promise<StopLoss> {
+        console.log('upgradeSL order', order)
         try {
             return await this.bitgetActionService.upgradeSL(
                 this.client[order.userId.toString()],

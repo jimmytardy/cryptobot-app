@@ -5,6 +5,7 @@ import { IUserPreferencesOrder, User } from 'src/model/User'
 import { CreateUserDTO, UpdatePreferencesDTO } from './user.dto'
 import { genSalt, hash } from 'bcrypt'
 import { PlateformsService } from '../plateforms/plateforms.service'
+import { FuturesClient } from 'bitget-api'
 
 @Injectable()
 export class UserService implements OnApplicationBootstrap {
@@ -30,7 +31,24 @@ export class UserService implements OnApplicationBootstrap {
     }
 
     async create(user: CreateUserDTO) {
-        const salt = await genSalt()
+        const salt = await genSalt();
+
+        const exists = await this.findByEmail(user.email);
+        if (exists) throw new Error("L'email existe déjà");
+        
+        try {
+            // A voir la vérification
+            const client = new FuturesClient({
+                apiKey: user.bitget.api_key,
+                apiPass: user.bitget.api_pass,
+                apiSecret: user.bitget.api_secret_key
+            });
+            const apiInfo = await client.getClientType();
+            console.log('client', JSON.stringify(client, null, 2))
+        } catch(e) {
+            throw new Error("Les informations de la clé API n'existe pas");
+        }
+
         const newUser = await new this.userModel({
             ...user,
             password: await hash(user.password, salt),

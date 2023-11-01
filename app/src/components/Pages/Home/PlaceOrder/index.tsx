@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import './index.scss'
 import { Form, Button, Row, Col, Container } from 'react-bootstrap'
 import axiosClient from '../../../../axiosClient'
-import { FormProvider, useForm } from 'react-hook-form'
+import { FormProvider, useForm, useFormState } from 'react-hook-form'
 import ControllerArrayNumber from '../../../utils/form/ControllerArrayNumber'
 
 interface IPlaceOrderPayload {
@@ -33,7 +33,8 @@ const PlaceOrder = () => {
             size: undefined,
             marginCoin: 'USDT',
         },
-    })
+    });
+    const { errors } = useFormState<IPlaceOrderPayload>({ control: methods.control });
     const [results, setResults] = useState<{ success: any[]; errors: any[] }>()
     const [submitDisabled, setSubmitDisabled] = useState<boolean>(false) // Un état pour désactiver le bouton d'envoi du formulaire
     const [baseCoins, setBaseCoins] = useState<string[]>([]) // Un état pour stocker les baseCoins
@@ -170,6 +171,13 @@ const PlaceOrder = () => {
                             />
                         </Col>
                     </Row>
+                    {Object.keys(errors).length > 0 && (
+                        <Row>
+                            <Col>
+                                {JSON.stringify(errors)}
+                            </Col>
+                        </Row>
+                    )}
                     <Col xs={3} className="m-auto">
                         <Button type="submit" disabled={submitDisabled}>
                             Envoyer

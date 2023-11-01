@@ -3,6 +3,7 @@ import {
     Controller,
     Get,
     HttpCode,
+    HttpException,
     HttpStatus,
     Post,
     Request,
@@ -26,10 +27,14 @@ export class AuthController {
     
     @Post('signup')
     async signUp(@Body() createUserDTO: CreateUserDTO) {
-        const user = await this.userService.create(createUserDTO);
-        return {
-          ...this.authService.login(user),
-          message: 'Utilisateur crée avec succès.'
+        try {
+            const user = await this.userService.create(createUserDTO);
+            return {
+              ...this.authService.login(user),
+              message: 'Utilisateur crée avec succès.'
+            }
+        } catch (e) {
+            throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
         }
     }
 
