@@ -1,6 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { ToastContainer, toast, Flip } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.min.css'
 import {
     Button,
@@ -18,7 +17,6 @@ import {
 import { IUserPayload } from '../../../interfaces/user.interface'
 import axiosClient from '../../../axiosClient'
 import { useEffect, useState } from 'react'
-import { AxiosError } from 'axios'
 
 const SignUp = () => {
     const {

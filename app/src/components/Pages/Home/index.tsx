@@ -1,5 +1,4 @@
 import { Col, Container, Row } from "react-bootstrap";
-import PlaceOrder from "./PlaceOrder";
 import Profile from "./Profile";
 
 
