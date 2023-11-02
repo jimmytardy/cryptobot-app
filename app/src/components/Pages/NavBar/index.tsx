@@ -1,11 +1,23 @@
-import { Container, Nav, Navbar } from 'react-bootstrap'
+import {
+    Container,
+    Nav,
+    Navbar,
+    OverlayTrigger,
+    Tooltip,
+} from 'react-bootstrap'
 import './index.scss'
-import { useNavigate } from 'react-router'
-import { useAuth } from '../../../hooks/AuthContext';
+import { useLocation, useNavigate } from 'react-router'
+import { useAuth } from '../../../hooks/AuthContext'
+import { IRoute } from '..'
 
-const NavBarCryptobot = () => {
-    const navigate = useNavigate();
-    const { logout } = useAuth();
+interface NavBarCryptobotProps {
+    routes: IRoute[]
+}
+
+const NavBarCryptobot: React.FC<NavBarCryptobotProps> = ({ routes }) => {
+    const navigate = useNavigate()
+    const location = useLocation()
+    const { logout } = useAuth()
 
     return (
         <Navbar expand="lg" className="navbar-cryptobot bg-body-tertiary">
@@ -17,10 +29,44 @@ const NavBarCryptobot = () => {
                 <Navbar.Toggle aria-controls="basic-navbar-nav" />
                 <Navbar.Collapse id="basic-navbar-nav">
                     <Nav>
-                        <Nav.Link className='ms-3' onClick={() => navigate('home')}>Accueil</Nav.Link>
-                        <Nav.Link className='ms-3' onClick={() => navigate('preferences')}>Préférences</Nav.Link>
-                        <Nav.Link className='ms-3' onClick={() => navigate('positions')}>Positions</Nav.Link>
-                        <Nav.Link className='ms-auto' onClick={logout}>Se déconnecter</Nav.Link>
+                        {routes
+                            .filter((route) => route.title)
+                            .map((route) => (
+                                <OverlayTrigger
+                                    key={'nav-link-' + route.path}
+                                    placement="bottom"
+                                    overlay={
+                                        <Tooltip>
+                                            {route.disabled
+                                                ? "Vous n'avez pas les droits necessaires"
+                                                : route.title}
+                                        </Tooltip>
+                                    }
+                                >
+                                    <Nav.Link
+                                        active={
+                                            location.pathname === route.path
+                                        }
+                                        // disabled={route.disabled}
+                                        className={
+                                            'ms-3' +
+                                            (route.disabled
+                                                ? ' fw-light'
+                                                : location.pathname === route.path ? ' fw-bold' :  ' fw-normal')
+                                        }
+                                        onClick={
+                                            route.disabled
+                                                ? undefined
+                                                : () => navigate(route.path)
+                                        }
+                                    >
+                                        {route.title}
+                                    </Nav.Link>
+                                </OverlayTrigger>
+                            ))}
+                        <Nav.Link className="ms-auto" onClick={logout}>
+                            Se déconnecter
+                        </Nav.Link>
                     </Nav>
                 </Navbar.Collapse>
             </Container>

@@ -81,7 +81,6 @@ const ControllerArrayNumber = <T extends FieldValues>({
                                     id={`${field}-${index}`}
                                     onKeyDown={(e) => {
                                         if (Number.isNaN(parseFloat(e.key))) {
-                                            console.log('e.key', e.key)
                                             switch (e.key) {
                                                 case 'Backspace':
                                                 case 'Delete':

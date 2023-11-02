@@ -12,6 +12,8 @@ export interface IUser {
     firstname: string;
     lastname: string;
     email: string;
+    isTrader: boolean;
+    isAdmin: boolean;
 } 
 // Créez le contexte d'authentification
 const AuthContext = createContext({

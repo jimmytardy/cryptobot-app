@@ -33,8 +33,10 @@ const PlaceOrder = () => {
             size: undefined,
             marginCoin: 'USDT',
         },
-    });
-    const { errors } = useFormState<IPlaceOrderPayload>({ control: methods.control });
+    })
+    const { errors } = useFormState<IPlaceOrderPayload>({
+        control: methods.control,
+    })
     const [results, setResults] = useState<{ success: any[]; errors: any[] }>()
     const [submitDisabled, setSubmitDisabled] = useState<boolean>(false) // Un état pour désactiver le bouton d'envoi du formulaire
     const [baseCoins, setBaseCoins] = useState<string[]>([]) // Un état pour stocker les baseCoins
@@ -89,7 +91,7 @@ const PlaceOrder = () => {
 
     return (
         <Container>
-            <h2>Ordre Bitget</h2>
+            <h2>Placer un ordre</h2>
             <FormProvider {...methods}>
                 <Form onSubmit={methods.handleSubmit(submitOrder)}>
                     <ControllerArrayNumber<IPlaceOrderPayload> field="PEs" />
@@ -116,17 +118,13 @@ const PlaceOrder = () => {
                                     {...methods.register('baseCoin', {
                                         required: true,
                                     })}
+                                    value={methods.getValues('baseCoin')}
                                 >
                                     {baseCoins.map((coin) => (
                                         <option
                                             key={coin}
                                             value={coin}
                                             defaultValue={coin}
-                                            selected={
-                                                methods.getValues(
-                                                    'baseCoin',
-                                                ) === coin
-                                            }
                                         >
                                             {coin}
                                         </option>
@@ -140,6 +138,7 @@ const PlaceOrder = () => {
                                 {...methods.register('side', {
                                     required: true,
                                 })}
+                                value={methods.getValues('side') || 'long'}
                             >
                                 <option value="long">long</option>
                                 <option value="short">short</option>
@@ -148,7 +147,7 @@ const PlaceOrder = () => {
                     </Row>
                     <Row className="mb-4">
                         <Col xs={12}>
-                            <h2>Valeurs optionnelles</h2>
+                            <h3>Valeurs optionnelles</h3>
                         </Col>
                         <Col xs={6}>
                             <Form.Label htmlFor="size">
@@ -173,9 +172,7 @@ const PlaceOrder = () => {
                     </Row>
                     {Object.keys(errors).length > 0 && (
                         <Row>
-                            <Col>
-                                {JSON.stringify(errors)}
-                            </Col>
+                            <Col>{JSON.stringify(errors)}</Col>
                         </Row>
                     )}
                     <Col xs={3} className="m-auto">

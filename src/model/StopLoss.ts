@@ -45,6 +45,9 @@ export class StopLoss {
     @Prop({ default: false })
     cancelled: boolean
 
+    @Prop({ default: false })
+    activated: boolean
+
     @Prop({ default: [] })
     historyTrigger: number[]
 
@@ -53,3 +56,6 @@ export class StopLoss {
 }
 
 export const StopLossSchema = SchemaFactory.createForClass(StopLoss)
+
+StopLossSchema.index({ userId: 1, clOrderId: 1, terminated: 1 })
+StopLossSchema.index({ userId: 1 })

@@ -4,16 +4,63 @@ import Home from './Home'
 import Preferences from './Preferences'
 import NavBarCryptobot from './NavBar'
 import Positions from './Home/Positions'
+import PlaceOrder from './Home/PlaceOrder'
+import { useAuth } from '../../hooks/AuthContext'
+import { ReactNode } from 'react'
+
+export interface IRoute {
+    path: string
+    Component: React.FC | ReactNode
+    title?: string
+    disabled?: boolean
+}
 
 const Pages = () => {
+    const { user } = useAuth()
+    if (!user) return <div></div>
+
+    const routes: IRoute[] = [
+        {
+            path: '/home',
+            Component: Home,
+            title: 'Accueil',
+        },
+        {
+            path: '/preferences',
+            Component: Preferences,
+            title: 'Préférences',
+        },
+        {
+            path: '/place-order',
+            Component: PlaceOrder,
+            disabled: !user.isTrader,
+            title: 'Placer un ordre',
+        },
+        {
+            path: '/positions',
+            Component: Positions,
+            title: 'Positions',
+        },
+        {
+            path: '/',
+            Component: Home,
+        },
+    ]
+
     return (
         <>
-            <NavBarCryptobot />
+            <NavBarCryptobot routes={routes} />
             <Routes>
-                <Route path="/home" element={<Home />} />
-                <Route path="/preferences" element={<Preferences />} />
-                <Route path="/positions" element={<Positions />} />
-                <Route path="/" element={<Home />} />
+                {routes
+                    .filter((routes) => !routes.disabled)
+                    .map((route) => (
+                        <Route
+                            key={'route-' + route.path}
+                            path={route.path}
+                            // @ts-ignore
+                            element={<route.Component />}
+                        />
+                    ))}
                 <Route path="*" element={<NotFound />} />
             </Routes>
         </>

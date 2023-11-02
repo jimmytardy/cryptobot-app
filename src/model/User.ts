@@ -106,7 +106,13 @@ export class User {
     bitget: IUserCryptoExchange
 
     @Prop({ type: SchemaTypes.Mixed, default: defaultUserPreference })
-    preferences: IUserPreferences
+    preferences: IUserPreferences;
+
+    @Prop({ default: false })
+    isTrader: boolean;
+
+    @Prop({ default: false })
+    isAdmin: boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

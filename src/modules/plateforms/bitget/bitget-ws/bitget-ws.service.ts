@@ -72,12 +72,13 @@ export class BitgetWsService {
         for (const orderAlgoEvent of data) {
             if (!Types.ObjectId.isValid(orderAlgoEvent.cOid)) return;
             const clOrderId = new Types.ObjectId(orderAlgoEvent.cOid);
-
+            console.log('orderAlgoEvent.cOid', orderAlgoEvent.cOid)
             const takeProfit = await this.takeProfitModel.findOne({
                 clOrderId,
                 terminated: { $ne: true },
-                user,
-            })
+                userId: user._id,
+            });
+            console.log('takeProfit', takeProfit);
             if (takeProfit) {
                 return await this.onUpdatedOrderAlgoTP(orderAlgoEvent, takeProfit);
             }
@@ -86,7 +87,7 @@ export class BitgetWsService {
             const stopLoss = await this.stopLossModel.findOne({
                 clOrderId,
                 terminated: { $ne: true },
-                user,
+                userId: user._id,
             })
 
             if (stopLoss) {
@@ -196,13 +197,14 @@ export class BitgetWsService {
     }
 
     private async onTakeProfitTriggered(takeProfit: TakeProfitDocument) {
-        takeProfit.terminated = true
+        takeProfit.terminated = true;
+        takeProfit.activated = true;
         await takeProfit.save()
-        const order = await this.orderModel.findById(takeProfit.orderParentId)
+        const order = await this.orderModel.findById(takeProfit.orderParentId);
         // close order if has take all TPs
         try {
             // upgrade stop loss
-            const stopLoss = await this.bitgetService.upgradeSL(order)
+            const stopLoss = await this.bitgetService.upgradeSL(order);
             // cancel other order that not actived
             if (stopLoss.step >= 0) {
                 await this.bitgetService.disabledOrderLink(
@@ -216,6 +218,9 @@ export class BitgetWsService {
     }
 
     private async onStopLossTriggered(stopLoss: StopLossDocument) {
+        stopLoss.terminated = true;
+        stopLoss.activated = true;
+        await stopLoss.save();
         const order = await this.orderModel.findOne({
             _id: stopLoss.orderParentId,
             userId: stopLoss.userId,

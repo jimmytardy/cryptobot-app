@@ -28,6 +28,9 @@ export class TakeProfit {
 
     @Prop({ default: false })
     cancelled: boolean;
+
+    @Prop({ default: false })
+    activated: boolean;
     
     @Prop({ default: false })
     updated: boolean;
@@ -49,3 +52,6 @@ export class TakeProfit {
 }
 
 export const TakeProfitSchema = SchemaFactory.createForClass(TakeProfit);
+
+TakeProfitSchema.index({ userId: 1, clOrderId: 1, terminated: 1 })
+TakeProfitSchema.index({ userId: 1 })

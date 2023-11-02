@@ -213,7 +213,6 @@ export class BitgetActionService {
                 const result = await client.submitStopOrder(params)
 
                 const { orderId } = result.data
-
                 await new this.takeProfitModel({
                     triggerPrice: TP,
                     clOrderId,

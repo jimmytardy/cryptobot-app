@@ -90,7 +90,7 @@ const Preferences = () => {
 
     return (
         <Container className="preferences">
-            <h1 className="text-center">Préférences</h1>
+            <h2 className="text-center">Préférences</h2>
             <FormProvider {...methods}>
                 <Form onSubmit={methods.handleSubmit(submitPreference)}>
                     <Row>
@@ -287,17 +287,13 @@ const Preferences = () => {
                                             let lineError = []
                                             let index = 0
                                             for (const value of values) {
+                                                if (!value && value !== 0) continue;
                                                 index++
                                                 let total = 0
                                                 for (const key in value) {
                                                     total += value[key] * 100 // si pas * 100, problème de virgules flottantes
                                                 }
                                                 if (total !== 100) {
-                                                    console.log(
-                                                        'index',
-                                                        index,
-                                                        total,
-                                                    )
                                                     lineError.push(index)
                                                 }
                                             }

@@ -68,6 +68,7 @@ const Positions = () => {
 
     return (
         <Container>
+            <h2>Liste de mes positions</h2>
             <Accordion className="positions">
                 <Row>
                     <Col md={4} className="position-title">

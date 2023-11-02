@@ -11,7 +11,7 @@ const Home: React.FC = () => {
             <Profile />
           </Col>
           <Col sm={12} md={9}>
-            <PlaceOrder />
+            {/* <PlaceOrder /> */}
           </Col>
         </Row>
       </Container>

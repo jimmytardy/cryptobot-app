@@ -22,7 +22,7 @@ export class BitgetUtilsService {
 
     async getProfile(client: FuturesClient): Promise<any> {
         const accountFuture = await this.getAccount(client)
-
+        
         const result = {
             available: Number(accountFuture.available),
             totalPnL:
@@ -80,47 +80,22 @@ export class BitgetUtilsService {
     }
 
     fixSizeByRules(quantity: number, symbolRules: FuturesSymbolRule) {
-        const replaceAt = function (
-            str: string,
-            index: number,
-            replacement: string,
-        ) {
-            return (
-                str.substring(0, index) +
-                replacement +
-                str.substring(index + replacement.length)
-            )
-        }
-
-        const sizeMultiplier = parseFloat(symbolRules.sizeMultiplier)
-        var decimal =
-            sizeMultiplier.toString().split('.').length > 1
-                ? sizeMultiplier.toString().split('.')[1].length
-                : 0
-
-        let value: string = (
-            Math.round(quantity / sizeMultiplier) * sizeMultiplier
-        ).toFixed(decimal + 1)
-        // arrondir au dessus
-        if (value[value.length - 1] !== '0') {
-            const indexChar = value[value.length - 2] === '0' ? -2 : -3
-            value = replaceAt(
-                value,
-                indexChar,
-                '' + (parseInt(value[indexChar]) + 1),
-            )
-        }
-        value = value.slice(0, -1)
-        return parseFloat(value)
-    }
-
-    formatNumberByRules(number: number, symbolRules: FuturesSymbolRule) {
-        number = Math.round(
-            number * Math.pow(10, Number.parseInt(symbolRules.pricePlace)),
-        )
-        number = number - (number % Number.parseInt(symbolRules.priceEndStep))
-        number = number / Math.pow(10, Number.parseInt(symbolRules.pricePlace))
-        return number
+        if (quantity < parseFloat(symbolRules.minTradeNum)) return 0;
+        const sizeMultiplier = parseFloat(symbolRules.sizeMultiplier);
+        if (quantity % sizeMultiplier === 0) {
+            return Math.max(quantity, 0);
+          } else {
+            // calculer la décimal la plus faible du multiplicateur
+            if (sizeMultiplier < 1) {
+                const multiplierDecimalPlaces = (sizeMultiplier.toString().split('.')[1] || '').length;
+                const roundedQuantity = Number(quantity.toFixed(multiplierDecimalPlaces));
+                const newQuantity = Math.floor(roundedQuantity / sizeMultiplier) * sizeMultiplier;
+                // Calculer le multiple précédent inférieur à quantity avec le même nombre de décimales que le multiplicateur
+                return Number((Math.floor(roundedQuantity / sizeMultiplier) * sizeMultiplier).toFixed(multiplierDecimalPlaces))
+            }
+            // Calculer le multiple précédent inférieur à quantity
+            return Math.floor(quantity / sizeMultiplier) * sizeMultiplier
+          }
     }
 
     async getQuantityForOrder(client: FuturesClient, user: User) {
@@ -146,7 +121,7 @@ export class BitgetUtilsService {
             const TPSizeValue = TPSize[newTps.length];
             let value0Find = false;
             for (const tpSize of TPSizeValue) {
-                const sizeTP = this.formatNumberByRules(
+                const sizeTP = this.fixSizeByRules(
                     size * tpSize,
                     symbolRules,
                 );
@@ -156,7 +131,7 @@ export class BitgetUtilsService {
                 }
             }
             if (!value0Find) {
-                return newTps;
+                break;
             } else {
                 newTps.pop();
             }

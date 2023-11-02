@@ -18,15 +18,15 @@ export class OrderService {
         // disabled order
         const order = await this.orderModel.findOneAndUpdate({ orderId: orderId }, { terminated: true });
         if (order) {
-            await this.takeProfitModel.updateMany({ orderParentId: order._id, }, { terminated: true, cancelled: true });
-            await this.stopLossModel.updateMany({ orderParentId: order._id }, { terminated: true, cancelled: true });
-            await this.orderModel.updateMany({ linkOrderId: order.linkOrderId, terminated: false, activated: false, cancelled: true }, { terminated: true });
+            await this.takeProfitModel.updateMany({ orderParentId: order._id, terminated: { $ne: true } }, { terminated: true, cancelled: true });
+            await this.stopLossModel.updateMany({ orderParentId: order._id, terminated: { $ne: true } }, { terminated: true, cancelled: true });
+            await this.orderModel.updateMany({ linkOrderId: order.linkOrderId, terminated: { $ne: true } }, { terminated: true, cancelled: true });
         }
     }
 
     async disabledOrderLink(linkId: Types.ObjectId) {
         // disabled order
-        await this.orderModel.updateMany({ linkOrderId: linkId, terminated: false, activated: false }, { terminated: true });
+        await this.orderModel.updateMany({ linkOrderId: linkId, terminated: { $ne: true }, activated: { $ne: true } }, { terminated: true });
     }
 
     async terminateOrder(orderId: string | Types.ObjectId) {

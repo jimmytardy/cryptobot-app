@@ -42,13 +42,12 @@ export class UserService implements OnApplicationBootstrap {
                 apiKey: user.bitget.api_key,
                 apiPass: user.bitget.api_pass,
                 apiSecret: user.bitget.api_secret_key
-            });
-            const apiInfo = await client.getClientType();
-            console.log('client', JSON.stringify(client, null, 2))
+            },);
+            await client.getAccounts('umcbl');
         } catch(e) {
-            throw new Error("Les informations de la clé API n'existe pas");
+            throw new Error("Les informations de la clé API ne sont pas correctes");
         }
-
+        
         const newUser = await new this.userModel({
             ...user,
             password: await hash(user.password, salt),
