@@ -118,7 +118,7 @@ const PlaceOrder = () => {
                                     {...methods.register('baseCoin', {
                                         required: true,
                                     })}
-                                    value={methods.getValues('baseCoin')}
+                                    defaultValue={methods.getValues('baseCoin')}
                                 >
                                     {baseCoins.map((coin) => (
                                         <option
