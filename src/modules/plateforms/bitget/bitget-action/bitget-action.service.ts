@@ -42,14 +42,14 @@ export class BitgetActionService {
         }
         let leverage = this.bitgetUtilsService.getLeverage(user, price);
         await Promise.all([
-            client.setLeverage(symbol, user.preferences.order.marginCoin, String(leverage), 'long'),
-            client.setLeverage(symbol, user.preferences.order.marginCoin, String(leverage), 'short'),
+            client.setLeverage(symbol, user.preferences.order.marginCoin, String(leverage), 'long').catch(e => console.error('setLeverage', e)),
+            client.setLeverage(symbol, user.preferences.order.marginCoin, String(leverage), 'short').catch(e => console.error('setLeverage', e))
         ]);
         return Number(leverage);
     }
 
     async setMarginMode(client: FuturesClient, user: User, symbol: string) {
-        await client.setMarginMode(symbol, user.preferences.order.marginCoin, 'fixed')
+        await client.setMarginMode(symbol, user.preferences.order.marginCoin, 'fixed').catch(e => console.error('setMarginMode', e));
     }
 
     async placeOrder(
@@ -65,6 +65,7 @@ export class BitgetActionService {
         linkOrderId?: Types.ObjectId,
         marginCoin = 'USDT',
     ) {
+        await this.setMarginMode(client, user, symbolRules.symbol);
         try {
             const quantity = this.bitgetUtilsService.getQuantityForUSDT(
                 usdt,
@@ -292,24 +293,25 @@ export class BitgetActionService {
         }
     }
 
-    async cancelOrder(client: FuturesClient, order: Order) {
+    async cancelOrder(client: FuturesClient, userId: Types.ObjectId, order: Order) {
         try {
             await client.cancelOrder(
                 order.symbol,
                 order.marginCoin,
                 order.orderId,
             )
-            await this.orderService.cancelOrder(order._id)
+            await this.orderService.cancelOrder(order._id, userId)
         } catch (e) {
-            console.error('removeOrder', e)
+            console.error('cancelOrder', e)
         }
     }
 
-    async disabledOrderLink(client: FuturesClient, linkId: Types.ObjectId) {
+    async disabledOrderLink(client: FuturesClient, linkId: Types.ObjectId, userId: Types.ObjectId) {
         const orders = await this.orderModel.find({
             linkOrderId: linkId,
             terminated: false,
             activated: false,
+            userId
         })
         for (const order of orders) {
             await client.cancelOrder(
@@ -318,6 +320,6 @@ export class BitgetActionService {
                 order.orderId,
             )
         }
-        await this.orderService.disabledOrderLink(linkId)
+        await this.orderService.disabledOrderLink(linkId, userId)
     }
 }

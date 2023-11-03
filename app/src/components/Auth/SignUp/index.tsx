@@ -9,6 +9,7 @@ import {
     CardTitle,
     Col,
     Container,
+    FormCheck,
     FormControl,
     FormGroup,
     FormLabel,
@@ -17,6 +18,7 @@ import {
 import { IUserPayload } from '../../../interfaces/user.interface'
 import axiosClient from '../../../axiosClient'
 import { useEffect, useState } from 'react'
+import FormCheckLabel from 'react-bootstrap/esm/FormCheckLabel'
 
 const SignUp = () => {
     const {
@@ -24,23 +26,36 @@ const SignUp = () => {
         handleSubmit,
         reset,
         formState: { errors },
-    } = useForm<IUserPayload>();
+    } = useForm<IUserPayload>({
+        defaultValues: {
+            firstname: '',
+            lastname: '',
+            email: '',
+            password: '',
+            role: 'follower',
+            bitget: {
+                api_key: '',
+                api_secret_key: '',
+                api_pass: '',
+            },
+        },
+    })
 
-    const [error, setError] = useState<string>();
+    const [error, setError] = useState<string>()
 
     const navigate = useNavigate()
 
     useEffect(() => {
         const submitOnEnter = (e: any) => {
             if (e.key === 'Enter') {
-                handleSubmit(submitData);
+                handleSubmit(submitData)
             }
-        };
+        }
         document.addEventListener('keydown', submitOnEnter)
         return () => {
             document.removeEventListener('keydown', submitOnEnter)
         }
-    }, []);
+    }, [])
 
     const submitData = async (data: IUserPayload) => {
         let params = {
@@ -51,12 +66,12 @@ const SignUp = () => {
             bitget: data.bitget,
         }
         try {
-            const response = await axiosClient.post('/auth/signup', params);
-            reset();
+            const response = await axiosClient.post('/auth/signup', params)
+            reset()
             localStorage.setItem('token', response.data.access_token)
             navigate('/', { replace: true })
-        } catch (e: any) { 
-            setError(e.response.data.message);
+        } catch (e: any) {
+            setError(e.response.data.message)
         }
     }
     return (
@@ -81,11 +96,11 @@ const SignUp = () => {
                                 <FormGroup>
                                     <Row>
                                         <Col md={6}>
-                                            <FormLabel>Nom</FormLabel>
+                                            <FormLabel>Prénom</FormLabel>
                                             <FormControl
                                                 {...register('firstname', {
                                                     required:
-                                                        'Nom est obligatoire !',
+                                                        'Le prénom est obligatoire !',
                                                 })}
                                                 size="sm"
                                                 type="text"
@@ -96,21 +111,18 @@ const SignUp = () => {
                                                     style={{ fontSize: 14 }}
                                                 >
                                                     {/* @ts-ignore */}
-                                                    {
-                                                        errors.firstname
-                                                            .message
-                                                    }
+                                                    {errors.firstname.message}
                                                 </p>
                                             )}
                                         </Col>
                                         <Col md={6}>
-                                            <FormLabel>Prénom</FormLabel>
+                                            <FormLabel>Nom</FormLabel>
                                             <FormControl
                                                 size="sm"
                                                 type="text"
                                                 {...register('lastname', {
                                                     required:
-                                                        'Prénom  est obligatoire !',
+                                                        'Le nom  est obligatoire !',
                                                 })}
                                             />
                                             {errors.lastname && (
@@ -119,16 +131,13 @@ const SignUp = () => {
                                                     style={{ fontSize: 14 }}
                                                 >
                                                     {/* @ts-ignore */}
-                                                    {
-                                                        errors.lastname
-                                                            .message
-                                                    }
+                                                    {errors.lastname.message}
                                                 </p>
                                             )}
                                         </Col>
                                     </Row>
                                 </FormGroup>
-                                <FormGroup>
+                                <FormGroup className='mt-2'>
                                     <FormLabel>Email</FormLabel>
                                     <FormControl
                                         type="email"
@@ -147,7 +156,7 @@ const SignUp = () => {
                                         </p>
                                     )}
                                 </FormGroup>
-                                <FormGroup>
+                                <FormGroup className='mt-2'>
                                     <FormLabel>Mot de passe</FormLabel>
                                     <FormControl
                                         type="password"
@@ -167,7 +176,7 @@ const SignUp = () => {
                                         </p>
                                     )}
                                 </FormGroup>
-                                <FormGroup className='mt-5'>
+                                <FormGroup className="mt-5">
                                     <FormLabel>
                                         Information sur bitget
                                     </FormLabel>
@@ -178,13 +187,10 @@ const SignUp = () => {
                                                 type="text"
                                                 size="sm"
                                                 id="api_key"
-                                                {...register(
-                                                    'bitget.api_key',
-                                                    {
-                                                        required:
-                                                            'API Key est obligatoire !',
-                                                    },
-                                                )}
+                                                {...register('bitget.api_key', {
+                                                    required:
+                                                        'API Key est obligatoire !',
+                                                })}
                                             />
                                         </Col>
                                         <Col md={6}>
@@ -207,7 +213,7 @@ const SignUp = () => {
                                         <Col xs={6}>
                                             <FormLabel>API Pass</FormLabel>
                                             <FormControl
-                                                type="text"
+                                                type="password"
                                                 size="sm"
                                                 id="api_pass"
                                                 {...register(
@@ -221,10 +227,41 @@ const SignUp = () => {
                                         </Col>
                                     </Row>
                                 </FormGroup>
-                                <Row className='mt-4'>
-                                    <Col className='text-danger'>
-                                        {error}
-                                    </Col>
+                                <FormGroup className="mt-4">
+                                    <Row>
+                                        <Col md={12}>
+                                            <FormCheck
+                                                type="radio"
+                                                label="J'utilise le bot de trading (20€/mois)"
+                                                value={'follower'}
+                                                id="role-bot"
+                                                {...register('role')}
+                                            />
+                                        </Col>
+                                    </Row>
+                                    <Row className="mt-3">
+                                        <Col md={12}>
+                                            <FormCheck
+                                                id="role-trader"
+                                                type="radio"
+                                                label="Je veux placer des ordres (20€/mois)"
+                                                value={'trader'}
+                                                {...register('role')}
+                                            />
+                                        </Col>
+                                    </Row>
+                                </FormGroup>
+                                <CardText className="mt-4">
+                                    En créant un compte, vous acceptez les{' '}
+                                    <a
+                                        href="/conditions-generales-utilisation"
+                                        target="_blank"
+                                    >
+                                        conditions générales d'utilisation.
+                                    </a>
+                                </CardText>
+                                <Row className="mt-4">
+                                    <Col className="text-danger">{error}</Col>
                                 </Row>
                                 <div className="text-center mt-4">
                                     <Button

@@ -9,13 +9,11 @@ import { ConfigService } from '@nestjs/config'
 import { FuturesClient, FuturesOrderSide } from 'bitget-api'
 import { BitgetActionService } from './bitget-action/bitget-action.service'
 import { BitgetUtilsService } from './bitget-utils/bitget-utils.service'
-import { Types } from 'mongoose'
+import { Model, Types } from 'mongoose'
 import { Order } from 'src/model/Order'
-import { TakeProfit } from 'src/model/TakeProfit'
 import { StopLoss } from 'src/model/StopLoss'
-import { UserService } from 'src/modules/user/user.service'
 import { User } from 'src/model/User'
-import { BitgetWsService } from './bitget-ws/bitget-ws.service'
+import { InjectModel } from '@nestjs/mongoose'
 
 @Injectable()
 export class BitgetService {
@@ -27,15 +25,10 @@ export class BitgetService {
     constructor(
         private bitgetUtilsService: BitgetUtilsService,
         private bitgetActionService: BitgetActionService,
+        @InjectModel(User.name) private userModel: Model<User>,
     ) {
         this.logger = new Logger('BitgetService')
         this.client = {}
-    }
-
-    async initializeTraders(users: User[]) {
-        for (const user of users) {
-            this.addNewTrader(user)
-        }
     }
 
     addNewTrader(user: User) {
@@ -60,7 +53,7 @@ export class BitgetService {
         )
     }
 
-    async placeOrder(placeOrderDTO: PlaceOrderDTO, user: User) {
+    async placeOrder(placeOrderDTO: PlaceOrderDTO, user: User, linkParentOrderId?: Types.ObjectId) {
         const userIdStr = user._id.toString()
         let {
             PEs,
@@ -68,8 +61,7 @@ export class BitgetService {
             TPs,
             side,
             baseCoin,
-            size,
-            marginCoin = 'USDT',
+            size
         } = placeOrderDTO
         const symbolRules = await this.bitgetUtilsService.getSymbolBy(
             this.client[userIdStr],
@@ -86,7 +78,7 @@ export class BitgetService {
             )
         }
         const fullSide = ('open_' + side) as FuturesOrderSide
-        const linkOrderId = new Types.ObjectId()
+        const linkOrderId = linkParentOrderId || new Types.ObjectId()
         const results = {
             errors: [],
             success: [],
@@ -131,6 +123,14 @@ export class BitgetService {
                 })
             }
         }
+
+        if (user.role === 'mainbot') {
+            const followers = await this.userModel.find({ role: 'follower' }).lean();
+            console.log('followers', followers)
+            for (const follower of followers) {
+                await this.placeOrder(placeOrderDTO, follower, linkOrderId);
+            }
+        }
         return results
     }
 
@@ -147,7 +147,6 @@ export class BitgetService {
     }
 
     async upgradeSL(order: Order): Promise<StopLoss> {
-        console.log('upgradeSL order', order)
         try {
             return await this.bitgetActionService.upgradeSL(
                 this.client[order.userId.toString()],
@@ -162,6 +161,7 @@ export class BitgetService {
         try {
             return await this.bitgetActionService.cancelOrder(
                 this.client[order.userId.toString()],
+                order.userId,
                 order,
             )
         } catch (e) {
@@ -174,6 +174,7 @@ export class BitgetService {
             await this.bitgetActionService.disabledOrderLink(
                 this.client[userId.toString()],
                 linkId,
+                userId
             )
         } catch (e) {
             this.logger.error('disabledOrderLink', e)

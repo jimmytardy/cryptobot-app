@@ -7,6 +7,8 @@ import Positions from './Home/Positions'
 import PlaceOrder from './Home/PlaceOrder'
 import { useAuth } from '../../hooks/AuthContext'
 import { ReactNode } from 'react'
+import CGU from '../CGU'
+import { isTrader } from '../../utils'
 
 export interface IRoute {
     path: string
@@ -33,7 +35,7 @@ const Pages = () => {
         {
             path: '/place-order',
             Component: PlaceOrder,
-            disabled: !user.isTrader,
+            disabled: !isTrader(user),
             title: 'Placer un ordre',
         },
         {
@@ -61,6 +63,11 @@ const Pages = () => {
                             element={<route.Component />}
                         />
                     ))}
+                <Route
+                    path="conditions-generales-utilisation"
+                    element={<CGU />}
+                />
+
                 <Route path="*" element={<NotFound />} />
             </Routes>
         </>

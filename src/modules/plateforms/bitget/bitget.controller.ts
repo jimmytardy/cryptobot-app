@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, Post, Request, UseGuards } from '@nestjs/common';
 import { PlaceOrderDTO } from './bitget.dto';
 import { BitgetService } from './bitget.service';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
@@ -11,6 +11,7 @@ export class BitgetController {
 
     @Post('placeOrder')
     async placeOrder(@Body() placeOrderDTO: PlaceOrderDTO, @Request() req) {
+        if (req.user.role !== 'mainbot' && req.user.role !== 'trader') throw new HttpException('Unauthorized', 401);
         return await this.bitgetService.placeOrder(placeOrderDTO, req.user);
     }
 

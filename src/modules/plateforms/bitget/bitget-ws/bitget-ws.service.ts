@@ -42,12 +42,6 @@ export class BitgetWsService {
         this.activateWebSocket(user)
     }
 
-    async initializeTraders(users: User[]) {
-        for (const user of users) {
-            this.addNewTrader(user)
-        }
-    }
-
     activateWebSocket(user: User) {
         const userIdStr = user._id.toString()
         // client.subscribeTopic('UMCBL', 'ordersAlgo');
@@ -72,13 +66,12 @@ export class BitgetWsService {
         for (const orderAlgoEvent of data) {
             if (!Types.ObjectId.isValid(orderAlgoEvent.cOid)) return;
             const clOrderId = new Types.ObjectId(orderAlgoEvent.cOid);
-            console.log('orderAlgoEvent.cOid', orderAlgoEvent.cOid)
+            
             const takeProfit = await this.takeProfitModel.findOne({
                 clOrderId,
                 terminated: { $ne: true },
                 userId: user._id,
             });
-            console.log('takeProfit', takeProfit);
             if (takeProfit) {
                 return await this.onUpdatedOrderAlgoTP(orderAlgoEvent, takeProfit);
             }
@@ -139,7 +132,7 @@ export class BitgetWsService {
                     terminated: { $ne: true },
                 });
                 if (takesProfitsNotTerminated === 0) {
-                    await this.orderService.cancelOrder(takeProfit.orderParentId);
+                    await this.orderService.cancelOrder(takeProfit.orderParentId, takeProfit.userId);
                 }
                 break;
             case 'not_trigger':
@@ -189,7 +182,7 @@ export class BitgetWsService {
                     break
                 }
             case 'cancelled':
-                await this.orderService.cancelOrder(order._id)
+                await this.orderService.cancelOrder(order._id, user._id)
                 break
             default:
                 console.info('onOrderEvent', orderEvent, 'not implemented')
@@ -225,6 +218,6 @@ export class BitgetWsService {
             _id: stopLoss.orderParentId,
             userId: stopLoss.userId,
         })
-        await this.orderService.cancelOrder(order._id)
+        await this.orderService.cancelOrder(order._id, stopLoss.userId)
     }
 }

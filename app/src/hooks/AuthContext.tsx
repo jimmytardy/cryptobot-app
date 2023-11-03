@@ -7,14 +7,8 @@ import {
 } from 'react'
 import axiosClient from '../axiosClient'
 import { useNavigate } from 'react-router'
+import { IUser } from '../interfaces/user.interface';
 
-export interface IUser {
-    firstname: string;
-    lastname: string;
-    email: string;
-    isTrader: boolean;
-    isAdmin: boolean;
-} 
 // Créez le contexte d'authentification
 const AuthContext = createContext({
     user: {} as IUser,

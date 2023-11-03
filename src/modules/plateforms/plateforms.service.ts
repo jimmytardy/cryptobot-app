@@ -10,8 +10,10 @@ export class PlateformsService {
     constructor(private bitgetService: BitgetService, private bitgetWsService: BitgetWsService) {}
 
     async initializeTraders(users: User[]) {
-        await this.bitgetService.initializeTraders(users);
-        await this.bitgetWsService.initializeTraders(users);
+        if (!users.length) return;
+        for (const user of users) {
+            this.addNewTrader(user);
+        }
     }
     
     addNewTrader(user: User) {

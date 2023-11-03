@@ -101,7 +101,7 @@ const Login = (): JSX.Element => {
                                         </p>
                                     )}
                                 </div>
-                                <div className="text-center mt-4 ">
+                                <div className="text-center mt-4">
                                     <Button
                                         variant="outline-primary"
                                         className="text-center shadow-none mb-3"

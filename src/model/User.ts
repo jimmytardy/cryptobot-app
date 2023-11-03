@@ -108,11 +108,14 @@ export class User {
     @Prop({ type: SchemaTypes.Mixed, default: defaultUserPreference })
     preferences: IUserPreferences;
 
-    @Prop({ default: false })
-    isTrader: boolean;
+    @Prop({ default: 'follower' })
+    role: 'follower' | 'trader' | 'mainbot';
 
     @Prop({ default: false })
     isAdmin: boolean;
+
+    @Prop({ type: Date, default: () => new Date() })
+    subscription: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
