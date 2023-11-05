@@ -77,7 +77,11 @@ const Payement = () => {
                                             <i>- Essai gratuit</i>
                                         )}
                                     </FormLabel>
-                                    <p>{getSubscriptionDescription(stateSubscription)}</p>
+                                    <p>
+                                        {getSubscriptionDescription(
+                                            stateSubscription,
+                                        )}
+                                    </p>
                                 </FormGroup>
                             )
                         })}
@@ -86,7 +90,7 @@ const Payement = () => {
             {Object.values(user.subscription).length === 0 ? (
                 <Row>
                     <stripe-pricing-table
-                        pricing-table-id="prctbl_1O8pWBC7rML7LYwFbUSsH3lb"
+                        pricing-table-id={import.meta.env.VITE_STRIPE_PRICING_TABLE}
                         publishable-key={import.meta.env.VITE_STRIPE_KEY}
                         customer-email={user.email}
                     ></stripe-pricing-table>
