@@ -9,7 +9,6 @@ import {
     CardTitle,
     Col,
     Container,
-    FormCheck,
     FormControl,
     FormGroup,
     FormLabel,
@@ -18,7 +17,6 @@ import {
 import { IUserPayload } from '../../../interfaces/user.interface'
 import axiosClient from '../../../axiosClient'
 import { useEffect, useState } from 'react'
-import FormCheckLabel from 'react-bootstrap/esm/FormCheckLabel'
 
 const SignUp = () => {
     const {

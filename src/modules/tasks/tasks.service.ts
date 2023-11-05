@@ -24,7 +24,6 @@ export class TasksService {
 
     @Cron(CronExpression.EVERY_10_MINUTES)
     async sendPlateformsOrders() {
-        this.logger.debug('Called sendPlateformsOrders')
         const ordersToSend = await this.orderModel
             .find({
                 sendToPlateform: false,
@@ -68,6 +67,6 @@ export class TasksService {
 
     @Cron(CronExpression.EVERY_10_SECONDS)
     async checkOrdersNotActivated() {
-        
+
     }
 }
