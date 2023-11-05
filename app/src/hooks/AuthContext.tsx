@@ -4,17 +4,18 @@ import {
     useState,
     useEffect,
     ReactNode,
+    useLayoutEffect,
 } from 'react'
 import axiosClient from '../axiosClient'
 import { useNavigate } from 'react-router'
 import { IUser } from '../interfaces/user.interface';
+import Loader from '../components/utils/Loader';
 
 // Créez le contexte d'authentification
 const AuthContext = createContext({
     user: {} as IUser,
     setToken: (t: string) => {return !!t as boolean;},
     logout: () => {return;},
-    isLoading: true,
     isConnected: false
 })
 
@@ -23,7 +24,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [token, setStateToken] = useState<string | null>(null)
     const [user, setUser] = useState<IUser>({} as IUser);
     const [isConnected, setIsConnected] = useState<boolean>(false)
-    const [isLoading, setIsLoading] = useState<boolean>(true)
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [tokenLoading, setTokenLoading] = useState<boolean>(true);
+
     const navigate = useNavigate()
 
     const forceLogout = () => {
@@ -31,12 +34,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setStateToken(null)
         setUser({} as IUser);
         setIsConnected(false);
+        setIsLoading(false);
+        setTokenLoading(false);
         delete axiosClient.defaults.headers.common['Authorization']
         navigate('/login', { replace: true })
     }
 
     const setToken = (t: string) => {
-        setIsLoading(true);
+        setTokenLoading(true);
         localStorage.setItem('token', t);
         axiosClient.defaults.headers.common[
             'Authorization'
@@ -64,28 +69,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     // Simulez un appel asynchrone pour vérifier l'authentification
-    useEffect(() => {
+    useLayoutEffect(() => {
         ;(async () => {
             if (token) {
-                const user = (await axiosClient.get('/auth/profile')).data?.user
+                const user = (await axiosClient.get('/user/profile')).data
                 if (!user) {
                     forceLogout()
                 } else {
                     setUser(user);
-                    setIsConnected(true);
                     setStateToken(token);
+                    setIsConnected(true);
                 }
             }
-            setIsLoading(false);
-        })()
-    }, [token])
+            setTokenLoading(false)
+            
+        })().then(() => setIsLoading(false));
 
-    if (isLoading) {
-        return <div>Chargement en cours...</div>
+    }, [token]);
+
+    if (tokenLoading || isLoading) {
+        return <Loader />
     }
 
     return (
-        <AuthContext.Provider value={{ user, setToken, isLoading, isConnected, logout: forceLogout }}>
+        <AuthContext.Provider value={{ user, setToken, isConnected, logout: forceLogout }}>
             {children}
         </AuthContext.Provider>
     )

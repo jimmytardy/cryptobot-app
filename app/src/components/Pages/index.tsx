@@ -3,12 +3,13 @@ import NotFound from '../utils/NotFound'
 import Home from './Home'
 import Preferences from './Preferences'
 import NavBarCryptobot from './NavBar'
-import Positions from './Home/Positions'
-import PlaceOrder from './Home/PlaceOrder'
+import Positions from './Positions'
+import PlaceOrder from './PlaceOrder'
 import { useAuth } from '../../hooks/AuthContext'
 import { ReactNode } from 'react'
 import CGU from '../CGU'
 import { isTrader } from '../../utils'
+import Payement from './Payment'
 
 export interface IRoute {
     path: string
@@ -28,20 +29,25 @@ const Pages = () => {
             title: 'Accueil',
         },
         {
-            path: '/preferences',
-            Component: Preferences,
-            title: 'Préférences',
-        },
-        {
             path: '/place-order',
             Component: PlaceOrder,
             disabled: !isTrader(user),
             title: 'Placer un ordre',
         },
         {
+            path: '/preferences',
+            Component: Preferences,
+            title: 'Préférences',
+        },
+        {
             path: '/positions',
             Component: Positions,
             title: 'Positions',
+        },
+        {
+            path: '/payment',
+            Component: Payement,
+            title: "Gérer mon abonnement"
         },
         {
             path: '/',

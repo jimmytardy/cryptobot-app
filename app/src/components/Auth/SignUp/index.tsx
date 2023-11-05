@@ -32,7 +32,6 @@ const SignUp = () => {
             lastname: '',
             email: '',
             password: '',
-            role: 'follower',
             bitget: {
                 api_key: '',
                 api_secret_key: '',
@@ -178,8 +177,13 @@ const SignUp = () => {
                                 </FormGroup>
                                 <FormGroup className="mt-5">
                                     <FormLabel>
-                                        Information sur bitget
+                                        Information sur votre compte bitget: <a href='https://www.bitget.com/fr/register?commonCode=WUEYSGWB'>Créer un compte Bitget</a>
                                     </FormLabel>
+                                    <Row>
+                                        <Col>
+                                            
+                                        </Col>
+                                    </Row>
                                     <Row>
                                         <Col md={6}>
                                             <FormLabel>API Key</FormLabel>
@@ -223,30 +227,6 @@ const SignUp = () => {
                                                             'API Pass Key est obligatoire !',
                                                     },
                                                 )}
-                                            />
-                                        </Col>
-                                    </Row>
-                                </FormGroup>
-                                <FormGroup className="mt-4">
-                                    <Row>
-                                        <Col md={12}>
-                                            <FormCheck
-                                                type="radio"
-                                                label="J'utilise le bot de trading (20€/mois)"
-                                                value={'follower'}
-                                                id="role-bot"
-                                                {...register('role')}
-                                            />
-                                        </Col>
-                                    </Row>
-                                    <Row className="mt-3">
-                                        <Col md={12}>
-                                            <FormCheck
-                                                id="role-trader"
-                                                type="radio"
-                                                label="Je veux placer des ordres (20€/mois)"
-                                                value={'trader'}
-                                                {...register('role')}
                                             />
                                         </Col>
                                     </Row>

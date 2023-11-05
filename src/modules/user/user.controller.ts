@@ -1,8 +1,8 @@
-import { Body, Controller, Get, Post, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Put, Request, UseGuards } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from 'src/model/User';
-import { CreateUserDTO, UpdatePreferencesDTO } from './user.dto';
+import { CreateUserDTO, ProfileUpdateDTO, UpdatePreferencesDTO } from './user.dto';
 import { UserService } from './user.service';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 import { OrderService } from '../order/order.service';
@@ -33,5 +33,23 @@ export class UserController {
     @Get('orders')
     async getOrders(@Request() req) {
         return this.orderService.getOrders(req.user._id);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Put('profile')
+    async setProfile(@Request() req, @Body() body: ProfileUpdateDTO) {
+        return await this.userService.setProfile(req.user._id, body);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('profile')
+    async getProfile(@Request() req) {
+        return await this.userService.getProfile(req.user);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('subscriptions')
+    async getSubscriptions(@Request() req) {
+        return await this.userService.getSubscriptions(req.user._id);
     }
 }

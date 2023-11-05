@@ -106,16 +106,19 @@ export class User {
     bitget: IUserCryptoExchange
 
     @Prop({ type: SchemaTypes.Mixed, default: defaultUserPreference })
-    preferences: IUserPreferences;
+    preferences: IUserPreferences
 
     @Prop({ default: 'follower' })
-    role: 'follower' | 'trader' | 'mainbot';
+    role: 'follower' | 'trader' | 'mainbot'
 
     @Prop({ default: false })
-    isAdmin: boolean;
+    isAdmin: boolean
 
-    @Prop({ type: Date, default: () => new Date() })
-    subscription: Date;
+    @Prop({ default: false })
+    active: boolean
+
+    @Prop({ type: String })
+    stripeCustomerId: string
 }
 
-export const UserSchema = SchemaFactory.createForClass(User);
+export const UserSchema = SchemaFactory.createForClass(User)

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import './index.scss'
 import { Form, Button, Row, Col, Container } from 'react-bootstrap'
-import axiosClient from '../../../../axiosClient'
+import axiosClient from '../../../axiosClient'
 import { FormProvider, useForm, useFormState } from 'react-hook-form'
-import ControllerArrayNumber from '../../../utils/form/ControllerArrayNumber'
+import ControllerArrayNumber from '../../utils/form/ControllerArrayNumber'
 
 interface IPlaceOrderPayload {
     TPs: (string | undefined)[]
@@ -82,7 +82,7 @@ const PlaceOrder = () => {
             setResults(response.data)
             methods.reset()
         } catch (e) {
-            console.log(e)
+            console.error(e)
         } finally {
             setSubmitDisabled(false)
         }

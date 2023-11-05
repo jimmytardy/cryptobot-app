@@ -2,6 +2,7 @@ import { Type } from 'class-transformer'
 import {
     ArrayNotEmpty,
     IsArray,
+    IsBoolean,
     IsDefined,
     IsNotEmptyObject,
     IsNumber,
@@ -63,4 +64,10 @@ export class UpdatePreferencesDTO {
     @ValidateNested()
     @Type(() => UpdatePreferencesOrderDTO)
     order: UpdatePreferencesOrderDTO
+}
+
+export class ProfileUpdateDTO {
+    @IsDefined()
+    @IsBoolean()
+    active: boolean;
 }

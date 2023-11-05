@@ -14,6 +14,8 @@ import { Order } from 'src/model/Order'
 import { StopLoss } from 'src/model/StopLoss'
 import { User } from 'src/model/User'
 import { InjectModel } from '@nestjs/mongoose'
+import { PaymentsService } from 'src/modules/payment/payments.service'
+import { SubscriptionEnum } from 'src/model/Subscription'
 
 @Injectable()
 export class BitgetService {
@@ -26,6 +28,7 @@ export class BitgetService {
         private bitgetUtilsService: BitgetUtilsService,
         private bitgetActionService: BitgetActionService,
         @InjectModel(User.name) private userModel: Model<User>,
+        private paymentService: PaymentsService,
     ) {
         this.logger = new Logger('BitgetService')
         this.client = {}
@@ -53,16 +56,13 @@ export class BitgetService {
         )
     }
 
-    async placeOrder(placeOrderDTO: PlaceOrderDTO, user: User, linkParentOrderId?: Types.ObjectId) {
+    async placeOrder(
+        placeOrderDTO: PlaceOrderDTO,
+        user: User,
+        linkParentOrderId?: Types.ObjectId,
+    ) {
         const userIdStr = user._id.toString()
-        let {
-            PEs,
-            SL,
-            TPs,
-            side,
-            baseCoin,
-            size
-        } = placeOrderDTO
+        let { PEs, SL, TPs, side, baseCoin, size } = placeOrderDTO
         const symbolRules = await this.bitgetUtilsService.getSymbolBy(
             this.client[userIdStr],
             'baseCoin',
@@ -125,10 +125,15 @@ export class BitgetService {
         }
 
         if (user.role === 'mainbot') {
-            const followers = await this.userModel.find({ role: 'follower' }).lean();
-            console.log('followers', followers)
+            const [followers1, followers2] = await Promise.all([
+                this.paymentService.getUsersSubscription(SubscriptionEnum.BOT),
+                this.paymentService.getUsersSubscription(
+                    SubscriptionEnum.LIGHTBOT,
+                ),
+            ])
+            const followers = [...followers1, ...followers2]
             for (const follower of followers) {
-                await this.placeOrder(placeOrderDTO, follower, linkOrderId);
+                await this.placeOrder(placeOrderDTO, follower, linkOrderId)
             }
         }
         return results
@@ -174,7 +179,7 @@ export class BitgetService {
             await this.bitgetActionService.disabledOrderLink(
                 this.client[userId.toString()],
                 linkId,
-                userId
+                userId,
             )
         } catch (e) {
             this.logger.error('disabledOrderLink', e)

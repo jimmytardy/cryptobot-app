@@ -7,6 +7,7 @@ import { BitgetWsModule } from './bitget-ws/bitget-ws.module'
 import { OrderModule } from 'src/modules/order/order.module'
 import { MongooseModule } from '@nestjs/mongoose'
 import { User, UserSchema } from 'src/model/User'
+import { PaymentsModule } from 'src/modules/payment/payments.module'
 
 @Module({
     imports: [
@@ -14,6 +15,7 @@ import { User, UserSchema } from 'src/model/User'
         BitgetUtilsModule,
         BitgetWsModule,
         OrderModule,
+        PaymentsModule,
         MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     ],
     controllers: [BitgetController],

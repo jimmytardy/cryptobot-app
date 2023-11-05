@@ -1,8 +1,8 @@
 import { Accordion, Col, Container, Row } from 'react-bootstrap'
 import './index.scss'
 import { useEffect, useState } from 'react'
-import axiosClient from '../../../../axiosClient'
-import Loader from '../../../utils/Loader'
+import axiosClient from '../../../axiosClient'
+import Loader from '../../utils/Loader'
 import { Check, CurrencyDollar, HourglassSplit, X } from 'react-bootstrap-icons'
 
 interface IOrderStatus {
@@ -101,6 +101,7 @@ const Positions = () => {
 
                     return (
                         <Accordion.Item
+                            key={key}
                             as={Row}
                             eventKey={key}
                             className={`position-${orders[0].side}`}

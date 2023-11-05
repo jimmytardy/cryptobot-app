@@ -10,5 +10,6 @@ export default () => ({
         secretKey: process.env.BITGET_API_SECRET_KEY,
         passphrase: process.env.BITGET_API_PASS,
     },
-    jwtSecret: process.env.JWT_SECRET
+    jwtSecret: process.env.JWT_SECRET,
+    stripeSecret: process.env.STRIPE_SECRET,
 });

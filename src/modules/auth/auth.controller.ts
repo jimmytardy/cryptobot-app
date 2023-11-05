@@ -37,12 +37,4 @@ export class AuthController {
             throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
         }
     }
-
-    @Get('profile')
-    @UseGuards(JwtAuthGuard)
-    async isConnected(@Request() req) {
-        return {
-            user: req.user,
-        }
-    }
 }

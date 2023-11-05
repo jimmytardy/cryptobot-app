@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpException, Post, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, Post, Put, Request, UseGuards } from '@nestjs/common';
 import { PlaceOrderDTO } from './bitget.dto';
 import { BitgetService } from './bitget.service';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
