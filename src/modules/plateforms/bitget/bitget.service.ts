@@ -44,6 +44,10 @@ export class BitgetService {
         }
     }
 
+    getClient(userId: Types.ObjectId): FuturesClient {
+        return this.client[userId.toString()]
+    }
+
     async getProfile(userId: Types.ObjectId) {
         return await this.bitgetUtilsService.getProfile(
             this.client[userId.toString()],
@@ -92,6 +96,11 @@ export class BitgetService {
             peAvg,
         )
 
+        const currentPrice = await this.bitgetUtilsService.getCurrentPrice(
+            this.client[userIdStr],
+            symbolRules.symbol,
+        );
+
         for (const PE of PEs) {
             try {
                 results.success.push(
@@ -105,6 +114,7 @@ export class BitgetService {
                         TPs,
                         SL,
                         leverage,
+                        currentPrice,
                         linkOrderId,
                     ),
                 )
@@ -133,7 +143,9 @@ export class BitgetService {
             ])
             const followers = [...followers1, ...followers2]
             for (const follower of followers) {
-                await this.placeOrder(placeOrderDTO, follower, linkOrderId)
+                if (user.role !== 'mainbot') {
+                    await this.placeOrder(placeOrderDTO, follower, linkOrderId)
+                }
             }
         }
         return results

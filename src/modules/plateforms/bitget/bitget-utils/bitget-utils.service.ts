@@ -1,8 +1,14 @@
 import { Injectable } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
-import { FuturesClient, FuturesSymbolRule, SymbolRules } from 'bitget-api'
+import {
+    FuturesClient,
+    FuturesHoldSide,
+    FuturesSymbolRule,
+    SymbolRules,
+} from 'bitget-api'
 import BaseRestClient from 'bitget-api/lib/util/BaseRestClient'
 import { Model, Types } from 'mongoose'
+import { Order } from 'src/model/Order'
 import { TPSizeType, User } from 'src/model/User'
 import { OrderService } from 'src/modules/order/order.service'
 import { UserService } from 'src/modules/user/user.service'
@@ -22,7 +28,7 @@ export class BitgetUtilsService {
 
     async getProfile(client: FuturesClient): Promise<any> {
         const accountFuture = await this.getAccount(client)
-        
+
         const result = {
             available: Number(accountFuture.available),
             totalPnL:
@@ -80,22 +86,32 @@ export class BitgetUtilsService {
     }
 
     fixSizeByRules(quantity: number, symbolRules: FuturesSymbolRule) {
-        if (quantity < parseFloat(symbolRules.minTradeNum)) return 0;
-        const sizeMultiplier = parseFloat(symbolRules.sizeMultiplier);
+        const sizeMultiplier = parseFloat(symbolRules.sizeMultiplier)
         if (quantity % sizeMultiplier === 0) {
-            return Math.max(quantity, 0);
-          } else {
+            return Math.max(quantity, 0)
+        } else {
             // calculer la décimal la plus faible du multiplicateur
             if (sizeMultiplier < 1) {
-                const multiplierDecimalPlaces = (sizeMultiplier.toString().split('.')[1] || '').length;
-                const roundedQuantity = Number(quantity.toFixed(multiplierDecimalPlaces));
-                const newQuantity = Math.floor(roundedQuantity / sizeMultiplier) * sizeMultiplier;
+                const multiplierDecimalPlaces = (
+                    sizeMultiplier.toString().split('.')[1] || ''
+                ).length
+                const roundedQuantity = Number(
+                    quantity.toFixed(multiplierDecimalPlaces),
+                )
+                const newQuantity =
+                    Math.floor(roundedQuantity / sizeMultiplier) *
+                    sizeMultiplier
                 // Calculer le multiple précédent inférieur à quantity avec le même nombre de décimales que le multiplicateur
-                return Number((Math.floor(roundedQuantity / sizeMultiplier) * sizeMultiplier).toFixed(multiplierDecimalPlaces))
+                return Number(
+                    (
+                        Math.floor(roundedQuantity / sizeMultiplier) *
+                        sizeMultiplier
+                    ).toFixed(multiplierDecimalPlaces),
+                )
             }
             // Calculer le multiple précédent inférieur à quantity
             return Math.floor(quantity / sizeMultiplier) * sizeMultiplier
-          }
+        }
     }
 
     async getQuantityForOrder(client: FuturesClient, user: User) {
@@ -116,27 +132,24 @@ export class BitgetUtilsService {
         TPSize: TPSizeType,
         symbolRules: FuturesSymbolRule,
     ): number[] {
-        const newTps: number[] = [...tps];
-        while(newTps.length > 0) {
-            const TPSizeValue = TPSize[newTps.length];
-            let value0Find = false;
+        const newTps: number[] = [...tps]
+        while (newTps.length > 0) {
+            const TPSizeValue = TPSize[newTps.length]
+            let value0Find = false
             for (const tpSize of TPSizeValue) {
-                const sizeTP = this.fixSizeByRules(
-                    size * tpSize,
-                    symbolRules,
-                );
+                const sizeTP = this.fixSizeByRules(size * tpSize, symbolRules)
                 if (sizeTP <= 0) {
-                    value0Find= true;
-                    break;
+                    value0Find = true
+                    break
                 }
             }
             if (!value0Find) {
-                break;
+                break
             } else {
-                newTps.pop();
+                newTps.pop()
             }
         }
-        return newTps;
+        return newTps
     }
 
     getLeverage(user: User, price: number) {
@@ -150,5 +163,25 @@ export class BitgetUtilsService {
             }
         }
         return levierSelect.value
+    }
+
+    canSendBitget(
+        symbolRules: FuturesSymbolRule,
+        currentPrice: number,
+        order: Order,
+    ) {
+        const buyLimitPriceRatio = Number(symbolRules.buyLimitPriceRatio)
+        const sellLimitPriceRatio = Number(symbolRules.sellLimitPriceRatio)
+        // is in intervalle fixed by rules
+        return (
+            (order.side === 'long' &&
+                order.PE < currentPrice + currentPrice * buyLimitPriceRatio &&
+                order.PE > currentPrice - currentPrice * buyLimitPriceRatio &&
+                order.SL < currentPrice) ||
+            (order.side === 'short' &&
+                order.PE > currentPrice - currentPrice * sellLimitPriceRatio &&
+                order.PE < currentPrice + currentPrice * sellLimitPriceRatio &&
+                order.SL > currentPrice)
+        )
     }
 }

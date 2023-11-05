@@ -12,7 +12,7 @@ import {
 } from 'bitget-api'
 import { BitgetUtilsService } from '../bitget-utils/bitget-utils.service'
 import { InjectModel } from '@nestjs/mongoose'
-import { Order } from 'src/model/Order'
+import { Order, OrderDocument } from 'src/model/Order'
 import { Model, Types } from 'mongoose'
 import { TakeProfit } from 'src/model/TakeProfit'
 import { StopLoss } from 'src/model/StopLoss'
@@ -30,26 +30,49 @@ export class BitgetActionService {
         @InjectModel(StopLoss.name) private stopLossModel: Model<StopLoss>,
     ) {}
 
-
-    async setLeverage(client: FuturesClient, user: User, symbol: string, price: number): Promise<number> {
-        const position = await client.getPosition(symbol, user.preferences.order.marginCoin);
-        if (position?.data?.length > 0) return Number(position.data[0].leverage);
+    async setLeverage(
+        client: FuturesClient,
+        user: User,
+        symbol: string,
+        price: number,
+    ): Promise<number> {
+        const position = await client.getPosition(
+            symbol,
+            user.preferences.order.marginCoin,
+        )
+        if (position?.data?.length > 0) return Number(position.data[0].leverage)
         if (!price) {
             price = await this.bitgetUtilsService.getCurrentPrice(
                 client,
                 symbol,
             )
         }
-        let leverage = this.bitgetUtilsService.getLeverage(user, price);
+        let leverage = this.bitgetUtilsService.getLeverage(user, price)
         await Promise.all([
-            client.setLeverage(symbol, user.preferences.order.marginCoin, String(leverage), 'long').catch(e => console.error('setLeverage', e)),
-            client.setLeverage(symbol, user.preferences.order.marginCoin, String(leverage), 'short').catch(e => console.error('setLeverage', e))
-        ]);
-        return Number(leverage);
+            client
+                .setLeverage(
+                    symbol,
+                    user.preferences.order.marginCoin,
+                    String(leverage),
+                    'long',
+                )
+                .catch((e) => console.error('setLeverage', e)),
+            client
+                .setLeverage(
+                    symbol,
+                    user.preferences.order.marginCoin,
+                    String(leverage),
+                    'short',
+                )
+                .catch((e) => console.error('setLeverage', e)),
+        ])
+        return Number(leverage)
     }
 
     async setMarginMode(client: FuturesClient, user: User, symbol: string) {
-        await client.setMarginMode(symbol, user.preferences.order.marginCoin, 'fixed').catch(e => console.error('setMarginMode', e));
+        await client
+            .setMarginMode(symbol, user.preferences.order.marginCoin, 'fixed')
+            .catch((e) => console.error('setMarginMode', e))
     }
 
     async placeOrder(
@@ -62,48 +85,42 @@ export class BitgetActionService {
         tps: number[],
         stopLoss: number,
         leverage: number,
+        currentPrice: number,
         linkOrderId?: Types.ObjectId,
         marginCoin = 'USDT',
     ) {
-        await this.setMarginMode(client, user, symbolRules.symbol);
+        await this.setMarginMode(client, user, symbolRules.symbol)
         try {
             const quantity = this.bitgetUtilsService.getQuantityForUSDT(
                 usdt,
                 pe,
                 leverage,
-            );
+            )
             const size = this.bitgetUtilsService.fixSizeByRules(
                 quantity,
                 symbolRules,
             )
-            if (size <= 0) return;
+            // @ts-ignore
+            if (size <= 0 || usdt < symbolRules.minTradeUSDT) return;
+
             const TPsCalculate = this.bitgetUtilsService.caculateTPsToUse(
                 tps,
                 size,
                 user.preferences.order.TPSize,
-                symbolRules
-            );
-            if (TPsCalculate.length === 0) throw new Error(`La quantité ${usdt} est trop petite pour un ordre`);
+                symbolRules,
+            )
+            // @ts-ignore
+            if (TPsCalculate.length === 0 || usdt < symbolRules.minTradeUSDT)
+                throw new Error(
+                    `La quantité ${usdt} est trop petite pour un ordre`,
+                )
             const clOrderId = new Types.ObjectId()
-            const newOrder: NewFuturesOrder = {
-                marginCoin,
-                orderType: 'limit',
-                price: String(pe),
-                side: side,
-                size: String(size),
-                symbol: symbolRules.symbol,
-                clientOid: clOrderId.toString(),
-            }
-            const result = await client.submitOrder(newOrder)
 
-            const { orderId } = result.data
-
-            return await new this.orderModel({
+            const newOrder = new this.orderModel({
                 clOrderId,
                 PE: pe,
                 TPs: TPsCalculate.sort(),
                 SL: stopLoss,
-                orderId,
                 symbol: symbolRules.symbol,
                 side: side.split('_')[1] as FuturesHoldSide,
                 linkOrderId,
@@ -111,11 +128,44 @@ export class BitgetActionService {
                 marginCoin,
                 usdt,
                 userId: user._id,
-            }).save()
+            });
+
+            this.orderService.checkNewOrder(newOrder);
+
+            const sendToPlateform = this.bitgetUtilsService.canSendBitget(
+                symbolRules,
+                currentPrice,
+                newOrder
+            );
+
+            newOrder.sendToPlateform = sendToPlateform;
+
+            if (sendToPlateform) {
+                return this.placeOrderBitget(client, newOrder);
+            }
+
+            return await newOrder.save()
         } catch (e) {
             console.error('placeOrder', e)
             throw e
         }
+    }
+
+    async placeOrderBitget(client: FuturesClient, order: OrderDocument) {
+        const newOrderParams: NewFuturesOrder = {
+            marginCoin: order.marginCoin,
+            orderType: 'limit',
+            price: String(order.PE),
+            side: 'open_' + order.side as FuturesOrderSide,
+            size: String(order.quantity),
+            symbol: order.symbol,
+            clientOid: order.clOrderId.toString(),
+        }
+        const result = await client.submitOrder(newOrderParams)
+        const { orderId } = result.data;
+        order.orderId = orderId
+        order.sendToPlateform = true;
+        return await order.save();
     }
 
     async activeOrder(client: FuturesClient, user: User, orderId: string) {
@@ -179,11 +229,11 @@ export class BitgetActionService {
         symbolRules: FuturesSymbolRule,
         order: Order,
     ) {
-        const TPconfig = user.preferences.order.TPSize[order.TPs.length];
-        let additionnalSize = 0;
+        const TPconfig = user.preferences.order.TPSize[order.TPs.length]
+        let additionnalSize = 0
         // Take profits
         for (let i = 0; i < order.TPs.length; i++) {
-            const num = i + 1;
+            const num = i + 1
             const isLast = i === order.TPs.length - 1
             const TP = order.TPs[i]
             let size = 0
@@ -228,7 +278,7 @@ export class BitgetActionService {
                     userId: order.userId,
                 }).save()
             } catch (e) {
-                additionnalSize -= size;
+                additionnalSize -= size
                 console.error(
                     'activeTPs',
                     i,
@@ -281,10 +331,13 @@ export class BitgetActionService {
             }
             const result = await client.modifyStopOrder(params)
             stopLoss.orderId = result.data.orderId
-            stopLoss.price = stepsTriggers[newStep];
-            stopLoss.historyTrigger = [...stopLoss.historyTrigger, stopLoss.triggerPrice]
-            stopLoss.triggerPrice = stepsTriggers[newStep];
-            stopLoss.step = newStep;
+            stopLoss.price = stepsTriggers[newStep]
+            stopLoss.historyTrigger = [
+                ...stopLoss.historyTrigger,
+                stopLoss.triggerPrice,
+            ]
+            stopLoss.triggerPrice = stepsTriggers[newStep]
+            stopLoss.step = newStep
             await stopLoss.save()
             return stopLoss.toObject() as StopLoss
         } catch (e) {
@@ -293,7 +346,11 @@ export class BitgetActionService {
         }
     }
 
-    async cancelOrder(client: FuturesClient, userId: Types.ObjectId, order: Order) {
+    async cancelOrder(
+        client: FuturesClient,
+        userId: Types.ObjectId,
+        order: Order,
+    ) {
         try {
             await client.cancelOrder(
                 order.symbol,
@@ -306,12 +363,16 @@ export class BitgetActionService {
         }
     }
 
-    async disabledOrderLink(client: FuturesClient, linkId: Types.ObjectId, userId: Types.ObjectId) {
+    async disabledOrderLink(
+        client: FuturesClient,
+        linkId: Types.ObjectId,
+        userId: Types.ObjectId,
+    ) {
         const orders = await this.orderModel.find({
             linkOrderId: linkId,
             terminated: false,
             activated: false,
-            userId
+            userId,
         })
         for (const order of orders) {
             await client.cancelOrder(

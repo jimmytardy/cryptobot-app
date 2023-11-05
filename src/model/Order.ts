@@ -1,51 +1,59 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { FuturesHoldSide } from 'bitget-api';
 import { SchemaTypes, Types } from 'mongoose';
 import { HydratedDocument } from 'mongoose';
 
 export type OrderDocument = HydratedDocument<Order>;
 
-@Schema({ timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true }})
+@Schema({
+    timestamps: true,
+    toObject: { virtuals: true },
+    toJSON: { virtuals: true },
+})
 export class Order {
     _id: Types.ObjectId
 
     @Prop({ required: true })
-    clOrderId: Types.ObjectId;
+    clOrderId: Types.ObjectId
 
     @Prop({ required: true })
-    PE: number;
+    PE: number
 
     @Prop({ required: true })
-    TPs: number[];
+    TPs: number[]
 
     @Prop({ required: true })
-    SL: number;
+    SL: number
 
     @Prop({ required: true })
-    orderId: string;
+    symbol: string
 
     @Prop({ required: true })
-    symbol: string;
+    quantity: number
 
     @Prop({ required: true })
-    quantity: number;
+    side: FuturesHoldSide
 
     @Prop({ required: true })
-    side: 'short' | 'long';
+    sendToPlateform: boolean
+
+    @Prop()
+    orderId: string
 
     @Prop({ type: SchemaTypes.ObjectId })
-    linkOrderId: Types.ObjectId;
+    linkOrderId: Types.ObjectId
 
     @Prop({ default: 'USDT' })
-    marginCoin: string;
+    marginCoin: string
 
-    @Prop({ default: false})
-    activated: boolean;
-    
-    @Prop({ default: false})
-    terminated: boolean;
+    @Prop({ default: false })
+    activated: boolean
 
-    @Prop({ default: false})
-    cancelled: boolean;
+    @Prop({ default: false })
+    terminated: boolean
+
+    @Prop({ default: false })
+    cancelled: boolean
 
     @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
     userId: Types.ObjectId
