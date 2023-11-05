@@ -1,4 +1,4 @@
-import { IUser, UserSubscriptionEnum } from '../interfaces/user.interface'
+import { IUser } from '../interfaces/user.interface'
 
 export const isNumber = (value: string | number) => {
     if (typeof value === 'number') return true
