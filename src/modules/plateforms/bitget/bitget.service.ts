@@ -75,6 +75,7 @@ export class BitgetService {
         if (!symbolRules) {
             return
         }
+        
         if (!size) {
             size = await this.bitgetUtilsService.getQuantityForOrder(
                 this.client[userIdStr],

@@ -7,12 +7,11 @@ import {
     FuturesSymbolRule,
     ModifyFuturesPlanStopOrder,
     NewFuturesOrder,
-    NewFuturesPlanPositionTPSL,
     NewFuturesPlanStopOrder,
 } from 'bitget-api'
 import { BitgetUtilsService } from '../bitget-utils/bitget-utils.service'
 import { InjectModel } from '@nestjs/mongoose'
-import { Order, OrderDocument } from 'src/model/Order'
+import { Order } from 'src/model/Order'
 import { Model, Types } from 'mongoose'
 import { TakeProfit } from 'src/model/TakeProfit'
 import { StopLoss } from 'src/model/StopLoss'
@@ -101,7 +100,7 @@ export class BitgetActionService {
                 symbolRules,
             )
             // @ts-ignore
-            if (size <= 0 || usdt < symbolRules.minTradeUSDT) return;
+            if (size <= 0 || usdt < symbolRules.minTradeUSDT) return
 
             const TPsCalculate = this.bitgetUtilsService.caculateTPsToUse(
                 tps,
@@ -128,20 +127,20 @@ export class BitgetActionService {
                 marginCoin,
                 usdt,
                 userId: user._id,
-            });
+            })
 
-            this.orderService.checkNewOrder(newOrder);
+            this.orderService.checkNewOrder(newOrder)
 
             const sendToPlateform = this.bitgetUtilsService.canSendBitget(
                 symbolRules,
                 currentPrice,
-                newOrder
-            );
+                newOrder,
+            )
 
-            newOrder.sendToPlateform = sendToPlateform;
+            newOrder.sendToPlateform = sendToPlateform
 
             if (sendToPlateform) {
-                return this.placeOrderBitget(client, newOrder);
+                return await this.placeOrderBitget(client, newOrder)
             }
 
             return await newOrder.save()
@@ -151,21 +150,24 @@ export class BitgetActionService {
         }
     }
 
-    async placeOrderBitget(client: FuturesClient, order: OrderDocument) {
+    async placeOrderBitget(client: FuturesClient, order: Order) {
         const newOrderParams: NewFuturesOrder = {
             marginCoin: order.marginCoin,
             orderType: 'limit',
             price: String(order.PE),
-            side: 'open_' + order.side as FuturesOrderSide,
+            side: ('open_' + order.side) as FuturesOrderSide,
             size: String(order.quantity),
             symbol: order.symbol,
             clientOid: order.clOrderId.toString(),
         }
         const result = await client.submitOrder(newOrderParams)
-        const { orderId } = result.data;
-        order.orderId = orderId
-        order.sendToPlateform = true;
-        return await order.save();
+        const { orderId } = result.data
+
+        return await this.orderModel.findOneAndUpdate(
+            { _id: order._id },
+            { $set: { orderId, sendToPlateform: true } },
+            { new: true },
+        )
     }
 
     async activeOrder(client: FuturesClient, user: User, orderId: string) {

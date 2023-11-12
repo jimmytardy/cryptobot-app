@@ -24,49 +24,107 @@ export class TasksService {
 
     @Cron(CronExpression.EVERY_10_MINUTES)
     async sendPlateformsOrders() {
-        const ordersToSend = await this.orderModel
-            .find({
-                sendToPlateform: false,
-                terminated: false,
-                activated: false,
-            })
-            .exec()
-        const rules: {
-            [key: string]: { symbolRules: FuturesSymbolRule; price: number }
-        } = {}
-        for (const order of ordersToSend) {
-            const client = this.bitgetService.getClient(order.userId)
-            if (!rules[order.symbol]) {
-                const [symbolRules, price] = await Promise.all([
-                    this.bitgetUtilsService.getSymbolBy(
-                        client,
-                        'symbol',
-                        order.symbol,
-                    ),
-                    this.bitgetUtilsService.getCurrentPrice(
-                        client,
-                        order.symbol,
-                    ),
-                ])
-                rules[order.symbol] = {
-                    symbolRules,
-                    price,
+        try {
+            const ordersToSend = await this.orderModel
+                .find({
+                    sendToPlateform: { $ne: true },
+                    terminated: false,
+                    activated: false,
+                })
+                .lean()
+                .exec()
+
+            if (ordersToSend.length === 0) {
+                return
+            }
+            this.logger.log(
+                'Ordre en attente de placement:',
+                ordersToSend.length,
+            )
+            const rules: {
+                [key: string]: { symbolRules: FuturesSymbolRule; price: number }
+            } = {}
+            for (const order of ordersToSend) {
+                const client = this.bitgetService.getClient(order.userId)
+                if (!rules[order.symbol]) {
+                    const [symbolRules, price] = await Promise.all([
+                        this.bitgetUtilsService.getSymbolBy(
+                            client,
+                            'symbol',
+                            order.symbol,
+                        ),
+                        this.bitgetUtilsService.getCurrentPrice(
+                            client,
+                            order.symbol,
+                        ),
+                    ])
+                    rules[order.symbol] = {
+                        symbolRules,
+                        price,
+                    }
+                }
+
+                const sendtoBitget = this.bitgetUtilsService.canSendBitget(
+                    rules[order.symbol].symbolRules,
+                    rules[order.symbol].price,
+                    order,
+                )
+                if (sendtoBitget) {
+                    try {
+                        await this.bitgetActionService.placeOrderBitget(
+                            client,
+                            order,
+                        )
+                    } catch (e) {
+                        if (e.body.code === '40786') {
+                            const orderBitget = await client.getOrder(
+                                order.symbol,
+                                order.orderId,
+                                order.clOrderId
+                                    ? String(order.clOrderId)
+                                    : undefined,
+                            )
+                            if (orderBitget.data) {
+                                await this.orderModel.updateOne(
+                                    { _id: order._id },
+                                    {
+                                        $set: {
+                                            orderId: orderBitget.data.orderId,
+                                            sendToPlateform: true,
+                                            activated: true,
+                                            terminated:
+                                                orderBitget.data.status ===
+                                                'filled',
+                                        },
+                                    },
+                                )
+                                console.info(
+                                    "Mise à jour de l'ordre",
+                                    orderBitget,
+                                )
+                            } else {
+                                console.error(
+                                    "L'ordre n'a pas été trouvé",
+                                    order,
+                                )
+                                await this.orderModel.updateOne(
+                                    { _id: order._id },
+                                    {
+                                        $set: {
+                                            terminated: true,
+                                        },
+                                    },
+                                )
+                            }
+                        }
+                        console.error('sendPlateformsOrders', e, order)
+                    }
                 }
             }
-
-            const sendtoBitget = this.bitgetUtilsService.canSendBitget(
-                rules[order.symbol].symbolRules,
-                rules[order.symbol].price,
-                order
-            )
-            if (sendtoBitget) {
-                await this.bitgetActionService.placeOrderBitget(client, order)
-            }
+        } catch (e) {
+            this.logger.error('sendPlateformsOrders', e)
+            console.log('e', e.stack)
+            console.trace()
         }
-    }
-
-    @Cron(CronExpression.EVERY_10_SECONDS)
-    async checkOrdersNotActivated() {
-
     }
 }

@@ -42,21 +42,8 @@ export class BitgetUtilsService {
     async getCurrentPrice(
         client: FuturesClient,
         symbol: string,
-    ): Promise<number> {
-        const candlesToFetch = 1
-        const timestampNow = Date.now()
-        const msPerCandle = 60 * 1000 // 60 seconds x 1000
-        const msFor1kCandles = candlesToFetch * msPerCandle
-        const startTime = timestampNow - msFor1kCandles
-
-        const candles = await client.getCandles(
-            symbol,
-            '1m',
-            startTime.toString(),
-            timestampNow.toString(),
-            String(candlesToFetch),
-        )
-        return Number.parseFloat(candles[candles.length - 1][4])
+    ): Promise<number> {  
+        return Number.parseFloat((await client.getMarkPrice(symbol)).data.markPrice);
     }
 
     async getBaseCoins(client: FuturesClient): Promise<string[]> {

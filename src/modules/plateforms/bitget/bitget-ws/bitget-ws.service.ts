@@ -112,7 +112,7 @@ export class BitgetWsService {
             default:
                 console.info(
                     'onUpdatedOrderAlgoSL',
-                    orderAlgoEvent.status,
+                    orderAlgoEvent.state,
                     'not implemented',
                 )
         }
