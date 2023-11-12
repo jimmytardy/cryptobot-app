@@ -6,8 +6,10 @@ import { UserModule } from './user/user.module';
 import { PaymentsModule } from './payment/payments.module';
 import { TasksModule } from './tasks/tasks.module';
 import { TelegramModule } from './telegram/telegram.module';
+import { OrderBotService } from './order-bot/order-bot.service';
+import { OrderBotModule } from './order-bot/order-bot.module';
 
 @Module({
-  imports: [OrderModule, PlateformsModule, AuthModule, UserModule, PaymentsModule, TasksModule, TelegramModule]
+  imports: [OrderModule, PlateformsModule, AuthModule, UserModule, PaymentsModule, TasksModule, TelegramModule, OrderBotModule]
 })
 export class ModulesModule {}

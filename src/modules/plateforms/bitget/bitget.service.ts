@@ -27,7 +27,6 @@ export class BitgetService {
     constructor(
         private bitgetUtilsService: BitgetUtilsService,
         private bitgetActionService: BitgetActionService,
-        @InjectModel(User.name) private userModel: Model<User>,
         private paymentService: PaymentsService,
     ) {
         this.logger = new Logger('BitgetService')
