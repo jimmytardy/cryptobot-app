@@ -16,7 +16,7 @@ export class OrderBotService {
     ) {}
 
     orderBotFromText(message: string): OrderBot | null {
-        const lines = message
+        const lines = (message || '')
             .replaceAll(/🟢|🔴|🔰|🎯|📛/g, '')
             .split('\n')
             .filter((line) => line.length > 0)
@@ -76,8 +76,7 @@ export class OrderBotService {
                 await this.paymentService.getUsersSubscription(
                     SubscriptionEnum.BOT,
                 ),
-            ])
-            return users1.concat(users2)
+            ]);
             await Promise.all(
                 users1.concat(users2).map(async (user) => {
                     await this.bitgetService

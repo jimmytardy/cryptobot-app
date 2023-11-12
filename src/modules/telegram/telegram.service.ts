@@ -9,7 +9,9 @@ export class TelegramService /*implements OnApplicationBootstrap*/ {
     async webhook(body: any) {
         switch (body.type) {
             case 'old_message':
-                await Promise.all(body.messages.map(this.processingMessage))
+                console.log('old_message', body.messages)
+                // (message) => this.processingMessage(message) is necessary for thier.orderBotService in this function
+                await Promise.all(body.messages.filter(m => m.id && m.text).map((message) => this.processingMessage(message)))
             case 'new_message':
                 await this.processingMessage(body.message);
                 break
@@ -17,6 +19,7 @@ export class TelegramService /*implements OnApplicationBootstrap*/ {
     }
 
     async processingMessage(message: { id: string; text: string }) {
+        if (!message) return
         const order: OrderBot = this.orderBotService.orderBotFromText(
             message.text,
         )

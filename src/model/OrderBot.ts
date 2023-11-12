@@ -31,7 +31,7 @@ export class OrderBot {
     @Prop({ required: true, type: String, enum: ['long', 'short']})
     side: 'long' | 'short';
 
-    @Prop({ required: true, type: Types.ObjectId, default: Types.ObjectId })
+    @Prop({ required: true, type: Types.ObjectId, default: () => new Types.ObjectId() })
     linkOrderId: Types.ObjectId
 }
 
