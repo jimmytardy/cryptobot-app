@@ -9,10 +9,10 @@ export class TelegramService /*implements OnApplicationBootstrap*/ {
     async webhook(body: any) {
         switch (body.type) {
             case 'old_message':
-                console.log('old_message', body.messages)
                 // (message) => this.processingMessage(message) is necessary for thier.orderBotService in this function
                 await Promise.all(body.messages.filter(m => m.id && m.text).map((message) => this.processingMessage(message)))
             case 'new_message':
+                console.log('body.message', body.message)
                 await this.processingMessage(body.message);
                 break
         }
