@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
-import { Model } from 'mongoose'
+import { Model, Types } from 'mongoose'
 import { OrderBot } from 'src/model/OrderBot'
 import { PaymentsService } from '../payment/payments.service'
 import { SubscriptionEnum } from 'src/model/Subscription'
@@ -67,6 +67,7 @@ export class OrderBotService {
             }
 
             const newOrderBot = new this.orderBotModel(orderBot)
+            if (!newOrderBot.linkOrderId) newOrderBot.linkOrderId = new Types.ObjectId()
             await newOrderBot.save()
 
             const [users1, users2] = await Promise.all([
@@ -80,7 +81,7 @@ export class OrderBotService {
             await Promise.all(
                 users1.concat(users2).map(async (user) => {
                     await this.bitgetService
-                        .placeOrder(orderBot, user, orderBot.linkOrderId)
+                        .placeOrder(orderBot, user, newOrderBot.linkOrderId)
                         .catch((error) => {
                             this.logger.error(user._id, error)
                         })
