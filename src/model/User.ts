@@ -21,31 +21,31 @@ const defaultUserPreference: IUserPreferences = {
         levierSize: [
             {
                 minPrice: 0,
+                value: 3,
+            },
+            {
+                minPrice: 0.1,
                 value: 5,
-            }, // 0-1€, levier 10
+            },
             {
                 minPrice: 1,
                 value: 8,
-            }, // 1-10€, levier 15
+            },
             {
                 minPrice: 10,
                 value: 12,
-            }, // 10-50€, levier 20
+            },
             {
                 minPrice: 50,
                 value: 15,
-            }, // 50-100, levier 20
+            },
             {
                 minPrice: 100,
                 value: 17,
-            }, // 250-1000, levier 25
+            },
             {
                 minPrice: 500,
                 value: 22,
-            },
-            {
-                minPrice: 1000,
-                value: 25,
             },
         ],
         marginCoin: 'USDT',
