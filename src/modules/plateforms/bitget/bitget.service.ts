@@ -133,21 +133,6 @@ export class BitgetService {
                 })
             }
         }
-
-        if (user.role === 'mainbot') {
-            const [followers1, followers2] = await Promise.all([
-                this.paymentService.getUsersSubscription(SubscriptionEnum.BOT),
-                this.paymentService.getUsersSubscription(
-                    SubscriptionEnum.LIGHTBOT,
-                ),
-            ])
-            const followers = [...followers1, ...followers2]
-            for (const follower of followers) {
-                if (user.role !== 'mainbot') {
-                    await this.placeOrder(placeOrderDTO, follower, linkOrderId)
-                }
-            }
-        }
         return results
     }
 

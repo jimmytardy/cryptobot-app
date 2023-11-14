@@ -111,21 +111,21 @@ export class BitgetActionService {
                 size,
                 user.preferences.order.TPSize,
                 symbolRules,
-            )
+            ).sort();
             // @ts-ignore
             if (TPsCalculate.length === 0 || usdt < symbolRules.minTradeUSDT)
                 throw new Error(
                     `La quantité ${usdt} est trop petite pour un ordre`,
                 )
             const clOrderId = new Types.ObjectId()
-
+            const sideOrder = side.split('_')[1]as FuturesHoldSide
             const newOrder = new this.orderModel({
                 clOrderId,
                 PE: pe,
-                TPs: TPsCalculate.sort(),
+                TPs: sideOrder === 'long' ? TPsCalculate : TPsCalculate.reverse(),
                 SL: stopLoss,
                 symbol: symbolRules.symbol,
-                side: side.split('_')[1] as FuturesHoldSide,
+                side: sideOrder,
                 linkOrderId,
                 quantity: size,
                 marginCoin,
@@ -317,16 +317,17 @@ export class BitgetActionService {
 
             let stepsTriggers: number[] = [order.PE]
             const orderLinked = await this.orderModel.findOne(
-                { linkOrderId: order.linkOrderId, _id: { $ne: order._id } },
+                { linkOrderId: order.linkOrderId, _id: { $ne: order._id }, userId: order.userId },
                 'PE',
             )
             if (orderLinked) {
-                stepsTriggers.push(orderLinked.PE)
+                stepsTriggers.push(orderLinked.PE);
             } else {
                 stepsTriggers.push(order.PE)
             }
             // Array of PE + TPs for triggerPrice
-            stepsTriggers = stepsTriggers.concat(order.TPs).sort()
+            stepsTriggers = stepsTriggers.concat(order.TPs).sort();
+            if (order.side !== 'long') stepsTriggers = stepsTriggers.reverse();
             const params: ModifyFuturesPlanStopOrder = {
                 marginCoin: order.marginCoin,
                 orderId: stopLoss.orderId,

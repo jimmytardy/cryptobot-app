@@ -60,6 +60,9 @@ export class Order {
 
     @Prop()
     usdt: number
+
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);

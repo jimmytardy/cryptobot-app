@@ -67,8 +67,9 @@ export class OrderBotService {
                 return null
             }
 
-            if (!orderBot.linkOrderId)
+            if (!orderBot.linkOrderId) {
                 orderBot.linkOrderId = new Types.ObjectId()
+            }
 
             const newOrderBot = new this.orderBotModel(orderBot)
             // await newOrderBot.save()
