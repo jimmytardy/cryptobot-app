@@ -66,8 +66,8 @@ export class OrderBotService {
                 return null
             }
 
+            if (!orderBot.linkOrderId) orderBot.linkOrderId = new Types.ObjectId()
             const newOrderBot = new this.orderBotModel(orderBot)
-            if (!newOrderBot.linkOrderId) newOrderBot.linkOrderId = new Types.ObjectId()
             await newOrderBot.save()
 
             const [users1, users2] = await Promise.all([
