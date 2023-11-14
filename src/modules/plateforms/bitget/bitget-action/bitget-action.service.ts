@@ -11,7 +11,7 @@ import {
 } from 'bitget-api'
 import { BitgetUtilsService } from '../bitget-utils/bitget-utils.service'
 import { InjectModel } from '@nestjs/mongoose'
-import { Order } from 'src/model/Order'
+import { Order, OrderDocument } from 'src/model/Order'
 import { Model, Types } from 'mongoose'
 import { TakeProfit } from 'src/model/TakeProfit'
 import { StopLoss } from 'src/model/StopLoss'
@@ -135,15 +135,13 @@ export class BitgetActionService {
 
             this.orderService.checkNewOrder(newOrder)
 
-            const sendToPlateform = this.bitgetUtilsService.canSendBitget(
+            newOrder.sendToPlateform = this.bitgetUtilsService.canSendBitget(
                 symbolRules,
                 currentPrice,
                 newOrder,
-            )
+            );
 
-            newOrder.sendToPlateform = sendToPlateform
-
-            if (sendToPlateform) {
+            if (newOrder.sendToPlateform) {
                 return await this.placeOrderBitget(client, newOrder)
             }
 
@@ -166,17 +164,18 @@ export class BitgetActionService {
         }
         const result = await client.submitOrder(newOrderParams)
         const { orderId } = result.data
-
+        order.orderId = orderId;
+        order.sendToPlateform = true;
         return await this.orderModel.findOneAndUpdate(
             { _id: order._id },
-            { $set: { orderId, sendToPlateform: true } },
-            { new: true },
+            order,
+            { new: true, upsert: true },
         )
     }
 
-    async activeOrder(client: FuturesClient, user: User, orderId: string) {
+    async activeOrder(client: FuturesClient, user: User, orderId: Types.ObjectId) {
         try {
-            const order = await this.orderModel.findOne({ orderId })
+            const order = await this.orderModel.findById(orderId);
             if (!order) return null
             const symbolRules = await this.bitgetUtilsService.getSymbolBy(
                 client,

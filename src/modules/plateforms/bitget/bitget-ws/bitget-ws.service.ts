@@ -176,7 +176,7 @@ export class BitgetWsService {
             case 'partial-fill':
                 if (orderEvent.side === 'buy') {
                     await this.bitgetService.activeOrder(
-                        orderEvent.ordId,
+                        order._id,
                         user,
                     )
                     break

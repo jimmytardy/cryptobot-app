@@ -63,7 +63,7 @@ export class BitgetService {
         placeOrderDTO: PlaceOrderDTO,
         user: User,
         linkParentOrderId?: Types.ObjectId,
-    ) {
+    ): Promise<any> {
         const userIdStr = user._id.toString()
         let { PEs, SL, TPs, side, baseCoin, size } = placeOrderDTO
         const symbolRules = await this.bitgetUtilsService.getSymbolBy(
@@ -151,7 +151,7 @@ export class BitgetService {
         return results
     }
 
-    async activeOrder(orderId: string, user: User) {
+    async activeOrder(orderId: Types.ObjectId, user: User) {
         try {
             return await this.bitgetActionService.activeOrder(
                 this.client[user._id.toString()],

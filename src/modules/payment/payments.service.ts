@@ -98,7 +98,7 @@ export class PaymentsService {
                     .exec()
                 break
             default:
-                console.log(`Unhandled event type ${event.type}`)
+                console.info(`Unhandled event type ${event.type}`)
         }
         return { received: true }
     }

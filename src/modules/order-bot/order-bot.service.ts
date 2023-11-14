@@ -30,13 +30,14 @@ export class OrderBotService {
             orderBot.side = match[2].toLocaleLowerCase() as 'long' | 'short'
         } else return null
         // get  entry price
-        regex = /(\d+,\d+)-(\d+,\d+)/
-        match = lines[1].match(regex)
-        if (match) {
-            orderBot.PEs = [
-                parseFloat(match[1].replaceAll(',', '.')),
-                parseFloat(match[2].replaceAll(',', '.')),
-            ].filter((pe) => !isNaN(pe))
+        regex = /(\d+)-(\d+)/
+        const lineTab = lines[1].split(':')
+        if (!lineTab[1]) return null
+        const numbersPE = lineTab[1].split('-')
+        if (numbersPE.length > 0) {
+            orderBot.PEs = numbersPE
+                .map((num) => parseFloat((num || '').replaceAll(',', '.')))
+                .filter((pe) => !isNaN(pe))
         } else return null
         orderBot.TPs = []
         let i = 2
@@ -66,9 +67,11 @@ export class OrderBotService {
                 return null
             }
 
-            if (!orderBot.linkOrderId) orderBot.linkOrderId = new Types.ObjectId()
+            if (!orderBot.linkOrderId)
+                orderBot.linkOrderId = new Types.ObjectId()
+
             const newOrderBot = new this.orderBotModel(orderBot)
-            await newOrderBot.save()
+            // await newOrderBot.save()
 
             const [users1, users2] = await Promise.all([
                 await this.paymentService.getUsersSubscription(
@@ -77,18 +80,28 @@ export class OrderBotService {
                 await this.paymentService.getUsersSubscription(
                     SubscriptionEnum.BOT,
                 ),
-            ]);
-            await Promise.all(
-                users1.concat(users2).map(async (user) => {
-                    await this.bitgetService
-                        .placeOrder(orderBot, user, newOrderBot.linkOrderId)
-                        .catch((error) => {
-                            this.logger.error(user._id, error)
-                        })
-                }),
+            ])
+            return await Promise.all(
+                users1
+                    .concat(users2)
+                    .map(
+                        async (user) =>
+                            await this.bitgetService
+                                .placeOrder(
+                                    orderBot,
+                                    user,
+                                    newOrderBot.linkOrderId,
+                                )
+                                .catch((error) => {
+                                    this.logger.error(user._id, error)
+                                    return error
+                                }),
+                    )
+                    .concat(),
             )
         } catch (e) {
             this.logger.error(e)
+            return e
         }
     }
 }

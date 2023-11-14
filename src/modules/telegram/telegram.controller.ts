@@ -8,6 +8,6 @@ export class TelegramController {
 
     @Post('webhook')
     async webhook(@Body() body: any) {
-        return this.telegramService.webhook(body);
+        return await this.telegramService.webhook(body);
     }
 }

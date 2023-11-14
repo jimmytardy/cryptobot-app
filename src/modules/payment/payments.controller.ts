@@ -15,7 +15,6 @@ export class PaymentsController {
     @Post('stripe/create-customer-portal-session')
     @UseGuards(JwtAuthGuard)
     async createCustomerPortalSession(@Req() req) {
-        console.log(' req.get(origin),',  req.get('origin'),)
         const session = await this.payementService.createCustomerPortalSession(
             req.user,
             req.get('origin'),

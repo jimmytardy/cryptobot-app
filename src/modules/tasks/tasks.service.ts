@@ -123,7 +123,7 @@ export class TasksService {
             }
         } catch (e) {
             this.logger.error('sendPlateformsOrders', e)
-            console.log('e', e.stack)
+            console.error('e', e.stack)
             console.trace()
         }
     }
