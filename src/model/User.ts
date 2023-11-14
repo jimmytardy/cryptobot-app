@@ -112,9 +112,6 @@ export class User {
     @Prop({ type: SchemaTypes.Mixed, default: defaultUserPreference })
     preferences: IUserPreferences
 
-    @Prop({ default: 'follower' })
-    role: 'follower' | 'trader' | 'mainbot'
-
     @Prop({ default: false })
     isAdmin: boolean
 

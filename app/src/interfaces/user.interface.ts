@@ -3,7 +3,6 @@ export interface IUserPayload {
     lastname: string
     email: string
     password: string
-    role: 'follower' | 'trader' | 'mainbot'
     bitget: {
         api_key: string
         api_secret_key: string
