@@ -100,8 +100,12 @@ export class BitgetActionService {
                 symbolRules,
             )
             // @ts-ignore
-            if (size <= 0 || usdt < symbolRules.minTradeUSDT) return
-
+            if (size <= 0 || usdt < (symbolRules.minTradeUSDT || 1000000)) {
+                throw new Error(
+                    // @ts-ignore
+                    `La quantité ${usdt} est trop petite pour un ordre, le minimum est ${symbolRules.minTradeUSDT}`,
+                )
+            }
             const TPsCalculate = this.bitgetUtilsService.caculateTPsToUse(
                 tps,
                 size,
@@ -128,7 +132,6 @@ export class BitgetActionService {
                 usdt,
                 userId: user._id,
             })
-            
 
             this.orderService.checkNewOrder(newOrder)
 

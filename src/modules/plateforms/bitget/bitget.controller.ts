@@ -11,7 +11,6 @@ export class BitgetController {
 
     @Post('placeOrder')
     async placeOrder(@Body() placeOrderDTO: PlaceOrderDTO, @Request() req) {
-        if (req.user.role !== 'mainbot' && req.user.role !== 'trader') throw new HttpException('Unauthorized', 401);
         return await this.bitgetService.placeOrder(placeOrderDTO, req.user);
     }
 
