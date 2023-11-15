@@ -1,7 +1,6 @@
 import { Col, Container, FormText, Row } from 'react-bootstrap'
 import { useAuth } from '../../../../hooks/AuthContext'
 import './index.scss'
-import { IUserSubscriptionItem } from '../../../../interfaces/user.interface'
 
 const Profile = () => {
     const { user } = useAuth()

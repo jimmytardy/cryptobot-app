@@ -1,5 +1,3 @@
-import React from "react";
-
 const LinkToUlysse = () => {
     return (
         <div className="text-center p-2">

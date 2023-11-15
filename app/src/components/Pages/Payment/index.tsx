@@ -12,7 +12,6 @@ import { useAuth } from '../../../hooks/AuthContext'
 import axiosClient from '../../../axiosClient'
 import {
     IUserSubscriptionItem,
-    UserSubscriptionEnum,
 } from '../../../interfaces/user.interface'
 
 declare global {
