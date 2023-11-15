@@ -24,15 +24,32 @@ export class PaymentsService {
         )
     }
 
-    async getUsersSubscription(type: SubscriptionEnum, select?: ProjectionType<User>): Promise<User[]> {
-        const subscription = await this.subscriptionModel.findOne({ type }).lean().exec();
-        if (!subscription) return [];
-        const subscriptions = await this.stripe.subscriptions.list({
-            price: subscription.priceId,
-        });
+    async getUsersSubscription(
+        type: SubscriptionEnum,
+        select?: ProjectionType<User>,
+    ): Promise<User[]> {
+        const subscriptionModel = await this.subscriptionModel
+            .findOne({ type })
+            .lean()
+            .exec()
+        if (!subscriptionModel) return []
+        const subscriptionsLists = await Promise.all(
+            subscriptionModel.priceIds.map(
+                async (priceId) =>
+                    await this.stripe.subscriptions.list({ price: priceId }),
+            ),
+        )
+        const subscriptions = subscriptionsLists.reduce(
+            (acc, curr) => [...acc, ...curr.data],
+            [],
+        )
         const stripeIds: string[] = []
-        for (const subscription of subscriptions.data) {
-            if (stripeIds.includes(subscription.customer as string) || !this.subscriptionIsActive(subscription.status)) continue;
+        for (const subscription of subscriptions) {
+            if (
+                stripeIds.includes(subscription.customer as string) ||
+                !this.subscriptionIsActive(subscription.status)
+            )
+                continue
             stripeIds.push(subscription.customer as string)
         }
 
@@ -45,29 +62,24 @@ export class PaymentsService {
     async getSubscriptions(stripeCustomerId: string): Promise<any> {
         const subscriptionsStripe = await this.stripe.subscriptions.list({
             customer: stripeCustomerId,
-        });
-        const suscription = {}
-        for (const subscriptionStripe of subscriptionsStripe.data) {
-            for (const item of subscriptionStripe.items.data) {
-                const sub = await this.subscriptionModel
-                    .findOne({ priceId: item.plan.id })
-                    .lean()
-                    .exec()
-                if (!sub) continue
-                const product = await this.stripe.products.retrieve(
-                    item.plan.product as string,
-                )
-                suscription[sub.type] = {
-                    ...sub,
-                    name: product.name,
-                    active: this.subscriptionIsActive(subscriptionStripe.status),
-                    status: subscriptionStripe.status,
-                }
-                delete suscription[sub.type].priceId
-            }
+        })
+        if (subscriptionsStripe.data[0]) {
+            const subscription: any = {}
+            const item = subscriptionsStripe.data[0].items.data[0]
+            subscription.rights = await this.subscriptionModel
+                .distinct('type', { priceIds: item.plan.id })
+                .lean()
+                .exec()
+            const product = await this.stripe.products.retrieve(
+                item.plan.product as string,
+            )
+            subscription.active = this.subscriptionIsActive(subscriptionsStripe.data[0].status)
+            subscription.status = subscriptionsStripe.data[0].status
+            subscription.name = product.name
+            return subscription;
         }
 
-        return suscription
+        return null;
     }
 
     subscriptionIsActive(status: string): boolean {
@@ -103,7 +115,10 @@ export class PaymentsService {
         return { received: true }
     }
 
-    async createCustomerPortalSession(user: User, origin: string): Promise<any> {
+    async createCustomerPortalSession(
+        user: User,
+        origin: string,
+    ): Promise<any> {
         const session = await this.stripe.billingPortal.sessions.create({
             customer: user.stripeCustomerId,
             return_url: origin + '/payment',

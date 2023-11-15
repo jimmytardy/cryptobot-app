@@ -1,14 +1,7 @@
-import {
-    Col,
-    Container,
-    FormText,
-    Row,
-} from 'react-bootstrap'
+import { Col, Container, FormText, Row } from 'react-bootstrap'
 import { useAuth } from '../../../../hooks/AuthContext'
 import './index.scss'
-import {
-    IUserSubscriptionItem,
-} from '../../../../interfaces/user.interface'
+import { IUserSubscriptionItem } from '../../../../interfaces/user.interface'
 
 const Profile = () => {
     const { user } = useAuth()
@@ -41,22 +34,19 @@ const Profile = () => {
                         <b>Abonnements</b>
                     </div>
                 </Col>
-                {Object.values(user.subscription).map(
-                    (sub: IUserSubscriptionItem) => (
-                        <Col xs={12}>
-                            <FormText>
-                                {sub.name}:{' '}
-                                <b>
-                                    {sub.active ? 'Actif' : 'Inactif'}{' '}
-                                    {sub.status === 'trialing' && (
-                                        <i>- Essai gratuit</i>
-                                    )}
-                                </b>
-                            </FormText>
-                        </Col>
-                    ),
-                )}
-                {Object.values(user.subscription).length === 0 && (
+                {user.subscription ? (
+                    <Col xs={12}>
+                        <FormText>
+                            {user.subscription.name}:{' '}
+                            <b>
+                                {user.subscription.active ? 'Actif' : 'Inactif'}{' '}
+                                {user.subscription.status === 'trialing' && (
+                                    <i>- Essai gratuit</i>
+                                )}
+                            </b>
+                        </FormText>
+                    </Col>
+                ) : (
                     <Col xs={12}>
                         <FormText>
                             <i>Aucun abonnement n'est souscrit</i>

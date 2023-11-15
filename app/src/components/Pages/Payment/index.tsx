@@ -61,36 +61,30 @@ const Payement = () => {
             <h2>Paiement</h2>
             <Row>
                 <Col xs={6}>
-                    {Object.values(UserSubscriptionEnum)
-                        .filter((value) => user.subscription[value])
-                        .map((value: UserSubscriptionEnum, index) => {
-                            const stateSubscription = user.subscription[value]
-                            return (
-                                <FormGroup key={index}>
-                                    <FormLabel>
-                                        <b>[{stateSubscription.name}]: </b>
-                                        {stateSubscription.active
-                                            ? 'Actif'
-                                            : 'Inactif'}{' '}
-                                        {stateSubscription.status ===
-                                            'trialing' && (
-                                            <i>- Essai gratuit</i>
-                                        )}
-                                    </FormLabel>
-                                    <p>
-                                        {getSubscriptionDescription(
-                                            stateSubscription,
-                                        )}
-                                    </p>
-                                </FormGroup>
-                            )
-                        })}
+                    {user.subscription && (
+                        <FormGroup>
+                            <FormLabel>
+                                <b>[{user.subscription.name}]: </b>
+                                {user.subscription.active
+                                    ? 'Actif'
+                                    : 'Inactif'}{' '}
+                                {user.subscription.status === 'trialing' && (
+                                    <i>- Essai gratuit</i>
+                                )}
+                            </FormLabel>
+                            <p>
+                                {getSubscriptionDescription(user.subscription)}
+                            </p>
+                        </FormGroup>
+                    )}
                 </Col>
             </Row>
-            {Object.values(user.subscription).length === 0 ? (
+            {!user.subscription ? (
                 <Row>
                     <stripe-pricing-table
-                        pricing-table-id={import.meta.env.VITE_STRIPE_PRICING_TABLE}
+                        pricing-table-id={
+                            import.meta.env.VITE_STRIPE_PRICING_TABLE
+                        }
                         publishable-key={import.meta.env.VITE_STRIPE_KEY}
                         customer-email={user.email}
                     ></stripe-pricing-table>

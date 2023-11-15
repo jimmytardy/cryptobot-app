@@ -1,4 +1,4 @@
-import { IUser } from '../interfaces/user.interface'
+import { IUser, UserSubscriptionEnum } from '../interfaces/user.interface'
 
 export const isNumber = (value: string | number) => {
     if (typeof value === 'number') return true
@@ -6,7 +6,7 @@ export const isNumber = (value: string | number) => {
 }
 
 export const isTrader = (user: IUser): boolean => {
-    return Object.keys(user.subscription).length > 0; /*&& user.subscription[UserSubscriptionEnum.TRADER]?.active*/
+    return user.subscription && user.subscription.rights.includes(UserSubscriptionEnum.TRADER);
 }
 
 export const getDifferenceDates = (

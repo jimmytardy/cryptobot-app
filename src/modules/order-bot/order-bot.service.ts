@@ -74,17 +74,11 @@ export class OrderBotService {
             const newOrderBot = new this.orderBotModel(orderBot)
             await newOrderBot.save()
 
-            const [users1, users2] = await Promise.all([
-                await this.paymentService.getUsersSubscription(
-                    SubscriptionEnum.LIGHTBOT,
-                ),
-                await this.paymentService.getUsersSubscription(
-                    SubscriptionEnum.BOT,
-                ),
-            ])
+            const users = await this.paymentService.getUsersSubscription(
+                SubscriptionEnum.BOT,
+            );
             return await Promise.all(
-                users1
-                    .concat(users2)
+                users
                     .map(
                         async (user) =>
                             await this.bitgetService

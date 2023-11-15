@@ -103,7 +103,7 @@ export class User {
     @Prop({ unique: true, require: true, index: true })
     email: string
 
-    @Prop({ required: true })
+    @Prop({ required: true, select: false })
     password: string
 
     @Prop({ type: SchemaTypes.Mixed })

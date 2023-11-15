@@ -5,6 +5,7 @@ import {
     Button,
     Card,
     CardBody,
+    CardHeader,
     CardText,
     CardTitle,
     Col,
@@ -17,6 +18,7 @@ import {
 import { IUserPayload } from '../../../interfaces/user.interface'
 import axiosClient from '../../../axiosClient'
 import { useEffect, useState } from 'react'
+import LinkToUlysse from '../../utils/LinkToUlysse'
 
 const SignUp = () => {
     const {
@@ -78,13 +80,16 @@ const SignUp = () => {
                 style={{ height: '100vh' }}
             >
                 <Card
-                    className="mb-3 mt-3 rounded"
+                    className="mb-3 mt-3 rounded p-0"
                     style={{ maxWidth: '500px' }}
                 >
+                    <CardHeader>
+                        <LinkToUlysse />
+                    </CardHeader>
                     <Col md={12}>
                         <CardBody>
                             <CardTitle className="text-center text-secondary mt-3 mb-3">
-                                S'inscrire
+                                Inscription
                             </CardTitle>
                             <form
                                 autoComplete="off"
