@@ -72,7 +72,7 @@ export class OrderBotService {
             }
 
             const newOrderBot = new this.orderBotModel(orderBot)
-            // await newOrderBot.save()
+            await newOrderBot.save()
 
             const [users1, users2] = await Promise.all([
                 await this.paymentService.getUsersSubscription(
@@ -97,8 +97,7 @@ export class OrderBotService {
                                     this.logger.error(user._id, error)
                                     return error
                                 }),
-                    )
-                    .concat(),
+                    ),
             )
         } catch (e) {
             this.logger.error(e)

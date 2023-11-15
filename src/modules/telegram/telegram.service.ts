@@ -31,7 +31,7 @@ export class TelegramService {
 
         if (order) {
             order.messageId = message.id
-            return await this.orderBotService.placeOrderBot({...order, usdt: 10} as any)
+            return await this.orderBotService.placeOrderBot(order)
         }
     }
 }
