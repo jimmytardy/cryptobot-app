@@ -22,18 +22,38 @@ import {
 import { InfoCircle } from 'react-bootstrap-icons'
 import ControllerArrayNumber from '../../utils/form/ControllerArrayNumber'
 import './index.scss'
+import Strategie from './Strategie'
 
 export type TPSizeType = { [x: string]: number[] }
 
 export type LeviersSizeType = { minPrice: number; value: number }[]
 
-interface IPreferencePayload {
+export interface IOrderStrategy {
+    '0': SLStepEnum, // for TP1
+    '1': SLStepEnum, // for TP2
+    '2': SLStepEnum, // for TP3
+    '3': SLStepEnum, // for TP4
+    '4': SLStepEnum, // for TP5
+}
+
+export enum SLStepEnum {
+    Default = -1,
+    PE_BAS = 0,
+    PE_HAUT = 1,
+    TP1 = 2,
+    TP2 = 3,
+    TP3 = 4,
+    TP4 = 5,
+}
+
+export interface IPreferencePayload {
     order: {
         pourcentage?: number
         quantity?: number
         TPSize: TPSizeType
         levierSize: LeviersSizeType
-        marginCoin: string
+        marginCoin: string,
+        strategy?: IOrderStrategy
     }
 }
 
@@ -191,6 +211,7 @@ const Preferences = () => {
                                     </FormGroup>
                                 </Col>
                             </Row>
+                            <Strategie />
                             <Row>
                                 <Col xs={12}>
                                     <FormGroup>
@@ -222,53 +243,6 @@ const Preferences = () => {
                                                     </Col>
                                                 </Row>
                                             ))}
-                                    </FormGroup>
-                                </Col>
-                            </Row>
-                            <Row className="stategie">
-                                <Col xs={12}>
-                                    <FormGroup>
-                                        <FormLabel>
-                                            <b>Stratégie utilisée: </b>
-                                        </FormLabel>
-                                        <div className="stategie-part">
-                                            <div className="stategie-action">
-                                                Lorsque TP1 est pris
-                                            </div>
-                                            <ol className="stategie-list">
-                                                <li>
-                                                    On supprime l'autre PE s'il
-                                                    n'a pas été pris
-                                                </li>
-                                                <li>
-                                                    On met le stop loss au PE le
-                                                    plus bas (PE de base s'il
-                                                    n'y en a qu'un seul)
-                                                </li>
-                                            </ol>
-                                        </div>
-                                        <div className="stategie-part">
-                                            <div className="stategie-action">
-                                                Lorsque TP2 est pris
-                                            </div>
-                                            <ol className="stategie-list">
-                                                <li>
-                                                    On met le stop loss au PE le
-                                                    plus haut
-                                                </li>
-                                            </ol>
-                                        </div>
-                                        <div className="stategie-part">
-                                            <div className="stategie-action">
-                                                Lorsque que TP3 ou plus est pris
-                                            </div>
-                                            <ol className="stategie-list">
-                                                <li>
-                                                    On met le stop loss au TP
-                                                    pris -2
-                                                </li>
-                                            </ol>
-                                        </div>
                                     </FormGroup>
                                 </Col>
                             </Row>

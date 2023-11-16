@@ -16,6 +16,7 @@ import { User } from 'src/model/User'
 import { InjectModel } from '@nestjs/mongoose'
 import { PaymentsService } from 'src/modules/payment/payments.service'
 import { SubscriptionEnum } from 'src/model/Subscription'
+import { IOrderStrategy } from 'src/interfaces/order-strategy.interface'
 
 @Injectable()
 export class BitgetService {
@@ -153,11 +154,13 @@ export class BitgetService {
         }
     }
 
-    async upgradeSL(order: Order): Promise<StopLoss> {
+    async upgradeSL(order: Order, strategy: IOrderStrategy, numTP: number): Promise<StopLoss> {
         try {
             return await this.bitgetActionService.upgradeSL(
                 this.client[order.userId.toString()],
                 order,
+                strategy,
+                numTP
             )
         } catch (e) {
             this.logger.error('upgradeSL', e)

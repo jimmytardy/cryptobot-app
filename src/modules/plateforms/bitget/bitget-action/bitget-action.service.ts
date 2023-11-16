@@ -17,6 +17,7 @@ import { TakeProfit } from 'src/model/TakeProfit'
 import { StopLoss } from 'src/model/StopLoss'
 import { OrderService } from 'src/modules/order/order.service'
 import { User } from 'src/model/User'
+import { IOrderStrategy } from 'src/interfaces/order-strategy.interface'
 
 @Injectable()
 export class BitgetActionService {
@@ -302,47 +303,57 @@ export class BitgetActionService {
         }
     }
 
-    async upgradeSL(client: FuturesClient, order: Order): Promise<StopLoss> {
+    async upgradeSL(client: FuturesClient, order: Order, strategy: IOrderStrategy, numTP: number): Promise<StopLoss> {
         try {
             const stopLoss = await this.stopLossModel.findOne({
                 orderParentId: order._id,
                 terminated: { $ne: true },
-            })
+            });
 
             if (!stopLoss) {
                 return
             }
+            
+            let newStep = strategy ? strategy[numTP] : stopLoss.step + 1;
+            let triggerPrice: number;
 
-            let newStep = stopLoss.step + 1
-
-            let stepsTriggers: number[] = [order.PE]
-            const orderLinked = await this.orderModel.findOne(
-                { linkOrderId: order.linkOrderId, _id: { $ne: order._id }, userId: order.userId },
-                'PE',
-            )
-            if (orderLinked) {
-                stepsTriggers.push(orderLinked.PE);
+            if (newStep === -1) {
+                triggerPrice = order.SL;
             } else {
-                stepsTriggers.push(order.PE)
+                let stepsTriggers: number[] = [order.PE]
+                const orderLinked = await this.orderModel.findOne(
+                    { linkOrderId: order.linkOrderId, _id: { $ne: order._id }, userId: order.userId },
+                    'PE',
+                )
+                if (orderLinked) {
+                    stepsTriggers.push(orderLinked.PE);
+                } else {
+                    stepsTriggers.push(order.PE)
+                }
+                // Array of PE + TPs for triggerPrice
+                stepsTriggers = stepsTriggers.concat(order.TPs).sort();
+                if (order.side !== 'long') stepsTriggers = stepsTriggers.reverse();
+                triggerPrice = stepsTriggers[newStep];
             }
-            // Array of PE + TPs for triggerPrice
-            stepsTriggers = stepsTriggers.concat(order.TPs).sort();
-            if (order.side !== 'long') stepsTriggers = stepsTriggers.reverse();
-            const params: ModifyFuturesPlanStopOrder = {
-                marginCoin: order.marginCoin,
-                orderId: stopLoss.orderId,
-                planType: 'loss_plan',
-                symbol: order.symbol,
-                triggerPrice: stepsTriggers[newStep].toString(),
+
+            if (triggerPrice !== stopLoss.triggerPrice) {
+                const params: ModifyFuturesPlanStopOrder = {
+                    marginCoin: order.marginCoin,
+                    orderId: stopLoss.orderId,
+                    planType: 'loss_plan',
+                    symbol: order.symbol,
+                    triggerPrice: triggerPrice[newStep].toString(),
+                }
+                const result = await client.modifyStopOrder(params);
+                stopLoss.orderId = result.data.orderId
+                stopLoss.price = triggerPrice;
+                stopLoss.historyTrigger = [
+                    ...stopLoss.historyTrigger,
+                    stopLoss.triggerPrice,
+                ]
+                stopLoss.triggerPrice = triggerPrice
             }
-            const result = await client.modifyStopOrder(params)
-            stopLoss.orderId = result.data.orderId
-            stopLoss.price = stepsTriggers[newStep]
-            stopLoss.historyTrigger = [
-                ...stopLoss.historyTrigger,
-                stopLoss.triggerPrice,
-            ]
-            stopLoss.triggerPrice = stepsTriggers[newStep]
+            
             stopLoss.step = newStep
             await stopLoss.save()
             return stopLoss.toObject() as StopLoss

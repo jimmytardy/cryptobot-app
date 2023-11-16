@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
 import { SchemaTypes, Types } from 'mongoose'
 import { HydratedDocument } from 'mongoose'
+import { IOrderStrategy } from 'src/interfaces/order-strategy.interface'
 
 export type UserDocument = HydratedDocument<User>
 
@@ -80,6 +81,9 @@ export class IUserPreferencesOrder {
 
     @Prop({ type: String, default: 'USDT' })
     marginCoin: string
+    
+    @Prop({ type: SchemaTypes.Mixed })
+    strategy?: IOrderStrategy
 }
 
 export class IUserPreferences {

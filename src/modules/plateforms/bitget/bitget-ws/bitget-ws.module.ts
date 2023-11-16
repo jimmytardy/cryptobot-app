@@ -7,6 +7,7 @@ import { TakeProfit, TakeProfitSchema } from 'src/model/TakeProfit'
 import { OrderModule } from 'src/modules/order/order.module'
 import { UserModule } from 'src/modules/user/user.module'
 import { StopLoss, StopLossSchema } from 'src/model/StopLoss'
+import { User, UserSchema } from 'src/model/User'
 
 @Module({
     imports: [
@@ -15,6 +16,7 @@ import { StopLoss, StopLossSchema } from 'src/model/StopLoss'
             { name: Order.name, schema: OrderSchema },
             { name: TakeProfit.name, schema: TakeProfitSchema },
             { name: StopLoss.name, schema: StopLossSchema },
+            { name: User.name, schema: UserSchema },
         ]),
         forwardRef(() => BitgetModule),
     ],
