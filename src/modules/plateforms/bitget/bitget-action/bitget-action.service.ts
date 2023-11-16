@@ -147,7 +147,7 @@ export class BitgetActionService {
 
             return await newOrder.save()
         } catch (e) {
-            console.error('placeOrder', e)
+            console.error('placeOrder', e.message)
             throw e
         }
     }

@@ -43,7 +43,7 @@ export class TasksService {
                 [key: string]: { symbolRules: FuturesSymbolRule; price: number }
             } = {}
             for (const order of ordersToSend) {
-                const client = this.bitgetService.getClient(order.userId)
+                const client = this.bitgetService.getFirstClient()
                 if (!rules[order.symbol]) {
                     const [symbolRules, price] = await Promise.all([
                         this.bitgetUtilsService.getSymbolBy(
@@ -129,7 +129,7 @@ export class TasksService {
     /**
      * Supprime les ordres qui ne sont pas activés mais qui ont déjà taper un TP
      */
-    @Cron(CronExpression.EVERY_10_MINUTES)
+    @Cron(CronExpression.EVERY_10_SECONDS)
     async cleanOrderNotTriggeredWhichTP() {
         try {
             const ordersToSend = await this.orderModel
@@ -151,9 +151,9 @@ export class TasksService {
             const startTime = timestampNow - msFor1kCandles;
             for (const order of ordersToSend) {
                 if (!symbolData[order.symbol]) {
-                    const client = this.bitgetService.getClient(order.userId);
-                    
+                    const client = this.bitgetService.getFirstClient(); 
                     const candles = await client.getCandles(order.symbol, nbMin + 'm' as FuturesKlineInterval, startTime.toString(), timestampNow.toString(), String(candlesToFetch));
+                    if (candles && (candles.length <= 0 || candles[0].length < 4)) continue;
                     symbolData[order.symbol] = {
                         max: parseFloat(candles[0][2]), // Highest price
                         min: parseFloat(candles[0][3]) // Lowest price

@@ -148,7 +148,7 @@ export class BitgetWsService {
             default:
                 console.info(
                     'onUpdatedOrderAlgoTP',
-                    orderAlgoEvent.status,
+                    orderAlgoEvent.state,
                     'not implemented',
                 )
         }

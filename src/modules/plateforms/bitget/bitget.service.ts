@@ -43,6 +43,10 @@ export class BitgetService {
         }
     }
 
+    getFirstClient(): FuturesClient {
+        return this.client[Object.keys(this.client)[0]]
+    }
+
     getClient(userId: Types.ObjectId): FuturesClient {
         return this.client[userId.toString()]
     }
@@ -121,6 +125,7 @@ export class BitgetService {
             } catch (error) {
                 results.errors.push({
                     ...error,
+                    message: error.message,
                     userId: user._id,
                     symbolRules,
                     size,
