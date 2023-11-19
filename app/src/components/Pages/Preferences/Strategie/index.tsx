@@ -1,7 +1,6 @@
 import {
     Col,
     FormCheck,
-    FormFloating,
     FormGroup,
     FormLabel,
     FormSelect,
@@ -11,7 +10,7 @@ import {
 import { useFormContext } from 'react-hook-form'
 import { IPreferencePayload, IOrderStrategy, SLStepEnum } from '..'
 import './index.scss'
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 
 const Strategie = () => {
     const { setValue, watch } = useFormContext<IPreferencePayload>()
