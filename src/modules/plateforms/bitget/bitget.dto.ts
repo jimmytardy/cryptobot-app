@@ -23,6 +23,7 @@ export class PlaceOrderDTO {
     @IsNumber()
     SL: number
 
+    @IsString()
     @Type(() => String)
     baseCoin: string
 
@@ -36,4 +37,10 @@ export class PlaceOrderDTO {
     @IsOptional()
     @IsString()
     marginCoin?: string
+}
+
+export class SetLeverageDTO {
+    @IsString()
+    @Type(() => String)
+    baseCoin: string
 }

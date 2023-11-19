@@ -1,10 +1,11 @@
 import {
+    HttpException,
     Injectable,
     Logger,
     OnApplicationBootstrap,
     OnModuleInit,
 } from '@nestjs/common'
-import { PlaceOrderDTO } from './bitget.dto'
+import { PlaceOrderDTO, SetLeverageDTO } from './bitget.dto'
 import { ConfigService } from '@nestjs/config'
 import { FuturesClient, FuturesOrderSide } from 'bitget-api'
 import { BitgetActionService } from './bitget-action/bitget-action.service'
@@ -79,7 +80,7 @@ export class BitgetService {
         if (!symbolRules) {
             return
         }
-        
+
         if (!size) {
             size = await this.bitgetUtilsService.getQuantityForOrder(
                 this.client[userIdStr],
@@ -104,7 +105,7 @@ export class BitgetService {
         const currentPrice = await this.bitgetUtilsService.getCurrentPrice(
             this.client[userIdStr],
             symbolRules.symbol,
-        );
+        )
 
         for (const PE of PEs) {
             try {
@@ -154,13 +155,17 @@ export class BitgetService {
         }
     }
 
-    async upgradeSL(order: Order, strategy: IOrderStrategy, numTP: number): Promise<StopLoss> {
+    async upgradeSL(
+        order: Order,
+        strategy: IOrderStrategy,
+        numTP: number,
+    ): Promise<StopLoss> {
         try {
             return await this.bitgetActionService.upgradeSL(
                 this.client[order.userId.toString()],
                 order,
                 strategy,
-                numTP
+                numTP,
             )
         } catch (e) {
             this.logger.error('upgradeSL', e)
@@ -188,6 +193,25 @@ export class BitgetService {
             )
         } catch (e) {
             this.logger.error('disabledOrderLink', e)
+        }
+    }
+
+    async setLeverage(user: User, leverageDTO: SetLeverageDTO) {
+        const client = this.getClient(user._id)
+        if (!client) {
+            throw new HttpException('Client not found', 404)
+        }
+        const symbolRules = await this.bitgetUtilsService.getSymbolBy(client, 'baseCoin', leverageDTO.baseCoin);
+        if (!symbolRules) throw new HttpException('Symbol not found', 404);
+
+        try {
+            return await this.bitgetActionService.setLeverage(
+                this.getClient(user._id),
+                user,
+                symbolRules.symbol,
+            )
+        } catch (e) {
+            this.logger.error('setLeverage', e)
         }
     }
 }

@@ -85,9 +85,6 @@ export class BitgetUtilsService {
                 const roundedQuantity = Number(
                     quantity.toFixed(multiplierDecimalPlaces),
                 )
-                const newQuantity =
-                    Math.floor(roundedQuantity / sizeMultiplier) *
-                    sizeMultiplier
                 // Calculer le multiple précédent inférieur à quantity avec le même nombre de décimales que le multiplicateur
                 return Number(
                     (
@@ -140,7 +137,7 @@ export class BitgetUtilsService {
     }
 
     getLeverage(user: User, price: number) {
-        let levierSelect = user.preferences.order.levierSize[0]
+        let levierSelect = user.preferences.order.levierSize[0];
         for (const levierSetting of user.preferences.order.levierSize) {
             if (
                 levierSelect.minPrice < levierSetting.minPrice &&

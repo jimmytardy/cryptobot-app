@@ -34,13 +34,13 @@ export class BitgetActionService {
         client: FuturesClient,
         user: User,
         symbol: string,
-        price: number,
+        price?: number,
     ): Promise<number> {
         const position = await client.getPosition(
             symbol,
             user.preferences.order.marginCoin,
         )
-        if (position?.data?.length > 0) return Number(position.data[0].leverage)
+        // if (position?.data?.length > 0) return Number(position.data[0].leverage)
         if (!price) {
             price = await this.bitgetUtilsService.getCurrentPrice(
                 client,

@@ -129,7 +129,7 @@ export class TasksService {
     /**
      * Supprime les ordres qui ne sont pas activés mais qui ont déjà taper un TP
      */
-    @Cron(CronExpression.EVERY_10_SECONDS)
+    @Cron(CronExpression.EVERY_10_MINUTES)
     async cleanOrderNotTriggeredWhichTP() {
         try {
             const ordersToSend = await this.orderModel

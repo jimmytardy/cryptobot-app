@@ -212,12 +212,10 @@ export class BitgetWsService {
                 order.TPs.findIndex((tp: number) => tp === takeProfit.triggerPrice)
             )
             // cancel other order that not actived
-            if (stopLoss.step >= 0) {
-                await this.bitgetService.disabledOrderLink(
-                    order.userId,
-                    order.linkOrderId,
-                )
-            }
+            await this.bitgetService.disabledOrderLink(
+                order.userId,
+                order.linkOrderId,
+            )
         } catch (e) {
             console.error('onTakeProfitTriggered', order, e)
         }

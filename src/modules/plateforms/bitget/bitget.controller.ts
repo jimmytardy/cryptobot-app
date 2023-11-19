@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpException, Post, Put, Request, UseGuards } from '@nestjs/common';
-import { PlaceOrderDTO } from './bitget.dto';
+import { PlaceOrderDTO, SetLeverageDTO } from './bitget.dto';
 import { BitgetService } from './bitget.service';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 
@@ -22,5 +22,10 @@ export class BitgetController {
     @Get('profile')
     async getProfile(@Request() req) {
         return await this.bitgetService.getProfile(req.user._id);
+    }
+
+    @Post('leverage')
+    async setLeverage(@Request() req, @Body() body: SetLeverageDTO) {
+        return await this.bitgetService.setLeverage(req.user, body);
     }
 }
