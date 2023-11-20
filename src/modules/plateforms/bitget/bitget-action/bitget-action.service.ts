@@ -107,19 +107,20 @@ export class BitgetActionService {
                     `La quantité ${usdt} est trop petite pour un ordre, le minimum est ${symbolRules.minTradeUSDT}`,
                 )
             }
-            const TPsCalculate = this.bitgetUtilsService.caculateTPsToUse(
+            let TPsCalculate = this.bitgetUtilsService.caculateTPsToUse(
                 tps,
                 size,
                 user.preferences.order.TPSize,
                 symbolRules,
             ).sort();
+            const sideOrder = side.split('_')[1]as FuturesHoldSide;
+            if (sideOrder === 'short') TPsCalculate = TPsCalculate.reverse();
             // @ts-ignore
             if (TPsCalculate.length === 0 || usdt < symbolRules.minTradeUSDT)
                 throw new Error(
                     `La quantité ${usdt} est trop petite pour un ordre`,
                 )
             const clOrderId = new Types.ObjectId()
-            const sideOrder = side.split('_')[1]as FuturesHoldSide
             const newOrder = new this.orderModel({
                 clOrderId,
                 PE: pe,
@@ -304,12 +305,11 @@ export class BitgetActionService {
     }
 
     async upgradeSL(client: FuturesClient, order: Order, strategy: IOrderStrategy, numTP: number): Promise<StopLoss> {
+        const stopLoss = await this.stopLossModel.findOne({
+            orderParentId: order._id,
+            terminated: { $ne: true },
+        });
         try {
-            const stopLoss = await this.stopLossModel.findOne({
-                orderParentId: order._id,
-                terminated: { $ne: true },
-            });
-
             if (!stopLoss) {
                 return
             }
@@ -342,7 +342,7 @@ export class BitgetActionService {
                     orderId: stopLoss.orderId,
                     planType: 'loss_plan',
                     symbol: order.symbol,
-                    triggerPrice: triggerPrice[newStep].toString(),
+                    triggerPrice: triggerPrice.toString(),
                 }
                 const result = await client.modifyStopOrder(params);
                 stopLoss.orderId = result.data.orderId
@@ -358,7 +358,7 @@ export class BitgetActionService {
             await stopLoss.save()
             return stopLoss.toObject() as StopLoss
         } catch (e) {
-            console.error('upgradeSL', e)
+            console.error('upgradeSL', e, order, strategy, numTP, stopLoss)
             throw e
         }
     }

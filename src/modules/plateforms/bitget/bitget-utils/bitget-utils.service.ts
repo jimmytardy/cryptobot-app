@@ -1,27 +1,29 @@
 import { Injectable } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import { InjectModel } from '@nestjs/mongoose'
 import {
     FuturesClient,
     FuturesHoldSide,
+    FuturesProductType,
     FuturesSymbolRule,
     SymbolRules,
 } from 'bitget-api'
-import BaseRestClient from 'bitget-api/lib/util/BaseRestClient'
-import { Model, Types } from 'mongoose'
 import { Order } from 'src/model/Order'
 import { TPSizeType, User } from 'src/model/User'
-import { OrderService } from 'src/modules/order/order.service'
-import { UserService } from 'src/modules/user/user.service'
-
 @Injectable()
 export class BitgetUtilsService {
     DEFAULT_PERCENTAGE_ORDER = 4
+    PRODUCT_TYPE: FuturesProductType = 'umcbl'
     constructor(
-        @InjectModel(User.name) private readonly userModel: Model<User>,
-    ) {}
+        configService: ConfigService,
+    ) {
+        if (configService.get('ENV') === 'dev') {
+            this.PRODUCT_TYPE = 'sumcbl';
+        }
+    }
 
     async getAccount(client: FuturesClient): Promise<any> {
-        const account = await client.getAccounts('umcbl')
+        const account = await client.getAccounts(this.PRODUCT_TYPE)
         // const balances = allBalances.filter((bal) => Number(bal.available) != 0);
         return account.data[0]
     }
@@ -47,7 +49,7 @@ export class BitgetUtilsService {
     }
 
     async getBaseCoins(client: FuturesClient): Promise<string[]> {
-        const result = await client.getSymbols('umcbl')
+        const result = await client.getSymbols(this.PRODUCT_TYPE)
         const coins = result.data.map((currentCoin) => currentCoin.baseCoin)
         return coins
     }
@@ -57,7 +59,7 @@ export class BitgetUtilsService {
         key: string,
         value: string | number,
     ): Promise<FuturesSymbolRule> {
-        const result = await client.getSymbols('umcbl')
+        const result = await client.getSymbols(this.PRODUCT_TYPE)
         const coin = result.data.find(
             (currentCoin) => currentCoin[key] == value,
         )
@@ -116,19 +118,21 @@ export class BitgetUtilsService {
         TPSize: TPSizeType,
         symbolRules: FuturesSymbolRule,
     ): number[] {
-        const newTps: number[] = [...tps]
+        const newTps: number[] = [...tps];
         while (newTps.length > 0) {
             const TPSizeValue = TPSize[newTps.length]
-            let value0Find = false
+            let TPListWrong = false;
+            let totalSize = 0;
             for (const tpSize of TPSizeValue) {
-                const sizeTP = this.fixSizeByRules(size * tpSize, symbolRules)
-                if (sizeTP <= 0) {
-                    value0Find = true
+                const sizeTP = this.fixSizeByRules(size * tpSize, symbolRules);
+                totalSize+= sizeTP;
+                if (sizeTP <= 0 || totalSize > size) {
+                    TPListWrong = true
                     break
                 }
             }
-            if (!value0Find) {
-                break
+            if (!TPListWrong) {
+                break;
             } else {
                 newTps.pop()
             }

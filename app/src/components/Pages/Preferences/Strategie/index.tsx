@@ -37,14 +37,15 @@ const Strategie = () => {
             })
     }, [strategy])
 
-    const onChangeStrategie = (key: keyof IOrderStrategy) => (value: number) => {
-        if (strategy) {
-            setValue('order.strategy', {
-                ...strategy,
-                [key]: value,
-            })
+    const onChangeStrategie =
+        (key: keyof IOrderStrategy) => (value: number) => {
+            if (strategy) {
+                setValue('order.strategy', {
+                    ...strategy,
+                    [key]: value,
+                })
+            }
         }
-    }
 
     return (
         <Row className="strategy">
@@ -101,21 +102,23 @@ const Strategie = () => {
                             Indiquez la valeur que prend la SL lorsque chaque TP
                             est pris
                         </div>
-                        <FormText className='text-danger'>
-                            Il est dangereux de faire une stratégie personnalisé si vous n'êtes pas familier avec les stratégies de trading
+                        <FormText className="text-danger">
+                            Il est dangereux de faire une stratégie personnalisé
+                            si vous n'êtes pas familier avec les stratégies de
+                            trading
                         </FormText>
                         <Row>
                             {Object.keys(strategy).map((key: string) => {
-                                const TPStep = Number(key.charAt(2))
+                                const TPStep = Number(key)
                                 let options: number[] = [
                                     SLStepEnum.Default,
                                     SLStepEnum.PE_BAS,
                                     SLStepEnum.PE_HAUT,
                                 ]
-                                if (TPStep > 1) options.push(SLStepEnum.TP1)
-                                if (TPStep > 2) options.push(SLStepEnum.TP2)
-                                if (TPStep > 3) options.push(SLStepEnum.TP3)
-                                if (TPStep > 4) options.push(SLStepEnum.TP4)
+                                if (TPStep > 0) options.push(SLStepEnum.TP1)
+                                if (TPStep > 1) options.push(SLStepEnum.TP2)
+                                if (TPStep > 2) options.push(SLStepEnum.TP3)
+                                if (TPStep > 3) options.push(SLStepEnum.TP4)
                                 return (
                                     <Col xs={6} md={4} className="mt-2 mb-2">
                                         <span className="form-title-sub">
@@ -131,7 +134,7 @@ const Strategie = () => {
                                             aria-label={key}
                                             onChange={(e) =>
                                                 onChangeStrategie(
-                                                    key as keyof IOrderStrategy
+                                                    key as keyof IOrderStrategy,
                                                 )(Number(e.target.value))
                                             }
                                         >
