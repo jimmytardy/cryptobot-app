@@ -5,6 +5,7 @@ import { User } from 'src/model/User'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model, ProjectionType } from 'mongoose'
 import { Subscription, SubscriptionEnum } from 'src/model/Subscription'
+import { ISubscriptionUser } from './payments.interface'
 
 @Injectable()
 export class PaymentsService {
@@ -59,7 +60,7 @@ export class PaymentsService {
             .exec()
     }
 
-    async getSubscriptions(stripeCustomerId: string): Promise<any> {
+    async getSubscriptions(stripeCustomerId: string): Promise<ISubscriptionUser> {
         const subscriptionsStripe = await this.stripe.subscriptions.list({
             customer: stripeCustomerId,
         })
