@@ -206,7 +206,7 @@ export class BitgetWsService {
                 'preferences.order.strategy',
             )
             // upgrade stop loss
-            const stopLoss = await this.bitgetService.upgradeSL(
+            await this.bitgetService.upgradeSL(
                 order,
                 user.preferences.order.strategy,
                 order.TPs.findIndex((tp: number) => tp === takeProfit.triggerPrice)

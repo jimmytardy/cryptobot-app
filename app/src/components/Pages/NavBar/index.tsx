@@ -11,20 +11,22 @@ import { useAuth } from '../../../hooks/AuthContext'
 import { IRoute } from '..'
 
 interface NavBarCryptobotProps {
-    routes: IRoute[]
+    routes: IRoute[];
+    theme?: string;
+    title: string;
 }
 
-const NavBarCryptobot: React.FC<NavBarCryptobotProps> = ({ routes }) => {
+const NavBarCryptobot: React.FC<NavBarCryptobotProps> = ({ routes, theme, title }) => {
     const navigate = useNavigate()
     const location = useLocation()
     const { logout } = useAuth()
 
     return (
-        <Navbar expand="lg" className="navbar-cryptobot bg-body-tertiary">
+        <Navbar expand="lg" bg={theme} data-bs-theme={theme} className="navbar-cryptobot bg-body-tertiary">
             <Container>
                 <Navbar.Brand onClick={() => navigate('home')}>
-                    <img src={'icon.svg'} alt="Logo" />
-                    Cryptobot
+                    <img src={'/icon.svg'} alt="Logo" />
+                    {title}
                 </Navbar.Brand>
                 <Navbar.Toggle aria-controls="basic-navbar-nav" />
                 <Navbar.Collapse id="basic-navbar-nav">

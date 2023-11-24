@@ -28,5 +28,6 @@ export interface IUserSubscriptionItem {
 }
 export interface IUser extends Omit<IUserPayload, 'password'>, IUserUpdatePayload {
     _id: string
+    isAdmin: boolean;
     subscription: IUserSubscriptionItem
 }

@@ -1,0 +1,26 @@
+.controller-array-number-input {
+    position: relative;
+
+    .controller-array-number-input-icon {
+        position: absolute;
+        right: 0;
+        top: 50%;
+        height: calc(100% + 1px);
+        transform: translate(0, -50%);
+        z-index: 1;
+        
+        font-size: 1.5em;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        color: white;
+
+        &.controller-array-number-input-delete {
+            background-color: red;
+        }
+        &.controller-array-number-input-add {
+            background-color: green;
+        }
+    }
+}

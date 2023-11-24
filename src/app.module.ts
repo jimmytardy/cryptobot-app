@@ -8,6 +8,7 @@ import { ServeStaticModule } from '@nestjs/serve-static'
 import configuration from './config/configuration'
 import { join } from 'path'
 import { ScheduleModule } from '@nestjs/schedule'
+import { UtilService } from './util/util.service';
 
 @Module({
     imports: [
@@ -30,6 +31,6 @@ import { ScheduleModule } from '@nestjs/schedule'
         ScheduleModule.forRoot(),
     ],
     controllers: [AppController],
-    providers: [AppService],
+    providers: [AppService, UtilService],
 })
 export class AppModule {}

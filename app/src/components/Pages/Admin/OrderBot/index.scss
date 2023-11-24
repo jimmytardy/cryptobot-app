@@ -1,0 +1,19 @@
+.order-bot {
+    .order-bot-list-header {
+        margin-bottom: 1rem;;
+    }
+    .order-bot-list-body {
+        & > .order-line:nth-child(2n + 1) {
+            background-color: darkolivegreen;
+        }
+
+        .order-line {
+            padding: 0.5rem 0;
+            
+            svg {
+                cursor: pointer;
+            }
+        }
+    }
+    
+}

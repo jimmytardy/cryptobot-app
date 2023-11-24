@@ -11,13 +11,15 @@ import { FuturesClient, FuturesOrderSide } from 'bitget-api'
 import { BitgetActionService } from './bitget-action/bitget-action.service'
 import { BitgetUtilsService } from './bitget-utils/bitget-utils.service'
 import { Model, Types } from 'mongoose'
-import { Order } from 'src/model/Order'
+import { Order, OrderDocument } from 'src/model/Order'
 import { StopLoss } from 'src/model/StopLoss'
 import { User } from 'src/model/User'
 import { InjectModel } from '@nestjs/mongoose'
 import { PaymentsService } from 'src/modules/payment/payments.service'
 import { SubscriptionEnum } from 'src/model/Subscription'
 import { IOrderStrategy } from 'src/interfaces/order-strategy.interface'
+import { IArrayModification } from 'src/util/util.interface'
+import { IOrderUpdate } from './bitget-action/bitget-action.interface'
 
 @Injectable()
 export class BitgetService {
@@ -28,8 +30,7 @@ export class BitgetService {
 
     constructor(
         private bitgetUtilsService: BitgetUtilsService,
-        private bitgetActionService: BitgetActionService,
-        private paymentService: PaymentsService,
+        private bitgetActionService: BitgetActionService
     ) {
         this.logger = new Logger('BitgetService')
         this.client = {}
@@ -65,6 +66,13 @@ export class BitgetService {
         )
     }
 
+    async getQuantityForOrder(user: User) {
+        return await this.bitgetUtilsService.getQuantityForOrder(
+            this.client[user._id.toString()],
+            user
+        )
+    }
+
     async placeOrder(
         placeOrderDTO: PlaceOrderDTO,
         user: User,
@@ -82,10 +90,7 @@ export class BitgetService {
         }
 
         if (!size) {
-            size = await this.bitgetUtilsService.getQuantityForOrder(
-                this.client[userIdStr],
-                user,
-            )
+            size =  await this.getQuantityForOrder(user);
         }
         const fullSide = ('open_' + side) as FuturesOrderSide
         const linkOrderId = linkParentOrderId || new Types.ObjectId()
@@ -212,6 +217,18 @@ export class BitgetService {
             )
         } catch (e) {
             this.logger.error('setLeverage', e)
+        }
+    }
+
+    async updateOrderPE(order: OrderDocument, newPE: number): Promise<boolean> {
+        try {
+            return await this.bitgetActionService.updateOrderPE(
+                this.getClient(order.userId),
+                order,
+                newPE,
+            )
+        } catch (e) {
+            this.logger.error('updateOrderPE', e)
         }
     }
 }

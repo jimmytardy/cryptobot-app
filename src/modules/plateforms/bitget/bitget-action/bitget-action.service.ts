@@ -5,6 +5,7 @@ import {
     FuturesHoldSide,
     FuturesOrderSide,
     FuturesSymbolRule,
+    ModifyFuturesOrder,
     ModifyFuturesPlanStopOrder,
     NewFuturesOrder,
     NewFuturesPlanStopOrder,
@@ -18,6 +19,9 @@ import { StopLoss } from 'src/model/StopLoss'
 import { OrderService } from 'src/modules/order/order.service'
 import { User } from 'src/model/User'
 import { IOrderStrategy } from 'src/interfaces/order-strategy.interface'
+import { IArrayModification } from 'src/util/util.interface'
+import { SetOrderBotDTO } from 'src/modules/order-bot/order-bot.dto'
+import { IOrderUpdate } from './bitget-action.interface'
 
 @Injectable()
 export class BitgetActionService {
@@ -107,14 +111,16 @@ export class BitgetActionService {
                     `La quantité ${usdt} est trop petite pour un ordre, le minimum est ${symbolRules.minTradeUSDT}`,
                 )
             }
-            let TPsCalculate = this.bitgetUtilsService.caculateTPsToUse(
-                tps,
-                size,
-                user.preferences.order.TPSize,
-                symbolRules,
-            ).sort();
-            const sideOrder = side.split('_')[1]as FuturesHoldSide;
-            if (sideOrder === 'short') TPsCalculate = TPsCalculate.reverse();
+            let TPsCalculate = this.bitgetUtilsService
+                .caculateTPsToUse(
+                    tps,
+                    size,
+                    user.preferences.order.TPSize,
+                    symbolRules,
+                )
+                .sort()
+            const sideOrder = side.split('_')[1] as FuturesHoldSide
+            if (sideOrder === 'short') TPsCalculate = TPsCalculate.reverse()
             // @ts-ignore
             if (TPsCalculate.length === 0 || usdt < symbolRules.minTradeUSDT)
                 throw new Error(
@@ -124,7 +130,10 @@ export class BitgetActionService {
             const newOrder = new this.orderModel({
                 clOrderId,
                 PE: pe,
-                TPs: sideOrder === 'long' ? TPsCalculate : TPsCalculate.reverse(),
+                TPs:
+                    sideOrder === 'long'
+                        ? TPsCalculate
+                        : TPsCalculate.reverse(),
                 SL: stopLoss,
                 symbol: symbolRules.symbol,
                 side: sideOrder,
@@ -141,7 +150,7 @@ export class BitgetActionService {
                 symbolRules,
                 currentPrice,
                 newOrder,
-            );
+            )
 
             if (newOrder.sendToPlateform) {
                 return await this.placeOrderBitget(client, newOrder)
@@ -166,8 +175,8 @@ export class BitgetActionService {
         }
         const result = await client.submitOrder(newOrderParams)
         const { orderId } = result.data
-        order.orderId = orderId;
-        order.sendToPlateform = true;
+        order.orderId = orderId
+        order.sendToPlateform = true
         return await this.orderModel.findOneAndUpdate(
             { _id: order._id },
             order,
@@ -175,9 +184,13 @@ export class BitgetActionService {
         )
     }
 
-    async activeOrder(client: FuturesClient, user: User, orderId: Types.ObjectId) {
+    async activeOrder(
+        client: FuturesClient,
+        user: User,
+        orderId: Types.ObjectId,
+    ) {
         try {
-            const order = await this.orderModel.findById(orderId);
+            const order = await this.orderModel.findById(orderId)
             if (!order) return null
             const symbolRules = await this.bitgetUtilsService.getSymbolBy(
                 client,
@@ -304,36 +317,46 @@ export class BitgetActionService {
         }
     }
 
-    async upgradeSL(client: FuturesClient, order: Order, strategy: IOrderStrategy, numTP: number): Promise<StopLoss> {
+    async upgradeSL(
+        client: FuturesClient,
+        order: Order,
+        strategy: IOrderStrategy,
+        numTP: number,
+    ): Promise<StopLoss> {
         const stopLoss = await this.stopLossModel.findOne({
             orderParentId: order._id,
             terminated: { $ne: true },
-        });
+        })
         try {
             if (!stopLoss) {
                 return
             }
-            
-            let newStep = strategy ? strategy[numTP] : stopLoss.step + 1;
-            let triggerPrice: number;
+
+            let newStep = strategy ? strategy[numTP] : stopLoss.step + 1
+            let triggerPrice: number
 
             if (newStep === -1) {
-                triggerPrice = order.SL;
+                triggerPrice = order.SL
             } else {
                 let stepsTriggers: number[] = [order.PE]
                 const orderLinked = await this.orderModel.findOne(
-                    { linkOrderId: order.linkOrderId, _id: { $ne: order._id }, userId: order.userId },
+                    {
+                        linkOrderId: order.linkOrderId,
+                        _id: { $ne: order._id },
+                        userId: order.userId,
+                    },
                     'PE',
                 )
                 if (orderLinked) {
-                    stepsTriggers.push(orderLinked.PE);
+                    stepsTriggers.push(orderLinked.PE)
                 } else {
                     stepsTriggers.push(order.PE)
                 }
                 // Array of PE + TPs for triggerPrice
-                stepsTriggers = stepsTriggers.concat(order.TPs).sort();
-                if (order.side !== 'long') stepsTriggers = stepsTriggers.reverse();
-                triggerPrice = stepsTriggers[newStep];
+                stepsTriggers = stepsTriggers.concat(order.TPs).sort()
+                if (order.side !== 'long')
+                    stepsTriggers = stepsTriggers.reverse()
+                triggerPrice = stepsTriggers[newStep]
             }
 
             if (triggerPrice !== stopLoss.triggerPrice) {
@@ -344,16 +367,16 @@ export class BitgetActionService {
                     symbol: order.symbol,
                     triggerPrice: triggerPrice.toString(),
                 }
-                const result = await client.modifyStopOrder(params);
+                const result = await client.modifyStopOrder(params)
                 stopLoss.orderId = result.data.orderId
-                stopLoss.price = triggerPrice;
+                stopLoss.price = triggerPrice
                 stopLoss.historyTrigger = [
                     ...stopLoss.historyTrigger,
                     stopLoss.triggerPrice,
                 ]
                 stopLoss.triggerPrice = triggerPrice
             }
-            
+
             stopLoss.step = newStep
             await stopLoss.save()
             return stopLoss.toObject() as StopLoss
@@ -369,11 +392,14 @@ export class BitgetActionService {
         order: Order,
     ) {
         try {
-            await client.cancelOrder(
-                order.symbol,
-                order.marginCoin,
-                order.orderId,
-            )
+            if (order.sendToPlateform) {
+                await client.cancelOrder(
+                    order.symbol,
+                    order.marginCoin,
+                    order.orderId,
+                    order.clOrderId?.toString(),
+                )
+            }
             await this.orderService.cancelOrder(order._id, userId)
         } catch (e) {
             console.error('cancelOrder', e)
@@ -399,5 +425,29 @@ export class BitgetActionService {
             )
         }
         await this.orderService.disabledOrderLink(linkId, userId)
+    }
+
+    async updateOrderPE(
+        client: FuturesClient,
+        order: OrderDocument,
+        newPE: number,
+    ): Promise<boolean> {
+        if (order.sendToPlateform) {
+            if (!order.activated && (order.orderId || order.clOrderId)) {
+                const params: ModifyFuturesOrder = {
+                    symbol: order.symbol,
+                    orderId: order.orderId,
+                    clientOid: order.clOrderId?.toString(),
+                    price: String(newPE),
+                }
+                await client.modifyOrder(params)
+                return true
+            } else {
+                return false
+            }
+        } else {
+            order.PE = newPE;
+            await order.save()
+        }
     }
 }

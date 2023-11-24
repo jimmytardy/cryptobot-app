@@ -10,6 +10,11 @@ import { ReactNode } from 'react'
 import CGU from '../CGU'
 import { isTrader } from '../../utils'
 import Payement from './Payment'
+import Admin from './Admin'
+import { generateRoutes } from './utils.functions'
+import NavBarAdmin from './Admin/NavBarAdmin'
+import OrderBot from './Admin/OrderBot'
+import OrderBotEdit from './Admin/OrderBot/OrderBotEdit'
 
 export interface IRoute {
     path: string
@@ -21,7 +26,6 @@ export interface IRoute {
 const Pages = () => {
     const { user } = useAuth()
     if (!user) return <div></div>
-
     const routes: IRoute[] = [
         {
             path: '/home',
@@ -53,22 +57,27 @@ const Pages = () => {
             path: '/',
             Component: Home,
         },
+    ];
+
+    const routesAdmin: IRoute[] = [
+        {
+            Component: OrderBot,
+            path: '/admin/order-bot',
+            title: 'Ordres du bot',
+        },
+        {
+            Component: OrderBotEdit,
+            path: '/admin/order-bot/:id',
+        },
     ]
 
     return (
         <>
-            <NavBarCryptobot routes={routes} />
+            {user.isAdmin && <NavBarCryptobot title='Panneau Administrateur' routes={routesAdmin} theme='dark' />}
+            <NavBarCryptobot title='Cryptobot' routes={routes} />
             <Routes>
-                {routes
-                    .filter((routes) => !routes.disabled)
-                    .map((route) => (
-                        <Route
-                            key={'route-' + route.path}
-                            path={route.path}
-                            // @ts-ignore
-                            element={<route.Component />}
-                        />
-                    ))}
+                {generateRoutes(routes)}
+                {user.isAdmin && generateRoutes(routesAdmin)}
                 <Route
                     path="conditions-generales-utilisation"
                     element={<CGU />}

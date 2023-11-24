@@ -1,16 +1,23 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { HttpException, Injectable, Logger } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model, Types } from 'mongoose'
 import { OrderBot } from 'src/model/OrderBot'
 import { PaymentsService } from '../payment/payments.service'
 import { SubscriptionEnum } from 'src/model/Subscription'
 import { BitgetService } from '../plateforms/bitget/bitget.service'
+import { SetOrderBotDTO } from './order-bot.dto'
+import { Order } from 'src/model/Order'
+import { UtilService } from 'src/util/util.service'
+import { PlaceOrderDTO } from '../plateforms/bitget/bitget.dto'
+import { User } from 'src/model/User'
 
 @Injectable()
 export class OrderBotService {
     logger: Logger = new Logger('OrderBotService')
     constructor(
         @InjectModel(OrderBot.name) private orderBotModel: Model<OrderBot>,
+        @InjectModel(Order.name) private orderModel: Model<Order>,
+        @InjectModel(User.name) private userModel: Model<User>,
         private paymentService: PaymentsService,
         private bitgetService: BitgetService,
     ) {}
@@ -97,5 +104,78 @@ export class OrderBotService {
             this.logger.error(e)
             return e
         }
+    }
+
+    async getOrderBots() {
+        return await this.orderBotModel.find().sort({ createdAt: -1 }).limit(20).exec();
+    }
+
+    async findById(id: Types.ObjectId | string) {
+        return await this.orderBotModel.findById(id).exec();
+    }
+
+    async setOrder(orderId: string, orderDTO: SetOrderBotDTO): Promise<string> {
+        // const oldOrder = await this.orderBotModel.findByIdAndUpdate(orderId, { $set: orderDTO }).exec();
+        const oldOrder = await this.orderBotModel.findById(orderId).exec();
+        if (!oldOrder) throw new HttpException('Order not found', 404);
+
+        
+        const newTps = orderDTO.TPs.sort();
+        const newPes = orderDTO.PEs.sort();
+        if (oldOrder.side === 'short') {
+            newTps.reverse();
+            newPes.reverse();
+        }
+        
+        const PEModif = UtilService.compareArraysNumber(oldOrder.PEs, orderDTO.PEs);
+        const TPModif = UtilService.compareArraysNumber(oldOrder.TPs, orderDTO.TPs);
+        const SLModif = oldOrder.SL !== orderDTO.SL;
+        if (PEModif.length === 0 && TPModif.length === 0 && !SLModif) return 'Aucun modification n\'a été effectué';
+
+        oldOrder.PEs = orderDTO.PEs;
+        oldOrder.markModified('PEs');
+        oldOrder.TPs = orderDTO.TPs;
+        oldOrder.markModified('TPs');
+        oldOrder.SL = orderDTO.SL;
+        oldOrder.markModified('SL');
+        const newOrderBot = await oldOrder.save();
+
+        const orders = await this.orderModel.find({ linkOrderId: oldOrder.linkOrderId, terminated: false }).exec();
+        const userMemo: { [key: string]: User } = {};
+        let success = 0;
+        let errors = 0;
+        await Promise.all(orders.map(async (order) => {
+            const PECurrentModif = PEModif.find(
+                (modif) => modif.oldNumber === order.PE,
+            )
+            // update or remove
+            if (PECurrentModif) {
+                if (PECurrentModif.action === 'update') await this.bitgetService.updateOrderPE(order, PECurrentModif.newNumber);
+                if (PECurrentModif.action === 'remove') await this.bitgetService.cancelOrder(order);
+            } else {
+                // add
+                try {
+                    if (!userMemo[order.userId.toString()]) userMemo[order.userId.toString()] = await this.userModel.findById(order.userId).lean().exec();
+                    const size = await this.bitgetService.getQuantityForOrder(
+                        userMemo[order.userId.toString()],
+                    )
+                    const newOrderBitget: PlaceOrderDTO = {
+                        ...newOrderBot.toObject(),
+                        PEs: [order.PE],
+                        size: size / 2
+                    }
+                    
+                    await this.bitgetService.placeOrder(newOrderBitget, userMemo[order.userId.toString()], oldOrder.linkOrderId);
+                } catch (e) {
+                    this.logger.error('setOrder > updateOrder', e, order.toObject(), 'add PE');
+                    errors++;
+                }
+                
+            }
+
+            // TODO faire les TPs et SL
+            success++;
+        }));
+        return `Les modifications de ${success} ont été effectuées avec succès. ${errors} erreurs ont été rencontrées`;
     }
 }

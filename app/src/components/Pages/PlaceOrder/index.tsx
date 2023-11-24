@@ -94,8 +94,8 @@ const PlaceOrder = () => {
             <h2>Placer un ordre</h2>
             <FormProvider {...methods}>
                 <Form onSubmit={methods.handleSubmit(submitOrder)}>
-                    <ControllerArrayNumber<IPlaceOrderPayload> field="PEs" />
-                    <ControllerArrayNumber<IPlaceOrderPayload> field="TPs" />
+                    <ControllerArrayNumber<IPlaceOrderPayload> field="PEs" max={2} />
+                    <ControllerArrayNumber<IPlaceOrderPayload> field="TPs"max={6} />
                     <Row className="mb-4">
                         <Col xs={4}>
                             <Form.Label htmlFor="SL">SL</Form.Label>
