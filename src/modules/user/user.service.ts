@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
-import { Model, ProjectionType, Types } from 'mongoose'
+import { FilterQuery, Model, ProjectionType, Types } from 'mongoose'
 import { IUserPreferencesOrder, User } from 'src/model/User'
 import {
     CreateUserDTO,
@@ -13,6 +13,7 @@ import { FuturesClient } from 'bitget-api'
 import { PaymentsService } from '../payment/payments.service'
 import { OrderService } from '../order/order.service'
 import { TakeProfit } from 'src/model/TakeProfit'
+import { Order } from 'src/model/Order'
 
 @Injectable()
 export class UserService implements OnApplicationBootstrap {
@@ -125,8 +126,13 @@ export class UserService implements OnApplicationBootstrap {
         return await this.paymentService.getSubscriptions(stripeCustomerId)
     }
 
-    async getOrdersStats(userId: Types.ObjectId) {
-        const orders = await this.orderService.getOrders({ userId });
+    async getOrdersStats(userId: Types.ObjectId, dateFrom: Date, dateTo: Date) {
+        const filterQuery: FilterQuery<Order> = {
+            userId,
+            ...(dateFrom ? { createdAt: { $gte: dateFrom } } : {}),
+            ...(dateTo ? { createdAt: { $lte: dateTo } } : {}),
+        }
+        const orders = await this.orderService.getOrders(filterQuery);
         const results = {
             nbTerminated: 0,
             nbInProgress: 0,

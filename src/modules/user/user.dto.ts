@@ -3,6 +3,7 @@ import {
     ArrayNotEmpty,
     IsArray,
     IsBoolean,
+    IsDate,
     IsDefined,
     IsNotEmptyObject,
     IsNumber,
@@ -12,7 +13,12 @@ import {
     Validate,
     ValidateNested,
 } from 'class-validator'
-import { IUserCryptoExchange, IUserPreferences, LeviersSizeType, TPSizeType } from 'src/model/User'
+import {
+    IUserCryptoExchange,
+    IUserPreferences,
+    LeviersSizeType,
+    TPSizeType,
+} from 'src/model/User'
 
 export class CreateUserDTO {
     @IsString()
@@ -69,5 +75,17 @@ export class UpdatePreferencesDTO {
 export class ProfileUpdateDTO {
     @IsDefined()
     @IsBoolean()
-    active: boolean;
+    active: boolean
+}
+
+export class UserStatsDTO {
+    @IsOptional()
+    @Type(() => Date)
+    @IsDate()
+    dateFrom?: Date
+
+    @IsOptional()
+    @Type(() => Date)
+    @IsDate()
+    dateTo?: Date
 }

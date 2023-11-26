@@ -27,7 +27,7 @@ export class BitgetWsService {
     }
 
     loggerTrace(logger: Logger, type: 'log' | 'fatal' | 'error' | 'verbose' | 'warn' | 'debug', userId: string) {
-        return (...params: any[]) => logger[type](userId + ', ' + params.map((p) => typeof p === 'object' ? JSON.stringify(p) : p).join(' '));
+        return (...params: any[]) => logger[type](params.map((p) => typeof p === 'object' ? JSON.stringify(p) : p).join(' '));
     }
     
     addNewTrader(user: User) {

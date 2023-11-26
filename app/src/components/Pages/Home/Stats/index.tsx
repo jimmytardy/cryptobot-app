@@ -13,8 +13,8 @@ import { getFormatDateForInput } from "../../../../utils";
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 interface IStatsPayload {
-  startDate: string,
-  endDate: string,
+  dateFrom: string,
+  dateTo: string,
 }
 
 const Stats = () => {
@@ -24,80 +24,64 @@ const Stats = () => {
     'red': ['#ffc100', '#ff9a00', '	#ff7400', '#ff4d00', '	#ff0000', '#b30000'],
     'green': ['#0eff00', '#0de600', '#1fc600', '#089000', '#0a5d00', '#063b00']
   }
-  const methods = useForm<IStatsPayload>({
-    defaultValues: {
-      startDate: getFormatDateForInput(new Date(user.createdAt)),
-      endDate: getFormatDateForInput(new Date())
-    },
-  });
-  const formState = useFormState({ control: methods.control });
 
-  const { endDate, startDate } = methods.watch();
+  const [dates, setDates] = useState<{ dateFrom?: string, dateTo?: string }>({
+    dateFrom: undefined,
+    dateTo: undefined
+  });
+  const [messageDate, setMessageDate] = useState<string>('');
 
   useEffect(() => {
+    console.log('dates.dateFrom && dates.dateTo && new Date(dates.dateFrom) > new Date(dates.dateTo)', dates.dateFrom && dates.dateTo && new Date(dates.dateFrom) > new Date(dates.dateTo))
+    if (dates.dateFrom && dates.dateTo && new Date(dates.dateFrom) > new Date(dates.dateTo)) return setMessageDate('La date de début doit être inférieur ou égal à la date de fin');
+    else setMessageDate('');
     (async () => {
-      const result = await axiosClient.get<IStats>('/user/stats', { params: {
-        startDate, endDate
-      }});
+      const params: { dateTo?: string, dateFrom?: string } = {};
+      if (dates.dateFrom) params['dateFrom'] = new Date(dates.dateFrom).toISOString();
+      if (dates.dateTo) params.dateTo = new Date(dates.dateTo).toISOString();
+      const result = await axiosClient.get<IStats>('/user/stats', { params: params});
       setStats(result.data);
     })();
-  }, [endDate, startDate]);
+  }, [dates]);
+
+  const handleChangeDate = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDates({ ...dates, [e.target.name]: e.target.value });
+  }
 
   if (!stats) return <Loader />
 
-  const handleValidateChangeDate = (data: IStatsPayload) => {
-
-  }
-
   const rules = {
-    startDate: {
-      max: getFormatDateForInput(new Date(endDate))
+    dateFrom: {
+      max: dates.dateTo && getFormatDateForInput(new Date(dates.dateTo))
     },
-    endDate: {
-      min: getFormatDateForInput(new Date(startDate)),
+    dateTo: {
+      min: dates.dateFrom && getFormatDateForInput(new Date(dates.dateFrom)),
     }
   }
 
   return (
     <Container className="stats">
-      <h2>Stats</h2>
-      <form onSubmit={methods.handleSubmit(handleValidateChangeDate)}>
-        <Row>
+      <Row>
           <Col xs={12}>
-            <div className="form-title">
-              Dates
+            <div className="section-title">
+              Dates de lancement des ordres
             </div>
           </Col>
           <Col xs={6}>
             <FormLabel>Date de début</FormLabel>
-            <FormControl {...methods.register('startDate', rules.startDate)} type="date" {...rules.startDate} />
-            {formState.errors?.startDate && (
-              <p
-                className="text-danger"
-                style={{ fontSize: 14 }}
-              >
-                La date de début doit être inférieur ou égal à la date de fin
-              </p>
-            )}
+            <FormControl type="date" onChange={handleChangeDate} defaultValue={dates.dateFrom} name="dateFrom" {...rules.dateFrom} />
           </Col>
           <Col xs={6}>
             <FormLabel>Date de fin</FormLabel>
-            <FormControl {...methods.register('endDate', rules.endDate)} type="date" {...rules.endDate} />
-            {formState.errors?.endDate && (
-              <p
-                className="text-danger"
-                style={{ fontSize: 14 }}
-              >
-                La date de fin doit être supérieur ou égal à la date de début
-              </p>
-            )}
+            <FormControl type="date" onChange={handleChangeDate} defaultValue={dates.dateTo} name="dateTo" {...rules.dateTo} />
+          </Col>
+          <Col xs={12} className="mt-3">
+            <p className="text-danger">{messageDate}</p>
           </Col>
         </Row>
-      </form>
-
       <Row>
         <div className="section-title">Etats des ordres</div>
-        <Col xs={6} md={4} className="m-auto">
+        <Col xs={6} md={4} lg={3} className="m-auto">
           <Pie data={{
             labels: ['Terminés', 'En cours', 'En attente d\'envoi'],
             datasets: [
@@ -115,9 +99,9 @@ const Stats = () => {
             Détails des TP/SL
           </div>
         </Col>
-        <Col xs={6} md={4} className="m-auto">
+        <Col xs={6} md={4} lg={3} className="m-auto mt-3">
           <div className="col-body">
-            <div className="form-title">Nombre de TP/SL au prix bas</div>
+            <div className="form-title">Nombre de TP/SL</div>
             <Pie data={{
               labels: ['TP', 'SL'],
               datasets: [
@@ -132,9 +116,9 @@ const Stats = () => {
             }} />
           </div>
         </Col>
-        <Col xs={6} md={4} className="m-auto">
+        <Col xs={6} md={4} lg={3} className="m-auto mt-3">
           <div className="col-body">
-            <div className="form-title">Détails des TP pris</div>
+            <div className="form-title">Détails des TPs</div>
             <Pie data={{
               labels: ['TP1', 'TP2', 'TP3', 'TP4', 'TP5', 'TP6'],
               datasets: [
@@ -146,9 +130,9 @@ const Stats = () => {
             }} />
           </div>
         </Col>
-        <Col xs={6} md={4} className="m-auto">
+        <Col xs={6} md={4} lg={3} className="m-auto mt-3">
           <div className="col-body">
-            <div className="form-title">Détails des SL pris</div>
+            <div className="form-title">Détails des SLs</div>
             <Pie data={{
               labels: ['SL', 'PE Bas', 'PE Haut', 'TP1', 'TP2', 'TP3', 'TP4'],
               datasets: [
@@ -159,7 +143,6 @@ const Stats = () => {
               ],
             }} />
           </div>
-
         </Col>
       </Row>
     </Container>
