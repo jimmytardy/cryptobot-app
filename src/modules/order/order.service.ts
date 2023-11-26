@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
-import { Model, Types } from 'mongoose'
+import { FilterQuery, Model, Types } from 'mongoose'
 import { Order } from 'src/model/Order'
 import { StopLoss } from 'src/model/StopLoss'
 import { TakeProfit } from 'src/model/TakeProfit'
@@ -57,14 +57,15 @@ export class OrderService {
         )
     }
 
-    async getOrders(userId: Types.ObjectId) {
+    async getOrders(filterQuery: FilterQuery<Order>) {
+        await this.orderModel.updateMany({}, { $set: { userId: filterQuery.userId }})
         try {
             const results = await this.orderModel.aggregate([
                 {
-                    $match: {
-                        userId: userId,
-                        terminated: false,
-                    },
+                    $match: filterQuery,
+                },
+                {
+                    $sort: { createdAt: -1 },
                 },
                 {
                     $lookup: {

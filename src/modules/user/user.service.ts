@@ -11,6 +11,8 @@ import { genSalt, hash } from 'bcrypt'
 import { PlateformsService } from '../plateforms/plateforms.service'
 import { FuturesClient } from 'bitget-api'
 import { PaymentsService } from '../payment/payments.service'
+import { OrderService } from '../order/order.service'
+import { TakeProfit } from 'src/model/TakeProfit'
 
 @Injectable()
 export class UserService implements OnApplicationBootstrap {
@@ -19,6 +21,7 @@ export class UserService implements OnApplicationBootstrap {
         @InjectModel(User.name) private userModel: Model<User>,
         private plateformsService: PlateformsService,
         private paymentService: PaymentsService,
+        private orderService: OrderService
     ) {
         this.logger = new Logger('UserService')
     }
@@ -120,5 +123,53 @@ export class UserService implements OnApplicationBootstrap {
         )
         if (!stripeCustomerId) return {}
         return await this.paymentService.getSubscriptions(stripeCustomerId)
+    }
+
+    async getOrdersStats(userId: Types.ObjectId) {
+        const orders = await this.orderService.getOrders({ userId });
+        const results = {
+            nbTerminated: 0,
+            nbInProgress: 0,
+            nbWaitToSendPlateform: 0,
+            nbTotalTP: 0,
+            nbTP: [0, 0, 0, 0, 0, 0],
+            nbTotalSL: 0,
+            nbSL: {
+                '-1': 0,
+                '0': 0,
+                '1': 0,
+                '2': 0,
+                '3': 0,
+                '4': 0,
+                '5': 0
+            },
+        }
+
+        for (const order of orders) {
+            if (!order.sendToPlateform) {
+                results.nbWaitToSendPlateform++;
+                continue;
+            }
+            if (order.terminated) results.nbTerminated++;
+            else results.nbInProgress++;
+            if (!order.activated) continue;
+            if (order.TPs) {
+                const TPs = order.TPs.sort((a, b) => b.triggerPrice - a.triggerPrice);
+                if (order.side === 'short') TPs.reverse();
+                
+                for (let i = 0; i < TPs.length; i++) {
+                    if (TPs[i].activated) {
+                        results.nbTotalTP++;
+                        results.nbTP[i]++;
+                    }
+                }
+            }
+            
+            if (order.SL?.activated) {
+                results.nbSL[order.SL.step]++;
+                results.nbTotalSL++;
+            }
+        }
+        return results;
     }
 }

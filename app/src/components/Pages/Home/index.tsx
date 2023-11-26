@@ -1,7 +1,7 @@
 import { Col, Container, Row } from "react-bootstrap";
 import Profile from "./Profile";
 import BitgetProfile from "./BitgetProfile";
-
+import Stats from "./Stats";
 
 const Home: React.FC = () => {
     return (
@@ -12,7 +12,7 @@ const Home: React.FC = () => {
             <BitgetProfile />
           </Col>
           <Col sm={12} md={9}>
-            {/* <PlaceOrder /> */}
+            <Stats />
           </Col>
         </Row>
       </Container>

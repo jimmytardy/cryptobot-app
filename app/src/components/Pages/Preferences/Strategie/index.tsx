@@ -53,7 +53,7 @@ const Strategie = () => {
                 type="switch"
                 id="strategy"
                 checked={!Boolean(strategy)}
-                label={'Utiliser la stratégie par défault'}
+                label={'Utiliser la stratégie par défaut'}
                 onChange={toogleStrategie}
             />
             <Col xs={12}>

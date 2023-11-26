@@ -32,7 +32,10 @@ export class UserController {
     @UseGuards(JwtAuthGuard)
     @Get('orders')
     async getOrders(@Request() req) {
-        return this.orderService.getOrders(req.user._id);
+        return this.orderService.getOrders({
+            userId: req.user._id,
+            terminated: false,
+        });
     }
 
     @UseGuards(JwtAuthGuard)
@@ -51,5 +54,11 @@ export class UserController {
     @Get('subscriptions')
     async getSubscriptions(@Request() req) {
         return await this.userService.getSubscriptions(req.user._id);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('stats')
+    async getStats(@Request() req) {
+        return await this.userService.getOrdersStats(req.user._id);
     }
 }

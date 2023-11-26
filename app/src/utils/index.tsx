@@ -55,3 +55,8 @@ export const monthDiff = (dateFrom: Date, dateTo: Date) => {
         12 * (dateTo.getFullYear() - dateFrom.getFullYear())
     )
 }
+
+export const getFormatDateForInput = (date: Date) => {
+    console.log(date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate() + 1).padStart(2, '0'))
+    return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate() + 1).padStart(2, '0')
+}

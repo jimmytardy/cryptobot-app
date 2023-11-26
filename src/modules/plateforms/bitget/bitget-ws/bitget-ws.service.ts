@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { WebsocketClient } from 'bitget-api'
 import { Model, Types } from 'mongoose'
@@ -26,12 +26,24 @@ export class BitgetWsService {
         this.client = {}
     }
 
+    loggerTrace(logger: Logger, type: 'log' | 'fatal' | 'error' | 'verbose' | 'warn' | 'debug', userId: string) {
+        return (...params: any[]) => logger[type](userId + ', ' + params.map((p) => typeof p === 'object' ? JSON.stringify(p) : p).join(' '));
+    }
+    
     addNewTrader(user: User) {
-        const userId = user._id.toString()
+        const userId = user._id.toString();
+        const logger: Logger = new Logger('BitgetWS-' + user._id);
         this.client[userId] = new WebsocketClient({
             apiKey: user.bitget.api_key,
             apiPass: user.bitget.api_pass,
-            apiSecret: user.bitget.api_secret_key,
+            apiSecret: user.bitget.api_secret_key, 
+        }, {
+            debug: this.loggerTrace(logger, 'debug', userId),
+            error: this.loggerTrace(logger, 'error', userId),
+            info: this.loggerTrace(logger, 'log', userId),
+            notice: this.loggerTrace(logger, 'verbose', userId),
+            silly: this.loggerTrace(logger, 'verbose', userId),
+            warning: this.loggerTrace(logger, 'warn', userId)
         })
         this.activateWebSocket(user)
     }
