@@ -54,9 +54,7 @@ class UpdatePreferencesOrderDTO {
 
     @IsArray()
     @ArrayNotEmpty()
-    @ValidateNested()
-    @Type(() => Array)
-    levierSize: LeviersSizeType[]
+    levierSize: LeviersSizeType
 
     @IsOptional()
     @IsString()

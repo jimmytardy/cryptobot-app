@@ -25,7 +25,7 @@ export class StopLoss {
     orderParentId: Types.ObjectId
 
     @Prop({ default: -1 })
-    step: number // -1: initial, 0: PE, 1: TP1, 2: TP2, 3: TP3...
+    step: number // -1: initial, 0: PE1, 1: PE2, TP1, 2: TP2, 3: TP3...
 
     @Prop({ required: true })
     triggerPrice: number

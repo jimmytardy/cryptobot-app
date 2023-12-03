@@ -94,6 +94,7 @@ export class IUserPreferences {
     timestamps: true,
     toObject: { virtuals: true },
     toJSON: { virtuals: true },
+    minimize: false,
 })
 export class User {
     _id: Types.ObjectId

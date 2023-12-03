@@ -60,3 +60,24 @@ export const getFormatDateForInput = (date: Date) => {
     console.log(date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate() + 1).padStart(2, '0'))
     return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate() + 1).padStart(2, '0')
 }
+
+export enum ArraySortEnum {
+    ASC = 'croissant',
+    DESC = 'décroissant',
+    NOT_SORTED = 'Non trié'
+}
+
+export const checkSortArray = (array: number[]): ArraySortEnum => {
+    const aa = array.slice(1);
+    if (aa.every((a, i) => i === 0 || a > aa[i - 1])) {
+        return ArraySortEnum.ASC
+    }
+    if (aa.every((a, i) => i === 0 || a < aa[i - 1])) {
+        return ArraySortEnum.DESC
+    }
+    return ArraySortEnum.NOT_SORTED;
+}
+
+export const isObjectId = (id?: string) => {
+    return /^[0-9a-fA-F]{24}$/i.test(id || '');
+}

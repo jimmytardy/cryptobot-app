@@ -1,4 +1,8 @@
 .navbar-cryptobot {
+    min-height: 78px;
+    max-height: 78px;
+    display: flex;
+    align-items: center;
     .navbar-brand {
         display: flex;
         align-items: center;

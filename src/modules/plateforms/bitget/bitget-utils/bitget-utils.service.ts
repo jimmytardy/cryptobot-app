@@ -9,7 +9,9 @@ import {
     SymbolRules,
 } from 'bitget-api'
 import { Order } from 'src/model/Order'
-import { TPSizeType, User } from 'src/model/User'
+import { TPSizeType, User } from 'src/model/User';
+import * as math from 'exact-math';
+
 @Injectable()
 export class BitgetUtilsService {
     DEFAULT_PERCENTAGE_ORDER = 4
@@ -88,7 +90,7 @@ export class BitgetUtilsService {
                     quantity.toFixed(multiplierDecimalPlaces),
                 )
                 // Calculer le multiple précédent inférieur à quantity avec le même nombre de décimales que le multiplicateur
-                return Number(
+                return parseFloat(
                     (
                         Math.floor(roundedQuantity / sizeMultiplier) *
                         sizeMultiplier
@@ -117,27 +119,46 @@ export class BitgetUtilsService {
         size: number,
         TPSize: TPSizeType,
         symbolRules: FuturesSymbolRule,
-    ): number[] {
+        sideOrder: FuturesHoldSide,
+    ): { TPPrice: number[], TPSize: number[] } {
+        console.log('caculateTPsToUse-----', size)
         const newTps: number[] = [...tps];
+        let TPSizeCalculate: number[] = [];
         while (newTps.length > 0) {
-            const TPSizeValue = TPSize[newTps.length]
-            let TPListWrong = false;
             let totalSize = 0;
-            for (const tpSize of TPSizeValue) {
-                const sizeTP = this.fixSizeByRules(size * tpSize, symbolRules);
-                totalSize+= sizeTP;
-                if (sizeTP <= 0 || totalSize > size) {
-                    TPListWrong = true
-                    break
+            TPSizeCalculate = []
+            const TPSizeMultpliers = TPSize[newTps.length]
+            let TPListWrong = false;
+            if (TPSizeMultpliers) {
+                for (let i = 0; i < TPSizeMultpliers.length; i++) {
+                    const TPMultiplier = TPSizeMultpliers[i]
+                    const isLast = i === TPSizeMultpliers.length - 1;
+                    let currentSize = 0;
+                    if (isLast) {
+                        currentSize = math.sub(size, totalSize);
+                    } else {
+                        currentSize = math.mul(TPMultiplier, size);
+                    }
+                    const sizeTP = this.fixSizeByRules(currentSize, symbolRules);
+                    TPSizeCalculate.push(sizeTP);
+                    totalSize = math.add(totalSize, sizeTP);
+                    if (sizeTP <= 0 || totalSize > size) {
+                        TPListWrong = true
+                        break
+                    }
                 }
-            }
-            if (!TPListWrong) {
+            } else TPListWrong = true;
+            if (!TPListWrong && totalSize === size) {
                 break;
             } else {
                 newTps.pop()
             }
         }
-        return newTps
+
+        return {
+            TPPrice: sideOrder === 'long' ? newTps.sort() : newTps.sort().reverse(),
+            TPSize: TPSizeCalculate,
+        }
     }
 
     getLeverage(user: User, price: number) {

@@ -7,6 +7,7 @@ import { TakeProfit, TakeProfitSchema } from 'src/model/TakeProfit'
 import { StopLoss, StopLossSchema } from 'src/model/StopLoss'
 import { OrderModule } from 'src/modules/order/order.module'
 import { User, UserSchema } from 'src/model/User'
+import { UserService } from 'src/modules/user/user.service'
 
 @Module({
     imports: [
@@ -16,6 +17,7 @@ import { User, UserSchema } from 'src/model/User'
             { name: Order.name, schema: OrderSchema },
             { name: TakeProfit.name, schema: TakeProfitSchema },
             { name: StopLoss.name, schema: StopLossSchema },
+            { name: User.name, schema: UserSchema },
         ]),
     ],
     providers: [BitgetActionService],

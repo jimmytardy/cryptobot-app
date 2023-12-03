@@ -33,39 +33,42 @@ const NavBarCryptobot: React.FC<NavBarCryptobotProps> = ({ routes, theme, title 
                     <Nav>
                         {routes
                             .filter((route) => route.title)
-                            .map((route) => (
-                                <OverlayTrigger
-                                    key={'nav-link-' + route.path}
-                                    placement="bottom"
-                                    overlay={
-                                        <Tooltip>
-                                            {route.disabled
-                                                ? "Vous n'avez pas les droits necessaires"
-                                                : route.title}
-                                        </Tooltip>
-                                    }
-                                >
-                                    <Nav.Link
-                                        active={
-                                            location.pathname === route.path
-                                        }
-                                        // disabled={route.disabled}
-                                        className={
-                                            'ms-3' +
-                                            (route.disabled
-                                                ? ' fw-light'
-                                                : location.pathname === route.path ? ' fw-bold' :  ' fw-normal')
-                                        }
-                                        onClick={
-                                            route.disabled
-                                                ? undefined
-                                                : () => navigate(route.path)
+                            .map((route) => {
+                                const pathTo = route.path.slice(-1) == '*' ? route.path.slice(0, -2) : route.path;
+                                return (
+                                    <OverlayTrigger
+                                        key={'nav-link-' + route.path}
+                                        placement="bottom"
+                                        overlay={
+                                            <Tooltip>
+                                                {route.disabled
+                                                    ? "Vous n'avez pas les droits necessaires"
+                                                    : route.title}
+                                            </Tooltip>
                                         }
                                     >
-                                        {route.title}
-                                    </Nav.Link>
-                                </OverlayTrigger>
-                            ))}
+                                        <Nav.Link
+                                            active={
+                                                location.pathname.includes(pathTo)
+                                            }
+                                            // disabled={route.disabled}
+                                            className={
+                                                'ms-3' +
+                                                (route.disabled
+                                                    ? ' fw-light'
+                                                    : location.pathname.includes(pathTo) ? ' fw-bold' :  ' fw-normal')
+                                            }
+                                            onClick={
+                                                route.disabled
+                                                    ? undefined
+                                                    : () => navigate(pathTo)
+                                            }
+                                        >
+                                            {route.title}
+                                        </Nav.Link>
+                                    </OverlayTrigger>
+                                )
+                            })}
                         <Nav.Link className="ms-auto" onClick={logout}>
                             Se déconnecter
                         </Nav.Link>

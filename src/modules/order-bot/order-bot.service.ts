@@ -8,8 +8,8 @@ import { BitgetService } from '../plateforms/bitget/bitget.service'
 import { SetOrderBotDTO } from './order-bot.dto'
 import { Order } from 'src/model/Order'
 import { UtilService } from 'src/util/util.service'
-import { PlaceOrderDTO } from '../plateforms/bitget/bitget.dto'
 import { User } from 'src/model/User'
+import * as _ from 'underscore';
 
 @Injectable()
 export class OrderBotService {
@@ -19,7 +19,7 @@ export class OrderBotService {
         @InjectModel(Order.name) private orderModel: Model<Order>,
         @InjectModel(User.name) private userModel: Model<User>,
         private paymentService: PaymentsService,
-        private bitgetService: BitgetService,
+        private bitgetService: BitgetService
     ) {}
 
     orderBotFromText(message: string): OrderBot | null {
@@ -68,10 +68,7 @@ export class OrderBotService {
                 messageId: orderBot.messageId,
             })
             if (orderExist) {
-                this.logger.debug(
-                    `OrderBot with messageId ${orderBot.messageId} already exist`,
-                )
-                return null
+                throw new Error(`OrderBot with messageId ${orderBot.messageId} already exist`);
             }
 
             if (!orderBot.linkOrderId) {
@@ -101,8 +98,10 @@ export class OrderBotService {
                     ),
             )
         } catch (e) {
-            this.logger.error(e)
-            return e
+            this.logger.error('placeOrderBot', e)
+            return {
+                error: e.message,
+            }
         }
     }
 
@@ -145,37 +144,36 @@ export class OrderBotService {
         let success = 0;
         let errors = 0;
         await Promise.all(orders.map(async (order) => {
-            const PECurrentModif = PEModif.find(
-                (modif) => modif.oldNumber === order.PE,
-            )
-            // update or remove
-            if (PECurrentModif) {
-                if (PECurrentModif.action === 'update') await this.bitgetService.updateOrderPE(order, PECurrentModif.newNumber);
-                if (PECurrentModif.action === 'remove') await this.bitgetService.cancelOrder(order);
-            } else {
-                // add
-                try {
-                    if (!userMemo[order.userId.toString()]) userMemo[order.userId.toString()] = await this.userModel.findById(order.userId).lean().exec();
-                    const size = await this.bitgetService.getQuantityForOrder(
-                        userMemo[order.userId.toString()],
-                    )
-                    const newOrderBitget: PlaceOrderDTO = {
-                        ...newOrderBot.toObject(),
-                        PEs: [order.PE],
-                        size: size / 2
+            try {
+                const PECurrentModif = PEModif.find(
+                    (modif) => modif.oldNumber === order.PE,
+                )
+                // update or remove
+                if (PECurrentModif && PECurrentModif.action === 'update') {
+                    if (PECurrentModif.action === 'update') {
+                        await this.bitgetService.updateOrderPE(order, PECurrentModif.newNumber);
+                        success++;
                     }
-                    
-                    await this.bitgetService.placeOrder(newOrderBitget, userMemo[order.userId.toString()], oldOrder.linkOrderId);
-                } catch (e) {
-                    this.logger.error('setOrder > updateOrder', e, order.toObject(), 'add PE');
-                    errors++;
                 }
-                
-            }
+                if (TPModif.length > 0) {
+                    await this.bitgetService.updateTPsOfOrder(order, orderDTO.TPs, userMemo[order.userId.toString()]);
+                    success += TPModif.length;
+                }
 
-            // TODO faire les TPs et SL
-            success++;
+                if (SLModif) {
+                    try {
+                        await this.bitgetService.updateOrderSL(order, orderDTO.SL);
+                        success++;
+                    } catch (e) {
+                        this.logger.error('setOrder => updateOrder', e, order.toObject(), 'update SL');
+                        errors++;
+                    }
+                }
+            } catch (e) {
+                this.logger.error('setOrder', e, order.toObject());
+                errors++;
+            }
         }));
-        return `Les modifications de ${success} ont été effectuées avec succès. ${errors} erreurs ont été rencontrées`;
+        return `${success} modification(s) effectué(s) avec succès. ${errors} erreurs rencontrée(s)`;
     }
 }

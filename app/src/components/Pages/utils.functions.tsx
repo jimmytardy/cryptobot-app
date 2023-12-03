@@ -1,10 +1,10 @@
 import { Route } from "react-router";
-import { IRoute } from ".";
 import { ReactNode } from "react";
+import { IRoute } from "./pages.interface";
 
 export const generateRoutes = (routes: IRoute[]): ReactNode => {
     return routes
-        .filter((routes) => !routes.disabled)
+        .filter((route) => !route.disabled && route.Component)
         .map((route) => (
             <Route
                 key={'route-' + route.path}

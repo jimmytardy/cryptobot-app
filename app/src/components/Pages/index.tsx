@@ -1,92 +1,108 @@
-import { Route, Routes } from 'react-router'
+import { Route, Routes, useLocation, useNavigate } from 'react-router'
 import NotFound from '../utils/NotFound'
 import Home from './Home'
 import Preferences from './Preferences'
-import NavBarCryptobot from './NavBar'
 import Positions from './Positions'
 import PlaceOrder from './PlaceOrder'
 import { useAuth } from '../../hooks/AuthContext'
-import { ReactNode } from 'react'
 import CGU from '../CGU'
 import { isTrader } from '../../utils'
 import Payement from './Payment'
-import Admin from './Admin'
+import AdminRouter from './Admin/admin.router'
 import { generateRoutes } from './utils.functions'
-import NavBarAdmin from './Admin/NavBarAdmin'
-import OrderBot from './Admin/OrderBot'
-import OrderBotEdit from './Admin/OrderBot/OrderBotEdit'
+import CryptobotRouter from './Cryptobot/cryptobot.router'
+import { IRoute } from './pages.interface'
+import { useEffect } from 'react'
+import OrderBotRouter from './Admin/OrderBot/index.router'
 
-export interface IRoute {
-    path: string
-    Component: React.FC | ReactNode
-    title?: string
-    disabled?: boolean
+export interface ICryptobotRouterProps {
+    routes: IRoute[]
 }
 
 const Pages = () => {
-    const { user } = useAuth()
+    const { user } = useAuth();
+    const location = useLocation()
+    const navigate = useNavigate()
     if (!user) return <div></div>
-    const routes: IRoute[] = [
+
+    const cryptobotRoutes: IRoute[] = [
         {
-            path: '/home',
+            path: 'home',
             Component: Home,
             title: 'Accueil',
         },
         {
-            path: '/place-order',
+            path: 'place-order',
             Component: PlaceOrder,
             disabled: !isTrader(user),
             title: 'Placer un ordre',
         },
         {
-            path: '/preferences',
+            path: 'preferences',
             Component: Preferences,
             title: 'Préférences',
         },
         {
-            path: '/positions',
+            path: 'positions',
             Component: Positions,
             title: 'Positions',
         },
         {
-            path: '/payment',
+            path: 'payment',
             Component: Payement,
-            title: "Gérer mon abonnement"
+            title: 'Gérer mon abonnement',
         },
         {
             path: '/',
             Component: Home,
         },
-    ];
+    ]
 
-    const routesAdmin: IRoute[] = [
+    const adminRoutes: IRoute[] = [
         {
-            Component: OrderBot,
-            path: '/admin/order-bot',
+            Component: OrderBotRouter,
+            path: 'order-bot/*',
             title: 'Ordres du bot',
         },
-        {
-            Component: OrderBotEdit,
-            path: '/admin/order-bot/:id',
-        },
-    ]
+    ];
+
+    const changeUserMode = (e: any) => {
+        if (e.ctrlKey && e.shiftKey) {
+            if (e.key === ' ') {
+                navigate(location.pathname.includes('admin') ? 'home' : 'admin');
+            }
+        }
+    }
+
+    useEffect(() => {
+        window.addEventListener('keydown', changeUserMode);
+        return () => {
+            window.removeEventListener('keydown', changeUserMode);
+        }
+    }, [location]);
 
     return (
         <>
-            {user.isAdmin && <NavBarCryptobot title='Panneau Administrateur' routes={routesAdmin} theme='dark' />}
-            <NavBarCryptobot title='Cryptobot' routes={routes} />
             <Routes>
-                {generateRoutes(routes)}
-                {user.isAdmin && generateRoutes(routesAdmin)}
+                <Route
+                    path={'/'}
+                    element={<CryptobotRouter routes={cryptobotRoutes} />}
+                    children={generateRoutes(cryptobotRoutes)}
+                />
+
+                <Route
+                    path={'admin'}
+                    element={<AdminRouter routes={adminRoutes}/>}
+                    children={generateRoutes(adminRoutes)}
+                />
                 <Route
                     path="conditions-generales-utilisation"
                     element={<CGU />}
                 />
-
                 <Route path="*" element={<NotFound />} />
             </Routes>
         </>
     )
 }
 
-export default Pages
+export default Pages;

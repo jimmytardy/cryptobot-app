@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Col, Container, Row } from 'react-bootstrap'
-import { IOrderBot } from './order-bot.interface'
-import axiosClient from '../../../../axiosClient'
-import Loader from '../../../utils/Loader'
+import { IOrderBot } from '../order-bot.interface'
+import axiosClient from '../../../../../axiosClient'
+import Loader from '../../../../utils/Loader'
 import './index.scss'
 import { PencilSquare } from 'react-bootstrap-icons'
 import { useNavigate } from 'react-router'
 
-const OrderBot = () => {
+const OrderBotList = () => {
     const [orders, setOrders] = useState<IOrderBot[]>()
     const navigate = useNavigate();
     useEffect(() => {
@@ -24,7 +24,7 @@ const OrderBot = () => {
     if (!orders) return <Loader />
 
     return (
-        <Container className="order-bot bg-black text-white">
+        <Container className="order-bot">
             <h2>Liste des ordres du bots</h2>
             <Row className="order-bot-list">
                 <Col xs={12} className='order-bot-list-header'>
@@ -63,4 +63,4 @@ const OrderBot = () => {
     )
 }
 
-export default OrderBot
+export default OrderBotList

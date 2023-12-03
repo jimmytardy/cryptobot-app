@@ -24,11 +24,10 @@ export class TelegramService {
     }
 
     async processingMessage(message: { id: string; text: string }) {
-        if (!message) return
+        if (!message) return 'Le message est vide';
         const order: OrderBot = this.orderBotService.orderBotFromText(
             message.text,
         )
-
         if (order) {
             order.messageId = message.id
             return await this.orderBotService.placeOrderBot(order)

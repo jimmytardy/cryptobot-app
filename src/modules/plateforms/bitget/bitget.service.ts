@@ -112,39 +112,41 @@ export class BitgetService {
             symbolRules.symbol,
         )
 
-        for (const PE of PEs) {
-            try {
-                results.success.push(
-                    await this.bitgetActionService.placeOrder(
-                        this.client[userIdStr],
-                        user,
+        await Promise.all(
+            PEs.map(async (pe) => {
+                try {
+                    results.success.push(
+                        await this.bitgetActionService.placeOrder(
+                            this.client[userIdStr],
+                            user,
+                            symbolRules,
+                            size,
+                            fullSide,
+                            pe,
+                            TPs,
+                            SL,
+                            leverage,
+                            currentPrice,
+                            linkOrderId,
+                        ),
+                    )
+                } catch (error) {
+                    results.errors.push({
+                        ...error,
+                        message: error.message,
+                        userId: user._id,
                         symbolRules,
                         size,
                         fullSide,
-                        PE,
+                        pe,
                         TPs,
                         SL,
                         leverage,
-                        currentPrice,
                         linkOrderId,
-                    ),
-                )
-            } catch (error) {
-                results.errors.push({
-                    ...error,
-                    message: error.message,
-                    userId: user._id,
-                    symbolRules,
-                    size,
-                    fullSide,
-                    PE,
-                    TPs,
-                    SL,
-                    leverage,
-                    linkOrderId,
-                })
-            }
-        }
+                    })
+                }
+            }),
+        )
         return results
     }
 
@@ -179,6 +181,7 @@ export class BitgetService {
 
     async cancelOrder(order: Order) {
         try {
+            console.log('cancelOrder', order)
             return await this.bitgetActionService.cancelOrder(
                 this.client[order.userId.toString()],
                 order.userId,
@@ -229,6 +232,31 @@ export class BitgetService {
             )
         } catch (e) {
             this.logger.error('updateOrderPE', e)
+        }
+    }
+
+    async updateTPsOfOrder(order: OrderDocument, newTPs: number[], user?: User): Promise<boolean> {
+        try {
+            return await this.bitgetActionService.updateTPsOfOrder(
+                this.getClient(order.userId),
+                order,
+                newTPs,
+                user
+            )
+        } catch (e) {
+            this.logger.error('updateTPsOfOrder', e)
+        }
+    }
+    
+    async updateOrderSL(order: OrderDocument, newSL: number): Promise<boolean> {
+        try {
+            return await this.bitgetActionService.updateOrderSL(
+                this.getClient(order.userId),
+                order,
+                newSL,
+            )
+        } catch (e) {
+            this.logger.error('updateOrderSL', e)
         }
     }
 }
