@@ -198,7 +198,6 @@ export class BitgetActionService {
         if (!order.sendToPlateform || !order.activated) return
         try {
             if (!takeProfit) return
-            console.log('replaceTPOfOrderActivate')
             await this.cancelTPOfOrderActivate(client, order, takeProfit)
             await this.addTPOfOrderActivate(client, order, newTP, num, newSize)
         } catch (e) {
@@ -347,7 +346,7 @@ export class BitgetActionService {
 
     async cancelOrder(client: FuturesClient, userId: Types.ObjectId, order: Order) {
         try {
-            if (order.sendToPlateform && (order.orderId || order.clOrderId)) {
+            if (order.sendToPlateform && order.orderId) {
                 if (!order.activated) {
                     await client.cancelOrder(order.symbol, order.marginCoin, order.orderId, order.clOrderId?.toString())
                 } else {

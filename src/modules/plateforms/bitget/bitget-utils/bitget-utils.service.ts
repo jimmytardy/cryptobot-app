@@ -121,7 +121,6 @@ export class BitgetUtilsService {
         symbolRules: FuturesSymbolRule,
         sideOrder: FuturesHoldSide,
     ): { TPPrice: number[], TPSize: number[] } {
-        console.log('caculateTPsToUse-----', size)
         const newTps: number[] = [...tps];
         let TPSizeCalculate: number[] = [];
         while (newTps.length > 0) {

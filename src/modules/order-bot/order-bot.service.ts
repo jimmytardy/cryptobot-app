@@ -1,6 +1,6 @@
 import { HttpException, Injectable, Logger } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
-import { Model, Types } from 'mongoose'
+import { Model, ProjectionType, Types } from 'mongoose'
 import { OrderBot } from 'src/model/OrderBot'
 import { PaymentsService } from '../payment/payments.service'
 import { SubscriptionEnum } from 'src/model/Subscription'
@@ -113,7 +113,11 @@ export class OrderBotService {
         return await this.orderBotModel.findById(id).exec();
     }
 
-    async setOrder(orderId: string, orderDTO: SetOrderBotDTO): Promise<string> {
+    async findByMessageId(messageId: string, select?: ProjectionType<OrderBot>) {
+        return await this.orderBotModel.findOne({ messageId }, select).exec();
+    }
+
+    async setOrder(orderId: string | Types.ObjectId, orderDTO: SetOrderBotDTO): Promise<string> {
         // const oldOrder = await this.orderBotModel.findByIdAndUpdate(orderId, { $set: orderDTO }).exec();
         const oldOrder = await this.orderBotModel.findById(orderId).exec();
         if (!oldOrder) throw new HttpException('Order not found', 404);

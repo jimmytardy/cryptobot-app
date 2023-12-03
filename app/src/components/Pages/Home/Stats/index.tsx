@@ -6,33 +6,29 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
 import Loader from "../../../utils/Loader";
 import './index.scss';
-import { useForm, useFormState } from "react-hook-form";
-import { useAuth } from "../../../../hooks/AuthContext";
 import { getFormatDateForInput } from "../../../../utils";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 interface IStatsPayload {
-  dateFrom: string,
-  dateTo: string,
+  dateFrom?: string,
+  dateTo?: string,
 }
 
 const Stats = () => {
-  const { user } = useAuth();
   const [stats, setStats] = useState<IStats>();
   const colors = {
     'red': ['#ffc100', '#ff9a00', '	#ff7400', '#ff4d00', '	#ff0000', '#b30000'],
     'green': ['#0eff00', '#0de600', '#1fc600', '#089000', '#0a5d00', '#063b00']
   }
 
-  const [dates, setDates] = useState<{ dateFrom?: string, dateTo?: string }>({
+  const [dates, setDates] = useState<IStatsPayload>({
     dateFrom: undefined,
     dateTo: undefined
   });
   const [messageDate, setMessageDate] = useState<string>('');
 
   useEffect(() => {
-    console.log('dates.dateFrom && dates.dateTo && new Date(dates.dateFrom) > new Date(dates.dateTo)', dates.dateFrom && dates.dateTo && new Date(dates.dateFrom) > new Date(dates.dateTo))
     if (dates.dateFrom && dates.dateTo && new Date(dates.dateFrom) > new Date(dates.dateTo)) return setMessageDate('La date de début doit être inférieur ou égal à la date de fin');
     else setMessageDate('');
     (async () => {

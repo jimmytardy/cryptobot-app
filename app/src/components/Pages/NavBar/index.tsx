@@ -8,7 +8,7 @@ import {
 import './index.scss'
 import { useLocation, useNavigate } from 'react-router'
 import { useAuth } from '../../../hooks/AuthContext'
-import { IRoute } from '..'
+import { IRoute } from '../pages.interface';
 
 interface NavBarCryptobotProps {
     routes: IRoute[];

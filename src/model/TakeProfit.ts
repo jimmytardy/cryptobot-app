@@ -49,6 +49,9 @@ export class TakeProfit {
 
     @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
     userId: Types.ObjectId
+
+    @Prop()
+    PnL: number;
 }
 
 export const TakeProfitSchema = SchemaFactory.createForClass(TakeProfit);

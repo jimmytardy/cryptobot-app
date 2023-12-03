@@ -59,7 +59,7 @@ const OrderBotEdit = () => {
             setMessage('Chaque TP ouvert doit être définis')
             return
         }
-        console.log('data.PE', checkSortArray(data.PEs as number[]), data.PEs)
+
         if (checkSortArray(data.PEs as number[]) !== modeSort) {
             setMessage('Les PEs doivent être triés par ordre ' + modeSort)
             return

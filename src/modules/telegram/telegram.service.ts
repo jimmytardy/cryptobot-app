@@ -11,19 +11,22 @@ export class TelegramService {
     async webhook(body: any) {
         switch (body.type) {
             case 'old_message':
-                // (message) => this.processingMessage(message) is necessary for thier.orderBotService in this function
+                // (message) => this.processingNewMessage(message) is necessary for thier.orderBotService in this function
                 return await Promise.all(
                     body.messages
                         .filter((m) => m.id && m.text)
-                        .map((message) => this.processingMessage(message)),
+                        .map((message) => this.processingNewMessage(message)),
                 )
+            case 'update_message':
+                return await this.processingUpdateMessage(body.message)
+            break;
             case 'new_message':
-                return await this.processingMessage(body.message)
+                return await this.processingNewMessage(body.message)
                 break
         }
     }
 
-    async processingMessage(message: { id: string; text: string }) {
+    async processingNewMessage(message: { id: string; text: string }) {
         if (!message) return 'Le message est vide';
         const order: OrderBot = this.orderBotService.orderBotFromText(
             message.text,
@@ -31,6 +34,24 @@ export class TelegramService {
         if (order) {
             order.messageId = message.id
             return await this.orderBotService.placeOrderBot(order)
+        }
+    }
+
+    async processingUpdateMessage(message: { id: string; text: string }) {
+        if (!message) return 'Le message est vide';
+        const orderUpdated: OrderBot = this.orderBotService.orderBotFromText(
+            message.text,
+        )
+        if (orderUpdated) {
+            orderUpdated.messageId = message.id;
+            const orderBot = await this.orderBotService.findByMessageId(message.id, '_id');
+            if (orderBot) {
+                return await this.orderBotService.setOrder(orderBot._id, {
+                    PEs: orderUpdated.PEs,
+                    TPs: orderUpdated.TPs,
+                    SL: orderUpdated.SL,
+                });
+            }
         }
     }
 }

@@ -181,7 +181,6 @@ export class BitgetService {
 
     async cancelOrder(order: Order) {
         try {
-            console.log('cancelOrder', order)
             return await this.bitgetActionService.cancelOrder(
                 this.client[order.userId.toString()],
                 order.userId,

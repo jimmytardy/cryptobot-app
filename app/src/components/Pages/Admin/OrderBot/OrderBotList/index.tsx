@@ -43,7 +43,7 @@ const OrderBotList = () => {
                     </Row>
                 </Col>
                 <Col xs={12} className='order-bot-list-body'>
-                    {orders.map((order, index) => (
+                    {orders.map((order) => (
                         <Row className="order-line" key={order._id}>
                             <Col xs={1}>{order.baseCoin}</Col>
                             <Col xs={1}>{order.PEs[0]}</Col>

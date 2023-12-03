@@ -90,9 +90,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (tokenLoading || isLoading) {
         return <Loader />
     }
-
-    console.log('user', user)
-
+    
     return (
         <AuthContext.Provider value={{ user, setToken, isConnected, logout: forceLogout }}>
             {children}
