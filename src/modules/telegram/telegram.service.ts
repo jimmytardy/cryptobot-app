@@ -26,14 +26,20 @@ export class TelegramService {
         }
     }
 
-    async processingNewMessage(message: { id: string; text: string }) {
+    async processingNewMessage(message: { id: string; text: string, reply_to_msg_id: string }) {
         if (!message) return 'Le message est vide';
+        if (message.text.trim().toLowerCase() === 'reprenable' && message.reply_to_msg_id) {
+            const orderBot = await this.orderBotService.findByMessageId(message.reply_to_msg_id);
+            if (orderBot) {
+                return await this.orderBotService.rePlaceOrderBot(orderBot)
+            }
+        }
         const order: OrderBot = this.orderBotService.orderBotFromText(
             message.text,
         )
         if (order) {
             order.messageId = message.id
-            return await this.orderBotService.placeOrderBot(order)
+            return await this.orderBotService.createOrderBot(order)
         }
     }
 

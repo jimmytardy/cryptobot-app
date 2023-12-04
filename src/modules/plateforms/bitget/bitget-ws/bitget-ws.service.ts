@@ -146,6 +146,7 @@ export class BitgetWsService {
                     await this.orderService.cancelOrder(
                         takeProfit.orderParentId,
                         takeProfit.userId,
+                        true
                     )
                 }
                 break
@@ -199,7 +200,8 @@ export class BitgetWsService {
                     break
                 }
             case 'cancelled':
-                await this.orderService.cancelOrder(order._id, user._id)
+                console.log(('coucou0'))
+                await this.orderService.cancelOrder(order._id, user._id, true)
                 break
             default:
                 console.info('onOrderEvent', orderEvent, 'not implemented')
@@ -228,6 +230,10 @@ export class BitgetWsService {
                 order.userId,
                 order.linkOrderId,
             )
+            if (takeProfit.num === order.TPs.length) {
+                console.log('cancelOrder1')
+                await this.orderService.cancelOrder(order._id, order.userId)
+            }
         } catch (e) {
             console.error('onTakeProfitTriggered', order, e)
         }
@@ -241,6 +247,7 @@ export class BitgetWsService {
             _id: stopLoss.orderParentId,
             userId: stopLoss.userId,
         })
-        await this.orderService.cancelOrder(order._id, stopLoss.userId)
+        console.log('cancelOrder2')
+        await this.orderService.cancelOrder(order._id, stopLoss.userId, true)
     }
 }

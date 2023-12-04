@@ -18,12 +18,13 @@ export class OrderService {
     async cancelOrder(
         orderId: string | Types.ObjectId,
         userId: Types.ObjectId,
+        cancelled: boolean = false
     ) {
         // disabled order
         const order = await this.orderModel.findOneAndUpdate(
-            { orderId: orderId, userId },
-            { terminated: true },
-        )
+            { _id: orderId, userId },
+            { terminated: true, cancelled },
+            )
         if (order) {
             await this.takeProfitModel.updateMany(
                 { orderParentId: order._id, terminated: { $ne: true }, userId },
@@ -31,14 +32,6 @@ export class OrderService {
             )
             await this.stopLossModel.updateMany(
                 { orderParentId: order._id, terminated: { $ne: true }, userId },
-                { terminated: true, cancelled: true },
-            )
-            await this.orderModel.updateMany(
-                {
-                    linkOrderId: order.linkOrderId,
-                    terminated: { $ne: true },
-                    userId,
-                },
                 { terminated: true, cancelled: true },
             )
         }

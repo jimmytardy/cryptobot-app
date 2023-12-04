@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { User } from 'src/model/User'
 import { InjectModel } from '@nestjs/mongoose'
-import { Model, ProjectionType } from 'mongoose'
+import { FilterQuery, Model, ProjectionType } from 'mongoose'
 import { Subscription, SubscriptionEnum } from 'src/model/Subscription'
 import { ISubscriptionUser } from './payments.interface'
 
@@ -27,6 +27,7 @@ export class PaymentsService {
 
     async getUsersSubscription(
         type: SubscriptionEnum,
+        filter?: FilterQuery<Omit<User, 'stripeCustomerId'>>,
         select?: ProjectionType<User>,
     ): Promise<User[]> {
         const subscriptionModel = await this.subscriptionModel
@@ -55,7 +56,7 @@ export class PaymentsService {
         }
 
         return await this.userModel
-            .find({ stripeCustomerId: { $in: stripeIds } }, select)
+            .find({ stripeCustomerId: { $in: stripeIds }, ...(filter || {}) }, select)
             .lean()
             .exec()
     }
