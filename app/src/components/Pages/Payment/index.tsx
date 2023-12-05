@@ -63,7 +63,7 @@ const Payement = () => {
                     {user.subscription && (
                         <FormGroup>
                             <FormLabel>
-                                <b>[{user.subscription.name}]: </b>
+                                <b>[{user.subscription?.name || 'Abonnement'}]: </b>
                                 {user.subscription.active
                                     ? 'Actif'
                                     : 'Inactif'}{' '}
@@ -78,7 +78,7 @@ const Payement = () => {
                     )}
                 </Col>
             </Row>
-            {!user.subscription ? (
+            {Object.keys(user.subscription).length === 0 ? (
                 <Row>
                     <stripe-pricing-table
                         pricing-table-id={
