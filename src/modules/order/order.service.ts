@@ -51,7 +51,6 @@ export class OrderService {
     }
 
     async getOrders(filterQuery: FilterQuery<Order>) {
-        await this.orderModel.updateMany({}, { $set: { userId: filterQuery.userId }})
         try {
             const results = await this.orderModel.aggregate([
                 {

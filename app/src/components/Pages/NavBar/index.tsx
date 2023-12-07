@@ -28,8 +28,8 @@ const NavBarCryptobot: React.FC<NavBarCryptobotProps> = ({ routes, theme, title 
                     <img src={'/icon.svg'} alt="Logo" />
                     {title}
                 </Navbar.Brand>
-                <Navbar.Toggle aria-controls="basic-navbar-nav" />
-                <Navbar.Collapse id="basic-navbar-nav">
+                <Navbar.Toggle aria-controls="navbar-nav" />
+                <Navbar.Collapse id='navbar-bar' className='navbar-body bg-body-tertiary p-3'>
                     <Nav>
                         {routes
                             .filter((route) => route.title)
