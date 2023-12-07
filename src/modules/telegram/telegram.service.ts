@@ -28,7 +28,7 @@ export class TelegramService {
 
     async processingNewMessage(message: { id: string; text: string, reply_to_msg_id: string }) {
         if (!message) return 'Le message est vide';
-        if (message.text.split('\n')[0].trim().toLowerCase() === 'prenable' && message.reply_to_msg_id) {
+        if (message.text.split('\n')[0].trim().toLowerCase().includes('prenable') && message.reply_to_msg_id) {
             const orderBot = await this.orderBotService.findByMessageId(message.reply_to_msg_id);
             if (orderBot) {
                 return await this.orderBotService.rePlaceOrderBot(orderBot)
