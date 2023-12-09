@@ -227,11 +227,10 @@ export class BitgetWsService {
             )
             // cancel other order that not actived
             await this.bitgetService.disabledOrderLink(
-                order.userId,
                 order.linkOrderId,
+                order.userId,
             )
             if (takeProfit.num === order.TPs.length) {
-                console.log('cancelOrder1')
                 await this.orderService.cancelOrder(order._id, order.userId)
             }
         } catch (e) {

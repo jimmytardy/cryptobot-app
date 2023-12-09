@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common'
 import { PlaceOrderDTO, SetLeverageDTO } from './bitget.dto'
 import { ConfigService } from '@nestjs/config'
-import { FuturesClient, FuturesOrderSide } from 'bitget-api'
+import { FuturesClient, FuturesOrderSide, RestClientV2 } from 'bitget-api'
 import { BitgetActionService } from './bitget-action/bitget-action.service'
 import { BitgetUtilsService } from './bitget-utils/bitget-utils.service'
 import { Model, Types } from 'mongoose'
@@ -26,6 +26,9 @@ export class BitgetService {
     client: {
         [key: string]: FuturesClient
     }
+    clientV2: {
+        [key: string]: RestClientV2
+    }
     logger: Logger
 
     constructor(
@@ -34,11 +37,19 @@ export class BitgetService {
     ) {
         this.logger = new Logger('BitgetService')
         this.client = {}
+        this.clientV2 = {}
     }
 
     addNewTrader(user: User) {
         if (!this.client[user._id.toString()]) {
             this.client[user._id.toString()] = new FuturesClient({
+                apiKey: user.bitget.api_key,
+                apiSecret: user.bitget.api_secret_key,
+                apiPass: user.bitget.api_pass,
+            })
+        }
+        if (!this.clientV2[user._id.toString()]) {
+            this.clientV2[user._id.toString()] = new RestClientV2({
                 apiKey: user.bitget.api_key,
                 apiSecret: user.bitget.api_secret_key,
                 apiPass: user.bitget.api_pass,
@@ -52,6 +63,10 @@ export class BitgetService {
 
     getClient(userId: Types.ObjectId): FuturesClient {
         return this.client[userId.toString()]
+    }
+
+    getClientV2(userId: Types.ObjectId): RestClientV2 {
+        return this.clientV2[userId.toString()]
     }
 
     async getProfile(userId: Types.ObjectId) {
@@ -179,6 +194,19 @@ export class BitgetService {
         }
     }
 
+    async closePosition(symbol: string, userId: Types.ObjectId) {
+        try {
+            const client = this.getClientV2(userId)
+            return await this.bitgetActionService.closePosition(
+                client,
+                userId,
+                symbol,
+            )
+        } catch (e) {
+            this.logger.error('cancelSymbol', e)
+        }
+    }
+
     async cancelOrder(order: Order) {
         try {
             return await this.bitgetActionService.cancelOrder(
@@ -191,7 +219,7 @@ export class BitgetService {
         }
     }
 
-    async disabledOrderLink(userId: Types.ObjectId, linkId: Types.ObjectId) {
+    async disabledOrderLink(linkId: Types.ObjectId, userId: Types.ObjectId) {
         try {
             await this.bitgetActionService.disabledOrderLink(
                 this.client[userId.toString()],

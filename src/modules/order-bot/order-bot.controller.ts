@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpException, Logger, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpException, Logger, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 import { OrderBotService } from './order-bot.service';
 import { SetOrderBotDTO } from './order-bot.dto';
@@ -28,5 +28,13 @@ export class OrderBotController {
         const message = await this.orderBotService.setOrder(orderId, body);
 
         return { message: message }
+    }
+
+    @Delete(':orderId')
+    async deleteOrderBot(@Req() req, @Param('orderId') orderId: string) {
+        if (!req.user.isAdmin) throw new HttpException('Vous n\'avez pas les droits pour accéder à cette ressource', 403);
+        await this.orderBotService.deleteOrderBot(orderId);
+
+        return { status: true };
     }
 }

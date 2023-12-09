@@ -9,6 +9,7 @@ import {
     ModifyFuturesPlanStopOrder,
     NewFuturesOrder,
     NewFuturesPlanStopOrder,
+    RestClientV2,
 } from 'bitget-api'
 import { BitgetUtilsService } from '../bitget-utils/bitget-utils.service'
 import { InjectModel } from '@nestjs/mongoose'
@@ -346,17 +347,71 @@ export class BitgetActionService {
 
     async cancelOrder(client: FuturesClient, userId: Types.ObjectId, order: Order) {
         try {
-            if (order.sendToPlateform && order.orderId) {
+            if (order.sendToPlateform && order.orderId && !order.terminated) {
                 if (!order.activated) {
-                    await client.cancelOrder(order.symbol, order.marginCoin, order.orderId, order.clOrderId?.toString())
-                } else {
-                    console.log('cancelOrder', order.symbol, order.orderId)
-                    // await client.batchCancelOrder(order.symbol, order.marginCoin, [order.orderId])
+                    await client.cancelOrder(order.symbol, order.marginCoin, undefined, order.clOrderId?.toString())
                 }
             }
             await this.orderService.cancelOrder(order._id, userId)
         } catch (e) {
             console.error('cancelOrder', e)
+        }
+    }
+
+    async closePosition(client: RestClientV2, userId: Types.ObjectId, symbol: string) {
+        try {
+            const symbolV2 = this.bitgetUtilsService.convertSymbolToV2(symbol)
+            console.log('symbol', symbolV2)
+            await client.futuresFlashClosePositions({
+                symbol: symbolV2,
+                productType: 'USDT-FUTURES',
+            })
+            await this.orderModel.updateMany(
+                {
+                    terminated: false,
+                    activated: true,
+                    symbol,
+                    userId
+                },
+                {
+                    terminated: true,
+                    cancelled: true,
+                },
+                {
+                    new: true,
+                },
+            );
+
+            await this.takeProfitModel.updateMany(
+                {
+                    terminated: false,
+                    symbol,
+                    userId
+                },
+                {
+                    terminated: true,
+                    cancelled: true,
+                },
+                {
+                    new: true,
+                },
+            );
+            await this.stopLossModel.updateMany(
+                {
+                    terminated: false,
+                    symbol,
+                    userId
+                },
+                {
+                    terminated: true,
+                    cancelled: true,
+                },
+                {
+                    new: true,
+                },
+            );
+        } catch (e) {
+            console.error('closePosition', e)
         }
     }
 
@@ -419,7 +474,7 @@ export class BitgetActionService {
                     symbol: order.symbol,
                     triggerPrice: newTP.toString(),
                 }
-                const oldTP = takeProfit.triggerPrice;
+                const oldTP = takeProfit.triggerPrice
                 const result = await client.modifyStopOrder(paramsTP)
                 takeProfit.orderId = result.data.orderId
                 takeProfit.triggerPrice = newTP
@@ -462,13 +517,13 @@ export class BitgetActionService {
                 })
                 .sort({ num: order.side === 'long' ? 1 : -1 })
                 .exec()
-            
+
             const totalQuantity = order.quantity - takeProfits.reduce((acc, currentTP) => acc + (currentTP.terminated ? currentTP.quantity : 0), 0)
             const TPList = [...newTPs]
             const takeProfitNotTerminated = []
             for (let i = 0; i < takeProfits.length; i++) {
                 if (takeProfits[i].terminated) {
-                    TPList.splice(takeProfits[i].num - 1, 1);
+                    TPList.splice(takeProfits[i].num - 1, 1)
                 } else {
                     takeProfitNotTerminated.push(takeProfits[i])
                 }

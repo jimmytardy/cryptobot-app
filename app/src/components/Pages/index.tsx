@@ -75,11 +75,11 @@ const Pages = () => {
     }
 
     useEffect(() => {
-        window.addEventListener('keydown', changeUserMode);
+        user.isAdmin && window.addEventListener('keydown', changeUserMode);
         return () => {
-            window.removeEventListener('keydown', changeUserMode);
+            user.isAdmin && window.removeEventListener('keydown', changeUserMode);
         }
-    }, [location]);
+    }, [location, user.isAdmin]);
 
     return (
         <>

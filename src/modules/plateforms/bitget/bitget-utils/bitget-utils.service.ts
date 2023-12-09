@@ -114,6 +114,10 @@ export class BitgetUtilsService {
         return quantity * (pourcentage / 100)
     }
 
+    convertSymbolToV2(symbol: string): string {
+        return symbol.split('_')[0]
+    }
+
     caculateTPsToUse(
         tps: number[],
         size: number,

@@ -118,7 +118,7 @@ export class OrderBotService {
     }
 
     async getOrderBots() {
-        return await this.orderBotModel.find().sort({ createdAt: -1 }).limit(20).exec()
+        return await this.orderBotModel.find({ deleted: { $ne: true }}).sort({ createdAt: -1 }).limit(20).exec()
     }
 
     async findById(id: Types.ObjectId | string) {
@@ -126,7 +126,7 @@ export class OrderBotService {
     }
 
     async findByMessageId(messageId: string, select?: ProjectionType<OrderBot>) {
-        return await this.orderBotModel.findOne({ messageId }, select).exec()
+        return await this.orderBotModel.findOne({ messageId, deleted: { $ne: true } }, select).exec()
     }
 
     async setOrder(orderId: string | Types.ObjectId, orderDTO: SetOrderBotDTO): Promise<string> {
@@ -152,7 +152,7 @@ export class OrderBotService {
         oldOrder.markModified('TPs')
         oldOrder.SL = orderDTO.SL
         oldOrder.markModified('SL')
-        const newOrderBot = await oldOrder.save()
+        await oldOrder.save()
 
         const orders = await this.orderModel.find({ linkOrderId: oldOrder.linkOrderId, terminated: false }).exec()
         const userMemo: { [key: string]: User } = {}
@@ -190,5 +190,26 @@ export class OrderBotService {
             }),
         )
         return `${success} modification(s) effectué(s) avec succès. ${errors} erreurs rencontrée(s)`
+    }
+
+    async deleteOrderBot(orderId: string) {
+        const order = await this.orderBotModel.findById(orderId).exec()
+        if (!order) throw new HttpException('Order not found', 404)
+
+        order.deleted = true;
+        await order.save();
+        const orders = await this.orderModel.find({ linkOrderId: order.linkOrderId, terminated: false }).exec();
+        const ordersGrouped = _.groupBy(orders, 'userId')
+        await Promise.all(
+            Object.keys(ordersGrouped).map(async (userId) => {
+                const orders = ordersGrouped[userId];
+                try {
+                    await this.bitgetService.closePosition(orders[0].symbol, orders[0].userId);
+                    await this.bitgetService.disabledOrderLink(orders[0].linkOrderId, orders[0].userId);
+                } catch (e) {
+                    this.logger.error('deleteOrderBot', e, order.toObject())
+                }
+            }),
+        )
     }
 }

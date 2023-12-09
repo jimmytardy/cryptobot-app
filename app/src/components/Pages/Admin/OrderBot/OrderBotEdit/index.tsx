@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router'
 import axiosClient from '../../../../../axiosClient'
 import Loader from '../../../../utils/Loader'
 import { FormProvider, useForm, useFormState } from 'react-hook-form'
-import { Col, Container, Row, Form, Button } from 'react-bootstrap'
+import { Col, Container, Row, Form, Button, Modal } from 'react-bootstrap'
 import ControllerArrayNumber from '../../../../utils/form/ControllerArrayNumber'
 import { ArraySortEnum, checkSortArray, isObjectId } from '../../../../../utils'
 import NotFound from '../../../../utils/NotFound'
@@ -12,6 +12,7 @@ import NotFound from '../../../../utils/NotFound'
 const OrderBotEdit = () => {
     const [isLoading, setIsLoading] = useState<boolean>(true)
     const [message, setMessage] = useState<string>();
+    const [showModal, setShowModal] = useState<boolean>(false);
     const side = useRef<IOrderBot['side']>()
     const navigate = useNavigate()
     let { id } = useParams()
@@ -86,6 +87,18 @@ const OrderBotEdit = () => {
         }
     }
 
+    const handleOpenModalDelete = () => setShowModal(true);
+    const handleCloseModalDelete = () => setShowModal(false);
+
+    const handleDeleteOrdreBot = async () => {
+        try {
+            await axiosClient.delete('/order-bot/' + id);
+            navigate('/admin/order-bot')
+        } catch (error: any) {
+            setMessage(error.response.data.message)
+        }
+    }
+
     return (
         <Container>
             <h2>Edition d'un ordre de bot</h2>
@@ -134,8 +147,23 @@ const OrderBotEdit = () => {
                         </Col>
                         <Col xs={12} className='text-center m-auto'>
                             <Button style={ {width: 100}} disabled={!formState.isDirty} type="submit">Enregistrer</Button>
+                            <Button className='ms-5' variant='danger' style={ {width: 100}} type="button" onClick={handleOpenModalDelete}>Supprimer</Button>
                         </Col>
                     </Row>
+                    <Modal show={showModal} onHide={handleCloseModalDelete}>
+                        <Modal.Header closeButton>
+                            <Modal.Title>Suppression d'un ordre de bot</Modal.Title>
+                        </Modal.Header>
+                        <Modal.Body>Êtes-vous sûr de vouloir supprimer cet ordre de bot ?</Modal.Body>
+                        <Modal.Footer>
+                            <Button variant="secondary" onClick={handleCloseModalDelete}>
+                                Annuler
+                            </Button>
+                            <Button variant="danger" onClick={handleDeleteOrdreBot}>
+                                Supprimer
+                            </Button>
+                        </Modal.Footer>
+                    </Modal>
                 </form>
             </FormProvider>
         </Container>
