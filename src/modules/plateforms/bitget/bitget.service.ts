@@ -169,8 +169,8 @@ export class BitgetService {
         try {
             return await this.bitgetActionService.activeOrder(
                 this.client[user._id.toString()],
-                user,
                 orderId,
+                user,
             )
         } catch (e) {
             this.logger.error('activeOrder', e)

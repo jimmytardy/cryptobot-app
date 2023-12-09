@@ -148,16 +148,20 @@ export class BitgetActionService {
         return await this.orderModel.findOneAndUpdate({ _id: order._id }, order, { new: true, upsert: true })
     }
 
-    async activeOrder(client: FuturesClient, user: User, orderId: Types.ObjectId) {
+    async activeOrder(client: FuturesClient, orderId: Types.ObjectId, user: User) {
         try {
-            const order = await this.orderModel.findById(orderId)
-            if (!order) return null
-            const symbolRules = await this.bitgetUtilsService.getSymbolBy(client, 'symbol', order.symbol)
-            if (!symbolRules) throw new Error('Symbol not found')
-            order.activated = true
-            await this.activeSL(client, symbolRules, order)
-            await this.activeTPs(client, user, symbolRules, order)
-            await order.save()
+            const session = await this.orderModel.startSession()
+            await session.withTransaction(async () => {
+                const order = await this.orderModel.findById(orderId)
+                if (!order || order.activated) return null
+                const symbolRules = await this.bitgetUtilsService.getSymbolBy(client, 'symbol', order.symbol)
+                if (!symbolRules) throw new Error('Symbol not found')
+                order.activated = true
+                await this.activeSL(client, symbolRules, order)
+                await this.activeTPs(client, user, symbolRules, order)
+                await order.save()
+            })
+            await session.endSession()
         } catch (e) {
             console.error('error activeOrder', e)
             throw e
@@ -260,29 +264,28 @@ export class BitgetActionService {
 
     private async activeTPs(client: FuturesClient, user: User, symbolRules: FuturesSymbolRule, order: Order) {
         const TPSize = this.bitgetUtilsService.caculateTPsToUse(order.TPs, order.quantity, user.preferences.order.TPSize, symbolRules, order.side).TPSize
-        await Promise.all(
-            order.TPs.map(async (TP, i) => {
-                const size = TPSize[i]
-                try {
-                    await this.addTPOfOrderActivate(client, order, TP, i + 1, size)
-                } catch (e) {
-                    console.error(
-                        'activeTPs',
-                        i,
-                        {
-                            symbol: symbolRules.symbol,
-                            marginCoin: order.marginCoin,
-                            planType: 'profit_plan',
-                            size: size.toString(),
-                            triggerType: 'fill_price',
-                            triggerPrice: String(TP),
-                            holdSide: order.side,
-                        },
-                        e,
-                    )
-                }
-            }),
-        )
+        for (let i = 0; i < TPSize.length; i++) {
+            const size = TPSize[i]
+            const TP = order.TPs[i]
+            try {
+                await this.addTPOfOrderActivate(client, order, TP, i + 1, size)
+            } catch (e) {
+                console.error(
+                    'activeTPs',
+                    i,
+                    {
+                        symbol: symbolRules.symbol,
+                        marginCoin: order.marginCoin,
+                        planType: 'profit_plan',
+                        size: size.toString(),
+                        triggerType: 'fill_price',
+                        triggerPrice: String(TP),
+                        holdSide: order.side,
+                    },
+                    e,
+                )
+            }
+        }
     }
 
     async upgradeSL(client: FuturesClient, order: Order, strategy: IOrderStrategy, numTP: number): Promise<StopLoss> {
@@ -371,7 +374,7 @@ export class BitgetActionService {
                     terminated: false,
                     activated: true,
                     symbol,
-                    userId
+                    userId,
                 },
                 {
                     terminated: true,
@@ -380,13 +383,13 @@ export class BitgetActionService {
                 {
                     new: true,
                 },
-            );
+            )
 
             await this.takeProfitModel.updateMany(
                 {
                     terminated: false,
                     symbol,
-                    userId
+                    userId,
                 },
                 {
                     terminated: true,
@@ -395,12 +398,12 @@ export class BitgetActionService {
                 {
                     new: true,
                 },
-            );
+            )
             await this.stopLossModel.updateMany(
                 {
                     terminated: false,
                     symbol,
-                    userId
+                    userId,
                 },
                 {
                     terminated: true,
@@ -409,7 +412,7 @@ export class BitgetActionService {
                 {
                     new: true,
                 },
-            );
+            )
         } catch (e) {
             console.error('closePosition', e)
         }

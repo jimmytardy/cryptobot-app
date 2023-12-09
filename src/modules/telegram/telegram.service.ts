@@ -19,10 +19,10 @@ export class TelegramService {
                 )
             case 'update_message':
                 return await this.processingUpdateMessage(body.message)
-            break;
             case 'new_message':
                 return await this.processingNewMessage(body.message)
-                break
+            case 'delete_message':
+                return await this.processingDeleteMessage(body.message)
         }
     }
 
@@ -58,6 +58,16 @@ export class TelegramService {
                     SL: orderUpdated.SL,
                 });
             }
+        } else {
+            return await this.processingDeleteMessage(message);
+        }
+    }
+
+    async processingDeleteMessage(message: { id: string }) {
+        if (!message) return 'Le message est vide';
+        const orderBot = await this.orderBotService.findByMessageId(message.id, '_id');
+        if (orderBot) {
+            return await this.orderBotService.deleteOrderBot(orderBot._id);
         }
     }
 }

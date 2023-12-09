@@ -192,13 +192,13 @@ export class OrderBotService {
         return `${success} modification(s) effectué(s) avec succès. ${errors} erreurs rencontrée(s)`
     }
 
-    async deleteOrderBot(orderId: string) {
-        const order = await this.orderBotModel.findById(orderId).exec()
-        if (!order) throw new HttpException('Order not found', 404)
+    async deleteOrderBot(orderBotId: string | Types.ObjectId) {
+        const orderBot = await this.orderBotModel.findById(orderBotId).exec()
+        if (!orderBot) throw new HttpException('OrderBot not found', 404)
 
-        order.deleted = true;
-        await order.save();
-        const orders = await this.orderModel.find({ linkOrderId: order.linkOrderId, terminated: false }).exec();
+        orderBot.deleted = true;
+        await orderBot.save();
+        const orders = await this.orderModel.find({ linkOrderId: orderBot.linkOrderId, terminated: false }).exec();
         const ordersGrouped = _.groupBy(orders, 'userId')
         await Promise.all(
             Object.keys(ordersGrouped).map(async (userId) => {
@@ -207,7 +207,7 @@ export class OrderBotService {
                     await this.bitgetService.closePosition(orders[0].symbol, orders[0].userId);
                     await this.bitgetService.disabledOrderLink(orders[0].linkOrderId, orders[0].userId);
                 } catch (e) {
-                    this.logger.error('deleteOrderBot', e, order.toObject())
+                    this.logger.error('deleteOrderBot', e, orderBot.toObject())
                 }
             }),
         )
