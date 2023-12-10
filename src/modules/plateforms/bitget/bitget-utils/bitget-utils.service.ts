@@ -30,11 +30,14 @@ export class BitgetUtilsService {
         return account.data[0]
     }
 
-    async getProfile(client: FuturesClient): Promise<any> {
+    async getProfile(client: FuturesClient): Promise<{
+        available: number
+        totalPnL: number
+        unrealizedPL: number
+    }> {
         const accountFuture = await this.getAccount(client)
-
         const result = {
-            available: Number(accountFuture.available),
+            available: Number(accountFuture.fixedMaxAvailable),
             totalPnL:
                 Number(accountFuture.usdtEquity) -
                 Number(accountFuture.unrealizedPL),

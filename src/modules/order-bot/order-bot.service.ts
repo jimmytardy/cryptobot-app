@@ -58,7 +58,9 @@ export class OrderBotService {
         return orderBot
     }
 
-    async rePlaceOrderBot(orderBot: OrderBot) {
+    async resumeOrderBot(orderId: string | Types.ObjectId) {
+        const orderBot = await this.orderBotModel.findById(orderId).exec();
+        if (!orderBot) throw new HttpException('OrderBot not found', 404);
         const orderAlreadyPlaced = await this.orderModel.find(
             {
                 linkOrderId: orderBot.linkOrderId,
@@ -88,7 +90,8 @@ export class OrderBotService {
 
             const newOrderBot = new this.orderBotModel(orderBot)
             await newOrderBot.save()
-            const users = await this.paymentService.getUsersSubscription(SubscriptionEnum.BOT)
+            const users = await this.paymentService.getUsersSubscription(SubscriptionEnum.BOT);
+            console.log('users', users.map(u => u.email))
             await this.placeOrderBot(orderBot, users)
         } catch (e) {
             this.logger.error('placeOrderBot', e)

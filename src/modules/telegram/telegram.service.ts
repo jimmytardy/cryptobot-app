@@ -31,7 +31,7 @@ export class TelegramService {
         if (message.text.split('\n')[0].trim().toLowerCase().includes('prenable') && message.reply_to_msg_id) {
             const orderBot = await this.orderBotService.findByMessageId(message.reply_to_msg_id);
             if (orderBot) {
-                return await this.orderBotService.rePlaceOrderBot(orderBot)
+                return await this.orderBotService.resumeOrderBot(orderBot._id)
             }
         }
         const order: OrderBot = this.orderBotService.orderBotFromText(

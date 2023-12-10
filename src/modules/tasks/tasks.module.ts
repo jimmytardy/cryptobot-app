@@ -6,11 +6,13 @@ import { Order, OrderSchema } from 'src/model/Order'
 import { BitgetModule } from '../plateforms/bitget/bitget.module'
 import { BitgetUtilsModule } from '../plateforms/bitget/bitget-utils/bitget-utils.module'
 import { BitgetActionModule } from '../plateforms/bitget/bitget-action/bitget-action.module'
+import { UserModule } from '../user/user.module'
 
 @Module({
     imports: [
         PaymentsModule,
         MongooseModule.forFeature([{ name: Order.name, schema: OrderSchema }]),
+        UserModule,
         BitgetModule,
         BitgetActionModule,
         BitgetUtilsModule,

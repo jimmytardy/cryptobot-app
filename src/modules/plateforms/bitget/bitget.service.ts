@@ -94,7 +94,7 @@ export class BitgetService {
         linkParentOrderId?: Types.ObjectId,
     ): Promise<any> {
         const userIdStr = user._id.toString()
-        let { PEs, SL, TPs, side, baseCoin, size } = placeOrderDTO
+        let { PEs, SL, TPs, side, baseCoin, size: usdtSize } = placeOrderDTO;
         const symbolRules = await this.bitgetUtilsService.getSymbolBy(
             this.client[userIdStr],
             'baseCoin',
@@ -104,8 +104,26 @@ export class BitgetService {
             return
         }
 
-        if (!size) {
-            size =  await this.getQuantityForOrder(user);
+        if (!usdtSize) {
+            usdtSize =  await this.getQuantityForOrder(user);
+        }
+
+        const client = this.getClient(user._id);
+
+        
+        if (side === 'long') {
+            PEs = PEs.sort();
+        } else {
+            PEs = PEs.sort().reverse();
+        }
+        const profile = await this.bitgetUtilsService.getProfile(client);
+        if (profile.available < usdtSize * PEs.length) {
+            while (Math.max(profile.available, 0) <= usdtSize * PEs.length) {
+                PEs.shift();
+            }
+            if (PEs.length === 0) {
+                throw new HttpException('Fonds insuffisants pour poser un ordre', 400);
+            }
         }
         const fullSide = ('open_' + side) as FuturesOrderSide
         const linkOrderId = linkParentOrderId || new Types.ObjectId()
@@ -122,7 +140,7 @@ export class BitgetService {
             peAvg,
         )
 
-        const currentPrice = await this.bitgetUtilsService.getCurrentPrice(
+        const currentPrice = await this.bitgetUtilsService.getCurrentPrice( 
             this.client[userIdStr],
             symbolRules.symbol,
         )
@@ -135,7 +153,7 @@ export class BitgetService {
                             this.client[userIdStr],
                             user,
                             symbolRules,
-                            size,
+                            usdtSize,
                             fullSide,
                             pe,
                             TPs,
@@ -151,7 +169,7 @@ export class BitgetService {
                         message: error.message,
                         userId: user._id,
                         symbolRules,
-                        size,
+                        usdtSize,
                         fullSide,
                         pe,
                         TPs,

@@ -11,22 +11,20 @@ import NotFound from '../../../../utils/NotFound'
 
 const OrderBotEdit = () => {
     const [isLoading, setIsLoading] = useState<boolean>(true)
-    const [message, setMessage] = useState<string>();
-    const [showModal, setShowModal] = useState<boolean>(false);
+    const [message, setMessage] = useState<string>()
+    const [showModal, setShowModal] = useState<'resume' | 'delete' | undefined>()
     const side = useRef<IOrderBot['side']>()
     const navigate = useNavigate()
     let { id } = useParams()
-    const methods = useForm<IOrderBot>();
-    const formState = useFormState<IOrderBot>({ control: methods.control });
+    const methods = useForm<IOrderBot>()
+    const formState = useFormState<IOrderBot>({ control: methods.control })
     useEffect(() => {
-        if (!isObjectId(id)) return;
+        if (!isObjectId(id)) return
         ;(async () => {
-            const response = await axiosClient.get<IOrderBot>(
-                '/order-bot/' + id,
-            )
+            const response = await axiosClient.get<IOrderBot>('/order-bot/' + id)
             if (!response) return navigate('/admin/order-bot')
-            methods.reset(response.data);
-            side.current = response.data.side;
+            methods.reset(response.data)
+            side.current = response.data.side
             setIsLoading(false)
         })()
     }, [])
@@ -36,13 +34,13 @@ const OrderBotEdit = () => {
     if (isLoading) return <Loader />
 
     const handleOrderBotSave = async (data: IOrderBot) => {
-        let modeSort = side.current === 'long' ? ArraySortEnum.ASC : ArraySortEnum.DESC;
-        if (Math.max(...data.PEs as number[]) > Math.min(...data.TPs as number[])) {
+        let modeSort = side.current === 'long' ? ArraySortEnum.ASC : ArraySortEnum.DESC
+        if (Math.max(...(data.PEs as number[])) > Math.min(...(data.TPs as number[]))) {
             setMessage('Les PEs doivent être inférieurs aux TPs')
             return
         }
 
-        if (data.SL > Math.min(...data.PEs as number[])) {
+        if (data.SL > Math.min(...(data.PEs as number[]))) {
             setMessage('Le SL doit être inférieur aux PEs')
             return
         }
@@ -68,34 +66,42 @@ const OrderBotEdit = () => {
 
         if (checkSortArray(data.TPs as number[]) !== modeSort) {
             setMessage('Les TPs doivent être triés par ordre ' + modeSort)
-            return;
+            return
         }
 
-        
-        
         try {
             const formData = {
                 SL: data.SL,
                 TPs: data.TPs,
                 PEs: data.PEs,
             }
-            const result = await axiosClient.post<{ message: string }>('/order-bot/' + id, formData);
-            methods.reset(formData);
-            setMessage(result.data.message);
+            const result = await axiosClient.post<{ message: string }>('/order-bot/' + id, formData)
+            methods.reset(formData)
+            setMessage(result.data.message)
         } catch (error: any) {
             setMessage(error.response.data.message)
         }
     }
 
-    const handleOpenModalDelete = () => setShowModal(true);
-    const handleCloseModalDelete = () => setShowModal(false);
+    const handleOpenModalDelete = () => setShowModal('delete')
+    const handleOpenModalResume = () => setShowModal('resume')
+    const handleCloseModal = () => setShowModal(undefined)
 
-    const handleDeleteOrdreBot = async () => {
-        try {
-            await axiosClient.delete('/order-bot/' + id);
-            navigate('/admin/order-bot')
-        } catch (error: any) {
-            setMessage(error.response.data.message)
+    const handleActionModal = async (action: 'delete' | 'resume') => {
+        if (action === 'delete') {
+            try {
+                await axiosClient.delete('/order-bot/' + id)
+                navigate('/admin/order-bot')
+            } catch (error: any) {
+                setMessage(error.response.data.message)
+            }
+        } else if (action === 'resume') {
+            try {
+                await axiosClient.put('/order-bot/' + id)
+                setMessage('Ordre de bot repris')
+            } catch (error: any) {
+                setMessage(error.response.data.message)
+            }
         }
     }
 
@@ -106,9 +112,7 @@ const OrderBotEdit = () => {
                 <form onSubmit={methods.handleSubmit(handleOrderBotSave)}>
                     <Row className="mb-4">
                         <Col xs={4} md={2}>
-                            <Form.Label htmlFor="baseCoin">
-                                Base Coin
-                            </Form.Label>
+                            <Form.Label htmlFor="baseCoin">Base Coin</Form.Label>
                             <Form.Control
                                 {...methods.register('baseCoin', {
                                     required: true,
@@ -128,8 +132,8 @@ const OrderBotEdit = () => {
                             />
                         </Col>
                     </Row>
-                    <ControllerArrayNumber<IOrderBot> field={'PEs'}/>
-                    <ControllerArrayNumber<IOrderBot> field={'TPs'} max={6}/>
+                    <ControllerArrayNumber<IOrderBot> field={'PEs'} />
+                    <ControllerArrayNumber<IOrderBot> field={'TPs'} max={6} />
                     <Row className="mb-4">
                         <Col xs={4} md={2}>
                             <Form.Label htmlFor="SL">SL</Form.Label>
@@ -142,26 +146,40 @@ const OrderBotEdit = () => {
                         </Col>
                     </Row>
                     <Row className="mb-4">
-                        <Col xs={12} className='text-center'>
+                        <Col xs={12} className="text-center">
                             {message && <p>{message}</p>}
                         </Col>
-                        <Col xs={12} className='text-center m-auto'>
-                            <Button style={ {width: 100}} disabled={!formState.isDirty} type="submit">Enregistrer</Button>
-                            <Button className='ms-5' variant='danger' style={ {width: 100}} type="button" onClick={handleOpenModalDelete}>Supprimer</Button>
-                        </Col>
-                    </Row>
-                    <Modal show={showModal} onHide={handleCloseModalDelete}>
-                        <Modal.Header closeButton>
-                            <Modal.Title>Suppression d'un ordre de bot</Modal.Title>
-                        </Modal.Header>
-                        <Modal.Body>Êtes-vous sûr de vouloir supprimer cet ordre de bot ?</Modal.Body>
-                        <Modal.Footer>
-                            <Button variant="secondary" onClick={handleCloseModalDelete}>
-                                Annuler
+                        <Col xs={12} className="text-center m-auto">
+                            <Button style={{ width: 100 }} disabled={!formState.isDirty} type="submit">
+                                Enregistrer
                             </Button>
-                            <Button variant="danger" onClick={handleDeleteOrdreBot}>
+                            <Button className="ms-5" style={{ width: 100 }} onClick={handleOpenModalResume} type="submit">
+                                Reprendre
+                            </Button>
+                            <Button className="ms-5" variant="danger" style={{ width: 100 }} type="button" onClick={handleOpenModalDelete}>
                                 Supprimer
                             </Button>
+                        </Col>
+                    </Row>
+                    <Modal show={Boolean(showModal)} onHide={handleCloseModal}>
+                        <Modal.Header closeButton>
+                            <Modal.Title>{showModal == 'resume' ? 'Reprise' : 'Suppression'} d'un ordre de bot</Modal.Title>
+                        </Modal.Header>
+                        <Modal.Body>Êtes-vous sûr de vouloir {showModal == 'resume' ? 'reprendre' : 'supprimer'} cet ordre de bot ?</Modal.Body>
+                        <Modal.Footer>
+                            <Button variant="secondary" onClick={handleCloseModal}>
+                                Annuler
+                            </Button>
+                            {showModal &&
+                                (showModal === 'resume' ? (
+                                    <Button variant="primary" onClick={() => handleActionModal(showModal)}>
+                                        Reprendre
+                                    </Button>
+                                ) : (
+                                    <Button variant="danger" onClick={() => handleActionModal(showModal)}>
+                                        Supprimer
+                                    </Button>
+                                ))}
                         </Modal.Footer>
                     </Modal>
                 </form>

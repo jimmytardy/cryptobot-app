@@ -8,6 +8,8 @@ import { BitgetUtilsService } from '../plateforms/bitget/bitget-utils/bitget-uti
 import { BitgetService } from '../plateforms/bitget/bitget.service'
 import { FuturesKlineInterval, FuturesSymbolRule } from 'bitget-api'
 import { BitgetActionService } from '../plateforms/bitget/bitget-action/bitget-action.service'
+import { User } from 'src/model/User'
+import { UserService } from '../user/user.service'
 
 @Injectable()
 export class TasksService {
@@ -15,6 +17,7 @@ export class TasksService {
 
     constructor(
         @InjectModel(Order.name) private orderModel: Model<Order>,
+        private userService: UserService,
         private bitgetUtilsService: BitgetUtilsService,
         private bitgetActionService: BitgetActionService,
         private bitgetService: BitgetService,
@@ -35,26 +38,19 @@ export class TasksService {
             if (ordersToSend.length === 0) {
                 return
             }
-            this.logger.log(
-                'Ordre en attente de placement:',
-                ordersToSend.length,
-            )
+            this.logger.log('Ordre en attente de placement:', ordersToSend.length)
             const rules: {
                 [key: string]: { symbolRules: FuturesSymbolRule; price: number }
+            } = {}
+            const userMemo: {
+                [key: string]: User
             } = {}
             for (const order of ordersToSend) {
                 const client = this.bitgetService.getFirstClient()
                 if (!rules[order.symbol]) {
                     const [symbolRules, price] = await Promise.all([
-                        this.bitgetUtilsService.getSymbolBy(
-                            client,
-                            'symbol',
-                            order.symbol,
-                        ),
-                        this.bitgetUtilsService.getCurrentPrice(
-                            client,
-                            order.symbol,
-                        ),
+                        this.bitgetUtilsService.getSymbolBy(client, 'symbol', order.symbol),
+                        this.bitgetUtilsService.getCurrentPrice(client, order.symbol),
                     ])
                     rules[order.symbol] = {
                         symbolRules,
@@ -62,26 +58,17 @@ export class TasksService {
                     }
                 }
 
-                const sendtoBitget = this.bitgetUtilsService.canSendBitget(
-                    rules[order.symbol].symbolRules,
-                    rules[order.symbol].price,
-                    order,
-                )
+                const sendtoBitget = this.bitgetUtilsService.canSendBitget(rules[order.symbol].symbolRules, rules[order.symbol].price, order)
                 if (sendtoBitget) {
                     try {
-                        await this.bitgetActionService.placeOrderBitget(
-                            client,
-                            order,
-                        )
+                        if (!userMemo[order.userId.toString()]) {
+                            userMemo[order.userId.toString()] = await this.userService.findById(order.userId)
+                        }
+                        await this.bitgetActionService.setLeverage(client, userMemo[order.userId.toString()], order.symbol, order.PE)
+                        await this.bitgetActionService.placeOrderBitget(client, order)
                     } catch (e) {
                         if (e.body.code === '40786') {
-                            const orderBitget = await client.getOrder(
-                                order.symbol,
-                                order.orderId,
-                                order.clOrderId
-                                    ? String(order.clOrderId)
-                                    : undefined,
-                            )
+                            const orderBitget = await client.getOrder(order.symbol, order.orderId, order.clOrderId ? String(order.clOrderId) : undefined)
                             if (orderBitget.data) {
                                 await this.orderModel.updateOne(
                                     { _id: order._id },
@@ -90,21 +77,13 @@ export class TasksService {
                                             orderId: orderBitget.data.orderId,
                                             sendToPlateform: true,
                                             activated: true,
-                                            terminated:
-                                                orderBitget.data.status ===
-                                                'filled',
+                                            terminated: orderBitget.data.status === 'filled',
                                         },
                                     },
                                 )
-                                console.info(
-                                    "Mise à jour de l'ordre",
-                                    orderBitget,
-                                )
+                                console.info("Mise à jour de l'ordre", orderBitget)
                             } else {
-                                console.error(
-                                    "L'ordre n'a pas été trouvé",
-                                    order,
-                                )
+                                console.error("L'ordre n'a pas été trouvé", order)
                                 await this.orderModel.updateOne(
                                     { _id: order._id },
                                     {
@@ -138,35 +117,41 @@ export class TasksService {
                     activated: false,
                 })
                 .lean()
-                .exec();
+                .exec()
 
             const symbolData = {}
-            
-            const querys = [];
-            const timestampNow = Date.now();
-            const candlesToFetch = 1;
-            const nbMin = 15;
-            const msPerCandle = 60 * 1000 * nbMin; // 60 seconds x 1000 X nbMin
-            const msFor1kCandles = candlesToFetch * msPerCandle;
-            const startTime = timestampNow - msFor1kCandles;
+
+            const querys = []
+            const timestampNow = Date.now()
+            const candlesToFetch = 1
+            const nbMin = 15
+            const msPerCandle = 60 * 1000 * nbMin // 60 seconds x 1000 X nbMin
+            const msFor1kCandles = candlesToFetch * msPerCandle
+            const startTime = timestampNow - msFor1kCandles
             for (const order of ordersToSend) {
                 if (!symbolData[order.symbol]) {
-                    const client = this.bitgetService.getFirstClient(); 
-                    const candles = await client.getCandles(order.symbol, nbMin + 'm' as FuturesKlineInterval, startTime.toString(), timestampNow.toString(), String(candlesToFetch));
-                    if (candles && (candles.length <= 0 || candles[0].length < 4)) continue;
+                    const client = this.bitgetService.getFirstClient()
+                    const candles = await client.getCandles(
+                        order.symbol,
+                        (nbMin + 'm') as FuturesKlineInterval,
+                        startTime.toString(),
+                        timestampNow.toString(),
+                        String(candlesToFetch),
+                    )
+                    if (candles && (candles.length <= 0 || candles[0].length < 4)) continue
                     symbolData[order.symbol] = {
                         max: parseFloat(candles[0][2]), // Highest price
-                        min: parseFloat(candles[0][3]) // Lowest price
+                        min: parseFloat(candles[0][3]), // Lowest price
                     }
                 }
-                const createdAt = new Date(order.createdAt).getTime();
+                const createdAt = new Date(order.createdAt).getTime()
                 // if order is older than nbMin minutes, continue
-                if ((createdAt - timestampNow) / 1000 / 60 > nbMin) continue;
+                if ((createdAt - timestampNow) / 1000 / 60 > nbMin) continue
                 if ((order.side === 'long' && symbolData[order.symbol].max >= order.TPs[0]) || (order.side === 'short' && symbolData[order.symbol].min <= order.TPs[0])) {
                     querys.push(this.orderModel.updateOne({ _id: order._id }, { $set: { terminated: true } }))
                 }
             }
-            await Promise.all(querys);
+            await Promise.all(querys)
         } catch (e) {
             this.logger.error('disableOrderNotSendWhichTP', e)
             console.error('e', e.stack)

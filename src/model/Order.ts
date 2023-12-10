@@ -61,6 +61,9 @@ export class Order {
     @Prop()
     usdt: number
 
+    @Prop()
+    leverage?: number
+
     createdAt: Date;
     updatedAt: Date;
 }
