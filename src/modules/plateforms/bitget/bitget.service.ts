@@ -133,7 +133,7 @@ export class BitgetService {
         }
 
         const peAvg = PEs.reduce((a, b) => a + b, 0) / PEs.length
-        const leverage = await this.bitgetActionService.setLeverage(
+        const leverage = await this.bitgetActionService.setLeverageWithPreference(
             this.client[userIdStr],
             user,
             symbolRules.symbol,
@@ -249,7 +249,7 @@ export class BitgetService {
         }
     }
 
-    async setLeverage(user: User, leverageDTO: SetLeverageDTO) {
+    async setLeverageWithPreference(user: User, leverageDTO: SetLeverageDTO) {
         const client = this.getClient(user._id)
         if (!client) {
             throw new HttpException('Client not found', 404)
@@ -258,13 +258,13 @@ export class BitgetService {
         if (!symbolRules) throw new HttpException('Symbol not found', 404);
 
         try {
-            return await this.bitgetActionService.setLeverage(
+            return await this.bitgetActionService.setLeverageWithPreference(
                 this.getClient(user._id),
                 user,
                 symbolRules.symbol,
             )
         } catch (e) {
-            this.logger.error('setLeverage', e)
+            this.logger.error('setLeverageWithPreference', e)
         }
     }
 

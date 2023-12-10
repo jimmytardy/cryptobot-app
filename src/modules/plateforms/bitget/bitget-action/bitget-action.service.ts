@@ -33,16 +33,21 @@ export class BitgetActionService {
         @InjectModel(StopLoss.name) private stopLossModel: Model<StopLoss>,
     ) {}
 
-    async setLeverage(client: FuturesClient, user: User, symbol: string, price?: number): Promise<number> {
+    async setLeverageWithPreference(client: FuturesClient, user: User, symbol: string, price?: number): Promise<number> {
         if (!price) {
             price = await this.bitgetUtilsService.getCurrentPrice(client, symbol)
         }
         let leverage = this.bitgetUtilsService.getLeverage(user, price)
-        await Promise.all([
-            client.setLeverage(symbol, user.preferences.order.marginCoin, String(leverage), 'long').catch((e) => console.error('setLeverage', e)),
-            client.setLeverage(symbol, user.preferences.order.marginCoin, String(leverage), 'short').catch((e) => console.error('setLeverage', e)),
-        ])
+        await this.setLeverage(client, symbol, leverage);
         return Number(leverage)
+    }
+
+    private async setLeverage(client: FuturesClient, symbol: string, newLeverage: number): Promise<number> {
+        await Promise.all([
+            client.setLeverage(symbol, 'USDT', String(newLeverage), 'long').catch((e) => console.error('setLeverage', e)),
+            client.setLeverage(symbol, 'USDT', String(newLeverage), 'short').catch((e) => console.error('setLeverage', e)),
+        ])
+        return newLeverage
     }
 
     async setMarginMode(client: FuturesClient, symbol: string) {
@@ -98,7 +103,7 @@ export class BitgetActionService {
             newOrder.sendToPlateform = this.bitgetUtilsService.canSendBitget(symbolRules, currentPrice, newOrder)
             const PEOriginPrice = newOrder.PE
             if (newOrder.sendToPlateform) {
-                await this.setLeverage(client, user, symbolRules.symbol, currentPrice)
+                await this.setLeverageWithPreference(client, user, symbolRules.symbol, currentPrice)
                 return await this.placeOrderBitget(client, newOrder)
             } else if ((sideOrder === 'long' && pe < currentPrice) || (sideOrder === 'short' && pe > currentPrice)) {
                 try {
@@ -109,7 +114,7 @@ export class BitgetActionService {
                         newOrder.PE *= 1 + Number(symbolRules.sellLimitPriceRatio)
                     }
                     newOrder.PE = parseFloat(String(newOrder.PE.toFixed((symbolRules.sizeMultiplier.split('.')[1] || '').length)))
-                    await this.setLeverage(client, user, symbolRules.symbol, currentPrice)
+                    await this.setLeverageWithPreference(client, user, symbolRules.symbol, currentPrice)
                     newOrder = await this.placeOrderBitget(client, newOrder)
                     newOrder.sendToPlateform = true
                     await this.updateOrderPE(client, newOrder, PEOriginPrice)
@@ -129,7 +134,8 @@ export class BitgetActionService {
     }
 
     async placeOrderBitget(client: FuturesClient, order: Order) {
-        await this.setMarginMode(client, order.symbol)
+        await this.setMarginMode(client, order.symbol);
+        if (order.leverage) await this.setLeverage(client, order.symbol, order.leverage);
         const newOrderParams: NewFuturesOrder = {
             marginCoin: order.marginCoin,
             orderType: 'limit',
@@ -354,7 +360,9 @@ export class BitgetActionService {
                     try {
                         await client.cancelOrder(order.symbol, order.marginCoin, undefined, order.clOrderId?.toString())
                     } catch (e) {
-                        console.error('cancelOrder > client', e)
+                        if (e.body.code !== '40768') { // order not exists
+                            console.error('cancelOrder > client', e)
+                        }
                     }
                 }
             }

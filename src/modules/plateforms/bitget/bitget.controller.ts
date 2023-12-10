@@ -29,7 +29,7 @@ export class BitgetController {
     }
 
     @Post('leverage')
-    async setLeverage(@Request() req, @Body() body: SetLeverageDTO) {
-        return await this.bitgetService.setLeverage(req.user, body);
+    async setLeverageWithPreference(@Request() req, @Body() body: SetLeverageDTO) {
+        return await this.bitgetService.setLeverageWithPreference(req.user, body);
     }
 }

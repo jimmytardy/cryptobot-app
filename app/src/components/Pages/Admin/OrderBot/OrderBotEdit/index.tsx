@@ -151,7 +151,7 @@ const OrderBotEdit = () => {
                             <Button style={{ width: 100 }} disabled={!formState.isDirty} type="submit">
                                 Enregistrer
                             </Button>
-                            <Button className="ms-5" style={{ width: 100 }} onClick={handleOpenModalResume} type="submit">
+                            <Button className="ms-5" style={{ width: 100 }} onClick={handleOpenModalResume}>
                                 Reprendre
                             </Button>
                             <Button className="ms-5" variant="danger" style={{ width: 300 }} type="button" onClick={handleOpenModalDelete}>

@@ -64,7 +64,7 @@ export class TasksService {
                         if (!userMemo[order.userId.toString()]) {
                             userMemo[order.userId.toString()] = await this.userService.findById(order.userId)
                         }
-                        await this.bitgetActionService.setLeverage(client, userMemo[order.userId.toString()], order.symbol, order.PE)
+                        await this.bitgetActionService.setLeverageWithPreference(client, userMemo[order.userId.toString()], order.symbol, order.PE)
                         await this.bitgetActionService.placeOrderBitget(client, order)
                     } catch (e) {
                         if (e.body.code === '40786') {
