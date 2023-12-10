@@ -61,6 +61,10 @@ export class OrderBotService {
     async resumeOrderBot(orderId: string | Types.ObjectId) {
         const orderBot = await this.orderBotModel.findById(orderId).exec();
         if (!orderBot) throw new HttpException('OrderBot not found', 404);
+        if (!orderBot.resumes) orderBot.resumes = [];
+        orderBot.resumes.push(new Date());
+        orderBot.markModified('resumes');
+        await orderBot.save();
         const orderAlreadyPlaced = await this.orderModel.find(
             {
                 linkOrderId: orderBot.linkOrderId,
@@ -197,10 +201,8 @@ export class OrderBotService {
 
     async deleteOrderBot(orderBotId: string | Types.ObjectId) {
         const orderBot = await this.orderBotModel.findById(orderBotId).exec()
-        if (!orderBot) throw new HttpException('OrderBot not found', 404)
+        if (!orderBot) throw new HttpException('OrderBot not found', 404);
 
-        orderBot.deleted = true;
-        await orderBot.save();
         const orders = await this.orderModel.find({ linkOrderId: orderBot.linkOrderId, terminated: false }).exec();
         const ordersGrouped = _.groupBy(orders, 'userId')
         await Promise.all(

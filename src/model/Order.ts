@@ -58,6 +58,9 @@ export class Order {
     @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
     userId: Types.ObjectId
 
+    @Prop({ type: Boolean, default: false })
+    inActivation: boolean
+
     @Prop()
     usdt: number
 

@@ -195,12 +195,11 @@ export class BitgetWsService {
         switch (orderEvent.status) {
             case 'full-fill':
             case 'partial-fill':
-                if (orderEvent.side === 'buy' && !order.activated) {
+                if (orderEvent.side === 'buy' && !order.activated && !order.inActivation) {
                     await this.bitgetService.activeOrder(order._id, user)
                     break
                 }
             case 'cancelled':
-                console.log(('coucou0'))
                 await this.orderService.cancelOrder(order._id, user._id, true)
                 break
             default:

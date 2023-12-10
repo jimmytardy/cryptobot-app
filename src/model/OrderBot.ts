@@ -34,6 +34,9 @@ export class OrderBot {
     @Prop({ required: true, type: Types.ObjectId, default: () => new Types.ObjectId() })
     linkOrderId: Types.ObjectId
 
+    @Prop({ type: Array, default: [] })
+    resumes?: Date[]
+    
     @Prop({ type: Boolean })
     deleted: boolean
 }

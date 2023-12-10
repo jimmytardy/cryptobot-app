@@ -90,7 +90,7 @@ export class BitgetActionService {
                 marginCoin,
                 usdt,
                 userId: user._id,
-                leverage
+                leverage,
             })
 
             this.orderService.checkNewOrder(newOrder)
@@ -98,8 +98,8 @@ export class BitgetActionService {
             newOrder.sendToPlateform = this.bitgetUtilsService.canSendBitget(symbolRules, currentPrice, newOrder)
             const PEOriginPrice = newOrder.PE
             if (newOrder.sendToPlateform) {
-                await this.setLeverage(client, user, symbolRules.symbol, currentPrice);
-                return await this.placeOrderBitget(client, newOrder);
+                await this.setLeverage(client, user, symbolRules.symbol, currentPrice)
+                return await this.placeOrderBitget(client, newOrder)
             } else if ((sideOrder === 'long' && pe < currentPrice) || (sideOrder === 'short' && pe > currentPrice)) {
                 try {
                     newOrder.PE = currentPrice
@@ -108,8 +108,8 @@ export class BitgetActionService {
                     } else {
                         newOrder.PE *= 1 + Number(symbolRules.sellLimitPriceRatio)
                     }
-                    newOrder.PE = parseFloat(String(newOrder.PE.toFixed((symbolRules.sizeMultiplier.split('.')[1] || '').length)));
-                    await this.setLeverage(client, user, symbolRules.symbol, currentPrice);
+                    newOrder.PE = parseFloat(String(newOrder.PE.toFixed((symbolRules.sizeMultiplier.split('.')[1] || '').length)))
+                    await this.setLeverage(client, user, symbolRules.symbol, currentPrice)
                     newOrder = await this.placeOrderBitget(client, newOrder)
                     newOrder.sendToPlateform = true
                     await this.updateOrderPE(client, newOrder, PEOriginPrice)
@@ -129,7 +129,7 @@ export class BitgetActionService {
     }
 
     async placeOrderBitget(client: FuturesClient, order: Order) {
-        await this.setMarginMode(client, order.symbol);
+        await this.setMarginMode(client, order.symbol)
         const newOrderParams: NewFuturesOrder = {
             marginCoin: order.marginCoin,
             orderType: 'limit',
@@ -140,8 +140,8 @@ export class BitgetActionService {
             clientOid: order.clOrderId.toString(),
         }
         const result = await client.submitOrder(newOrderParams).catch((e) => {
-            console.error('placeOrderBitget', e, newOrderParams);
-            e.paramsSend = newOrderParams;
+            console.error('placeOrderBitget', e, newOrderParams)
+            e.paramsSend = newOrderParams
             throw e
         })
         const { orderId } = result.data
@@ -152,18 +152,15 @@ export class BitgetActionService {
 
     async activeOrder(client: FuturesClient, orderId: Types.ObjectId, user: User) {
         try {
-            const session = await this.orderModel.startSession()
-            await session.withTransaction(async () => {
-                const order = await this.orderModel.findById(orderId)
-                if (!order || order.activated) return null
-                const symbolRules = await this.bitgetUtilsService.getSymbolBy(client, 'symbol', order.symbol)
-                if (!symbolRules) throw new Error('Symbol not found')
-                order.activated = true
-                await this.activeSL(client, symbolRules, order)
-                await this.activeTPs(client, user, symbolRules, order)
-                await order.save()
-            })
-            await session.endSession()
+            const order = await this.orderModel.findByIdAndUpdate(orderId, { $set: { inActivation: true } }, { new: true })
+            if (!order || order.activated || order.inActivation) return null
+            const symbolRules = await this.bitgetUtilsService.getSymbolBy(client, 'symbol', order.symbol)
+            if (!symbolRules) throw new Error('Symbol not found')
+            await this.activeSL(client, symbolRules, order)
+            await this.activeTPs(client, user, symbolRules, order)
+            order.activated = true
+            order.inActivation = false
+            await order.save()
         } catch (e) {
             console.error('error activeOrder', e)
             throw e
@@ -354,7 +351,11 @@ export class BitgetActionService {
         try {
             if (order.sendToPlateform && order.orderId && !order.terminated) {
                 if (!order.activated) {
-                    await client.cancelOrder(order.symbol, order.marginCoin, undefined, order.clOrderId?.toString())
+                    try {
+                        await client.cancelOrder(order.symbol, order.marginCoin, undefined, order.clOrderId?.toString())
+                    } catch (e) {
+                        console.error('cancelOrder > client', e)
+                    }
                 }
             }
             await this.orderService.cancelOrder(order._id, userId)
@@ -366,11 +367,17 @@ export class BitgetActionService {
     async closePosition(client: RestClientV2, userId: Types.ObjectId, symbol: string) {
         try {
             const symbolV2 = this.bitgetUtilsService.convertSymbolToV2(symbol)
-            console.log('symbol', symbolV2)
-            await client.futuresFlashClosePositions({
-                symbol: symbolV2,
+            const position = await client.getFuturesPosition({
                 productType: 'USDT-FUTURES',
+                symbol: symbolV2,
+                marginCoin: 'USDT',
             })
+            if (position.data && position.data.length > 0) {
+                await client.futuresFlashClosePositions({
+                    symbol: symbolV2,
+                    productType: 'USDT-FUTURES',
+                })
+            }
             await this.orderModel.updateMany(
                 {
                     terminated: false,

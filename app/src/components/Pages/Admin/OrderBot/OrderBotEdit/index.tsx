@@ -88,20 +88,18 @@ const OrderBotEdit = () => {
     const handleCloseModal = () => setShowModal(undefined)
 
     const handleActionModal = async (action: 'delete' | 'resume') => {
-        if (action === 'delete') {
-            try {
+        try {
+            if (action === 'delete') {
                 await axiosClient.delete('/order-bot/' + id)
-                navigate('/admin/order-bot')
-            } catch (error: any) {
-                setMessage(error.response.data.message)
-            }
-        } else if (action === 'resume') {
-            try {
+                setMessage('Tout les ordres de bot en cours ont bien été supprimé')
+            } else if (action === 'resume') {
                 await axiosClient.put('/order-bot/' + id)
                 setMessage('Ordre de bot repris')
-            } catch (error: any) {
-                setMessage(error.response.data.message)
             }
+        } catch (error: any) {
+            setMessage(error.response.data.message)
+        } finally {
+            setShowModal(undefined)
         }
     }
 
@@ -156,8 +154,8 @@ const OrderBotEdit = () => {
                             <Button className="ms-5" style={{ width: 100 }} onClick={handleOpenModalResume} type="submit">
                                 Reprendre
                             </Button>
-                            <Button className="ms-5" variant="danger" style={{ width: 100 }} type="button" onClick={handleOpenModalDelete}>
-                                Supprimer
+                            <Button className="ms-5" variant="danger" style={{ width: 300 }} type="button" onClick={handleOpenModalDelete}>
+                                Supprimer tous les ordres en cours
                             </Button>
                         </Col>
                     </Row>

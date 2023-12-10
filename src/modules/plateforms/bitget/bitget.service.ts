@@ -214,7 +214,7 @@ export class BitgetService {
 
     async closePosition(symbol: string, userId: Types.ObjectId) {
         try {
-            const client = this.getClientV2(userId)
+            const client = this.getClientV2(userId);
             return await this.bitgetActionService.closePosition(
                 client,
                 userId,
