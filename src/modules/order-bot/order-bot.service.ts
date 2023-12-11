@@ -95,7 +95,6 @@ export class OrderBotService {
             const newOrderBot = new this.orderBotModel(orderBot)
             await newOrderBot.save()
             const users = await this.paymentService.getUsersSubscription(SubscriptionEnum.BOT);
-            console.log('users', users.map(u => u.email))
             await this.placeOrderBot(orderBot, users)
         } catch (e) {
             this.logger.error('placeOrderBot', e)

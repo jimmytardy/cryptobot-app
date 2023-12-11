@@ -145,6 +145,10 @@ export class BitgetService {
             symbolRules.symbol,
         )
 
+        await this.setLeverageWithPreference(user, {
+            baseCoin,
+        })
+
         await Promise.all(
             PEs.map(async (pe) => {
                 try {

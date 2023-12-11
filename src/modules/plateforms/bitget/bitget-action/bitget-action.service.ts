@@ -37,7 +37,7 @@ export class BitgetActionService {
         if (!price) {
             price = await this.bitgetUtilsService.getCurrentPrice(client, symbol)
         }
-        let leverage = this.bitgetUtilsService.getLeverage(user, price)
+        let leverage = this.bitgetUtilsService.getLeverageFromPreferences(user, price)
         await this.setLeverage(client, symbol, leverage);
         return Number(leverage)
     }
@@ -103,7 +103,6 @@ export class BitgetActionService {
             newOrder.sendToPlateform = this.bitgetUtilsService.canSendBitget(symbolRules, currentPrice, newOrder)
             const PEOriginPrice = newOrder.PE
             if (newOrder.sendToPlateform) {
-                await this.setLeverageWithPreference(client, user, symbolRules.symbol, currentPrice)
                 return await this.placeOrderBitget(client, newOrder)
             } else if ((sideOrder === 'long' && pe < currentPrice) || (sideOrder === 'short' && pe > currentPrice)) {
                 try {
@@ -114,7 +113,6 @@ export class BitgetActionService {
                         newOrder.PE *= 1 + Number(symbolRules.sellLimitPriceRatio)
                     }
                     newOrder.PE = parseFloat(String(newOrder.PE.toFixed((symbolRules.sizeMultiplier.split('.')[1] || '').length)))
-                    await this.setLeverageWithPreference(client, user, symbolRules.symbol, currentPrice)
                     newOrder = await this.placeOrderBitget(client, newOrder)
                     newOrder.sendToPlateform = true
                     await this.updateOrderPE(client, newOrder, PEOriginPrice)
@@ -135,7 +133,6 @@ export class BitgetActionService {
 
     async placeOrderBitget(client: FuturesClient, order: Order) {
         await this.setMarginMode(client, order.symbol);
-        if (order.leverage) await this.setLeverage(client, order.symbol, order.leverage);
         const newOrderParams: NewFuturesOrder = {
             marginCoin: order.marginCoin,
             orderType: 'limit',
@@ -158,13 +155,14 @@ export class BitgetActionService {
 
     async activeOrder(client: FuturesClient, orderId: Types.ObjectId, user: User) {
         try {
-            const order = await this.orderModel.findByIdAndUpdate(orderId, { $set: { inActivation: true } }, { new: true })
-            if (!order || order.activated || order.inActivation) return null
+            const order = await this.orderModel.findOneAndUpdate({ _id: orderId, inActivation: { $ne: true }, activated: false }, { $set: { inActivation: true } }, { new: true })
+            if (!order || order.activated) return null
             const symbolRules = await this.bitgetUtilsService.getSymbolBy(client, 'symbol', order.symbol)
             if (!symbolRules) throw new Error('Symbol not found')
+            // important for active TPs
+            order.activated = true
             await this.activeSL(client, symbolRules, order)
             await this.activeTPs(client, user, symbolRules, order)
-            order.activated = true
             order.inActivation = false
             await order.save()
         } catch (e) {
@@ -247,7 +245,7 @@ export class BitgetActionService {
             clientOid: clOrderId.toString(),
         }
         try {
-            const result = await client.submitStopOrder(params)
+            const result = await client.submitStopOrder(params);
             const { orderId } = result.data
             await new this.takeProfitModel({
                 triggerPrice: newTP,

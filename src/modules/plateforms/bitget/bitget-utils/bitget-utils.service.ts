@@ -167,7 +167,7 @@ export class BitgetUtilsService {
         }
     }
 
-    getLeverage(user: User, price: number) {
+    getLeverageFromPreferences(user: User, price: number) {
         let levierSelect = user.preferences.order.levierSize[0];
         for (const levierSetting of user.preferences.order.levierSize) {
             if (
