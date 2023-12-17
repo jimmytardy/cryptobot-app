@@ -10,7 +10,7 @@ import {
 } from 'bitget-api'
 import { Order } from 'src/model/Order'
 import { TPSizeType, User } from 'src/model/User';
-import * as math from 'exact-math';
+import * as exactMath from 'exact-math';
 
 @Injectable()
 export class BitgetUtilsService {
@@ -79,6 +79,12 @@ export class BitgetUtilsService {
         return (usdt / coinPrice) * leverage
     }
 
+    fixPriceByRules(price: number, symbolRules: FuturesSymbolRule): number {
+        const priceEndStep = parseInt(symbolRules.priceEndStep);
+        const pricePlace = parseInt(symbolRules.pricePlace) * -1;
+        return exactMath.round(exactMath.ceil((exactMath.round(price, pricePlace) / priceEndStep), pricePlace) * priceEndStep, pricePlace);
+    }
+
     fixSizeByRules(quantity: number, symbolRules: FuturesSymbolRule) {
         const sizeMultiplier = parseFloat(symbolRules.sizeMultiplier)
         if (quantity % sizeMultiplier === 0) {
@@ -141,13 +147,13 @@ export class BitgetUtilsService {
                     const isLast = i === TPSizeMultpliers.length - 1;
                     let currentSize = 0;
                     if (isLast) {
-                        currentSize = math.sub(size, totalSize);
+                        currentSize = exactMath.sub(size, totalSize);
                     } else {
-                        currentSize = math.mul(TPMultiplier, size);
+                        currentSize = exactMath.mul(TPMultiplier, size);
                     }
                     const sizeTP = this.fixSizeByRules(currentSize, symbolRules);
                     TPSizeCalculate.push(sizeTP);
-                    totalSize = math.add(totalSize, sizeTP);
+                    totalSize = exactMath.add(totalSize, sizeTP);
                     if (sizeTP <= 0 || totalSize > size) {
                         TPListWrong = true
                         break

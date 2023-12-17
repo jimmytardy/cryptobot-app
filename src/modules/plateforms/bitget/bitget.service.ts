@@ -94,7 +94,7 @@ export class BitgetService {
         linkParentOrderId?: Types.ObjectId,
     ): Promise<any> {
         const userIdStr = user._id.toString()
-        let { PEs, SL, TPs, side, baseCoin, size: usdtSize } = placeOrderDTO;
+        let { PEs, SL, TPs, side, baseCoin, size: usdtSizeDTO } = placeOrderDTO;
         const symbolRules = await this.bitgetUtilsService.getSymbolBy(
             this.client[userIdStr],
             'baseCoin',
@@ -103,10 +103,7 @@ export class BitgetService {
         if (!symbolRules) {
             return
         }
-
-        if (!usdtSize) {
-            usdtSize =  await this.getQuantityForOrder(user);
-        }
+        const usdtSize = usdtSizeDTO || await this.getQuantityForOrder(user);
 
         const client = this.getClient(user._id);
 
@@ -151,6 +148,7 @@ export class BitgetService {
 
         await Promise.all(
             PEs.map(async (pe) => {
+                const PECalculate = this.bitgetUtilsService.fixPriceByRules(pe, symbolRules);
                 try {
                     results.success.push(
                         await this.bitgetActionService.placeOrder(
@@ -159,7 +157,7 @@ export class BitgetService {
                             symbolRules,
                             usdtSize,
                             fullSide,
-                            pe,
+                            PECalculate,
                             TPs,
                             SL,
                             leverage,
@@ -175,7 +173,8 @@ export class BitgetService {
                         symbolRules,
                         usdtSize,
                         fullSide,
-                        pe,
+                        originalPE: pe,
+                        PECalculate,
                         TPs,
                         SL,
                         leverage,

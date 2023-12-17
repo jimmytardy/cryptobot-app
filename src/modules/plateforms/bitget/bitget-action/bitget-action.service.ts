@@ -20,6 +20,7 @@ import { StopLoss } from 'src/model/StopLoss'
 import { OrderService } from 'src/modules/order/order.service'
 import { User } from 'src/model/User'
 import { IOrderStrategy } from 'src/interfaces/order-strategy.interface'
+import * as exactMath from 'exact-math';
 
 @Injectable()
 export class BitgetActionService {
@@ -101,18 +102,19 @@ export class BitgetActionService {
             this.orderService.checkNewOrder(newOrder)
 
             newOrder.sendToPlateform = this.bitgetUtilsService.canSendBitget(symbolRules, currentPrice, newOrder)
-            const PEOriginPrice = newOrder.PE
+            const PEOriginPrice = newOrder.PE;
             if (newOrder.sendToPlateform) {
                 return await this.placeOrderBitget(client, newOrder)
             } else if ((sideOrder === 'long' && pe < currentPrice) || (sideOrder === 'short' && pe > currentPrice)) {
                 try {
                     newOrder.PE = currentPrice
                     if (sideOrder === 'long') {
-                        newOrder.PE *= 1 - Number(symbolRules.buyLimitPriceRatio)
+                        newOrder.PE = exactMath.mul(newOrder.PE, exactMath.sub(1, Number(symbolRules.buyLimitPriceRatio)));
                     } else {
-                        newOrder.PE *= 1 + Number(symbolRules.sellLimitPriceRatio)
+                        newOrder.PE = exactMath.mul(newOrder.PE, exactMath.add(1, Number(symbolRules.sellLimitPriceRatio)));
                     }
-                    newOrder.PE = parseFloat(String(newOrder.PE.toFixed((symbolRules.sizeMultiplier.split('.')[1] || '').length)))
+                    
+                    newOrder.PE = this.bitgetUtilsService.fixPriceByRules(newOrder.PE, symbolRules)
                     newOrder = await this.placeOrderBitget(client, newOrder)
                     newOrder.sendToPlateform = true
                     await this.updateOrderPE(client, newOrder, PEOriginPrice)
