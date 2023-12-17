@@ -521,7 +521,7 @@ export class BitgetActionService {
                 }
             }
         } catch (e) {
-            console.error('updateTPOfOrderActivate', e)
+            console.error('updateTPOfOrderActivate', e, order.toObject(), newTP, takeProfit.toObject())
         }
     }
 
