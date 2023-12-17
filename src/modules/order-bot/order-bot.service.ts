@@ -147,12 +147,11 @@ export class OrderBotService {
         const newTps = UtilService.sortBySide(orderDTO.TPs, oldOrder.side)
         const newPes = UtilService.sortBySide(orderDTO.PEs, oldOrder.side)
 
-        const PEModif = UtilService.compareArraysNumber(oldOrder.PEs, newTps)
-        const TPModif = UtilService.compareArraysNumber(oldOrder.TPs, newPes)
+        const PEModif = UtilService.compareArraysNumber(oldOrder.PEs, newPes)
+        const TPModif = UtilService.compareArraysNumber(oldOrder.TPs, newTps)
         const SLModif = oldOrder.SL !== orderDTO.SL
         if (PEModif.length === 0 && TPModif.length === 0 && !SLModif) return "Aucun modification n'a été effectué"
 
-        console.log('newPes', oldOrder.PEs, newPes)
         oldOrder.PEs = newPes
         oldOrder.markModified('PEs')
         oldOrder.TPs = newTps
