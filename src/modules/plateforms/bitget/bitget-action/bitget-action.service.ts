@@ -494,7 +494,6 @@ export class BitgetActionService {
                     symbol: order.symbol,
                     triggerPrice: newTP.toString(),
                 }
-                const oldTP = takeProfit.triggerPrice
                 const result = await client.modifyStopOrder(paramsTP)
                 takeProfit.orderId = result.data.orderId
                 takeProfit.triggerPrice = newTP
@@ -554,6 +553,7 @@ export class BitgetActionService {
                 symbolRules,
                 order.side,
             )
+            console.log('newTPsCalculate', newTPsCalculate)
             if (newTPsCalculate.length !== order.TPs.length) {
                 // En premier on supprime tout les TPs
                 await Promise.all(
