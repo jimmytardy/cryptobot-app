@@ -499,12 +499,11 @@ export class BitgetActionService {
                 takeProfit.orderId = result.data.orderId
                 takeProfit.triggerPrice = newTP
                 await takeProfit.save()
-                const TPIndex = order.TPs.findIndex((TP) => TP === oldTP)
                 const SL = await this.stopLossModel.findOne({
                     orderParentId: order._id,
                     terminated: false,
                 })
-                if (SL.step === TPIndex - 2) {
+                if (SL.step === takeProfit.num + 1) {
                     const paramsSL: ModifyFuturesPlanStopOrder = {
                         marginCoin: order.marginCoin,
                         orderId: SL.orderId,
