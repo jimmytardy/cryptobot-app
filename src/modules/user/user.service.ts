@@ -160,7 +160,7 @@ export class UserService implements OnApplicationBootstrap {
             else results.nbInProgress++;
             if (!order.activated) continue;
             if (order.TPs) {
-                const TPs = order.TPs.sort((a, b) => b.triggerPrice - a.triggerPrice);
+                const TPs = order.TPs.sort((a: TakeProfit, b: TakeProfit) => a.triggerPrice - b.triggerPrice);
                 if (order.side === 'short') TPs.reverse();
                 
                 for (let i = 0; i < TPs.length; i++) {

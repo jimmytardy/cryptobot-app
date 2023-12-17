@@ -21,6 +21,7 @@ import { OrderService } from 'src/modules/order/order.service'
 import { User } from 'src/model/User'
 import { IOrderStrategy } from 'src/interfaces/order-strategy.interface'
 import * as exactMath from 'exact-math';
+import { UtilService } from 'src/util/util.service'
 
 @Injectable()
 export class BitgetActionService {
@@ -324,8 +325,7 @@ export class BitgetActionService {
                     stepsTriggers.push(order.PE)
                 }
                 // Array of PE + TPs for triggerPrice
-                stepsTriggers = stepsTriggers.concat(order.TPs).sort()
-                if (order.side !== 'long') stepsTriggers = stepsTriggers.reverse()
+                stepsTriggers = UtilService.sortBySide(stepsTriggers.concat(order.TPs), order.side)
                 triggerPrice = stepsTriggers[newStep]
             }
 

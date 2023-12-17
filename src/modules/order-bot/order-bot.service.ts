@@ -59,18 +59,18 @@ export class OrderBotService {
     }
 
     async resumeOrderBot(orderId: string | Types.ObjectId) {
-        const orderBot = await this.orderBotModel.findById(orderId).exec();
-        if (!orderBot) throw new HttpException('OrderBot not found', 404);
-        if (!orderBot.resumes) orderBot.resumes = [];
-        orderBot.resumes.push(new Date());
-        orderBot.markModified('resumes');
-        await orderBot.save();
-        const orderAlreadyPlaced = await this.orderModel.find(
-            {
+        const orderBot = await this.orderBotModel.findById(orderId).exec()
+        if (!orderBot) throw new HttpException('OrderBot not found', 404)
+        if (!orderBot.resumes) orderBot.resumes = []
+        orderBot.resumes.push(new Date())
+        orderBot.markModified('resumes')
+        await orderBot.save()
+        const orderAlreadyPlaced = await this.orderModel
+            .find({
                 linkOrderId: orderBot.linkOrderId,
                 terminated: false,
-            }
-        ).exec()
+            })
+            .exec()
         const orderAlreadyPlacedGrouped = _.groupBy(orderAlreadyPlaced, 'userId')
         const userIdsAlreadyPlaced = Object.keys(orderAlreadyPlacedGrouped)
             .filter((userId) => orderAlreadyPlacedGrouped[userId].length >= 1)
@@ -94,7 +94,7 @@ export class OrderBotService {
 
             const newOrderBot = new this.orderBotModel(orderBot)
             await newOrderBot.save()
-            const users = await this.paymentService.getUsersSubscription(SubscriptionEnum.BOT);
+            const users = await this.paymentService.getUsersSubscription(SubscriptionEnum.BOT)
             await this.placeOrderBot(orderBot, users)
         } catch (e) {
             this.logger.error('placeOrderBot', e)
@@ -124,7 +124,11 @@ export class OrderBotService {
     }
 
     async getOrderBots() {
-        return await this.orderBotModel.find({ deleted: { $ne: true }}).sort({ createdAt: -1 }).limit(20).exec()
+        return await this.orderBotModel
+            .find({ deleted: { $ne: true } })
+            .sort({ createdAt: -1 })
+            .limit(20)
+            .exec()
     }
 
     async findById(id: Types.ObjectId | string) {
@@ -140,22 +144,17 @@ export class OrderBotService {
         const oldOrder = await this.orderBotModel.findById(orderId).exec()
         if (!oldOrder) throw new HttpException('Order not found', 404)
 
-        const newTps = orderDTO.TPs.sort()
-        const newPes = orderDTO.PEs.sort()
-        if (oldOrder.side === 'short') {
-            newTps.reverse()
-            newPes.reverse()
-        }
+        const newTps = UtilService.sortBySide(orderDTO.TPs, oldOrder.side)
+        const newPes = UtilService.sortBySide(orderDTO.PEs, oldOrder.side)
 
-        const PEModif = UtilService.compareArraysNumber(oldOrder.PEs, orderDTO.PEs)
-        const TPModif = UtilService.compareArraysNumber(oldOrder.TPs, orderDTO.TPs)
+        const PEModif = UtilService.compareArraysNumber(oldOrder.PEs, newTps)
+        const TPModif = UtilService.compareArraysNumber(oldOrder.TPs, newPes)
         const SLModif = oldOrder.SL !== orderDTO.SL
         if (PEModif.length === 0 && TPModif.length === 0 && !SLModif) return "Aucun modification n'a été effectué"
 
-        oldOrder.PEs = orderDTO.PEs
+        oldOrder.PEs = newPes
         oldOrder.markModified('PEs')
-        oldOrder.TPs = orderDTO.TPs
-        console.log('oldOrder.TPs', oldOrder.TPs)
+        oldOrder.TPs = newTps
         oldOrder.markModified('TPs')
         oldOrder.SL = orderDTO.SL
         oldOrder.markModified('SL')
@@ -201,16 +200,16 @@ export class OrderBotService {
 
     async deleteOrderBot(orderBotId: string | Types.ObjectId) {
         const orderBot = await this.orderBotModel.findById(orderBotId).exec()
-        if (!orderBot) throw new HttpException('OrderBot not found', 404);
+        if (!orderBot) throw new HttpException('OrderBot not found', 404)
 
-        const orders = await this.orderModel.find({ linkOrderId: orderBot.linkOrderId, terminated: false }).exec();
+        const orders = await this.orderModel.find({ linkOrderId: orderBot.linkOrderId, terminated: false }).exec()
         const ordersGrouped = _.groupBy(orders, 'userId')
         await Promise.all(
             Object.keys(ordersGrouped).map(async (userId) => {
-                const orders = ordersGrouped[userId];
+                const orders = ordersGrouped[userId]
                 try {
-                    await this.bitgetService.closePosition(orders[0].symbol, orders[0].userId);
-                    await this.bitgetService.disabledOrderLink(orders[0].linkOrderId, orders[0].userId);
+                    await this.bitgetService.closePosition(orders[0].symbol, orders[0].userId)
+                    await this.bitgetService.disabledOrderLink(orders[0].linkOrderId, orders[0].userId)
                 } catch (e) {
                     this.logger.error('deleteOrderBot', e, orderBot.toObject())
                 }

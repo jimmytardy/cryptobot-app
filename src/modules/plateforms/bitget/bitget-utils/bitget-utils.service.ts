@@ -11,6 +11,7 @@ import {
 import { Order } from 'src/model/Order'
 import { TPSizeType, User } from 'src/model/User';
 import * as exactMath from 'exact-math';
+import { UtilService } from 'src/util/util.service'
 
 @Injectable()
 export class BitgetUtilsService {
@@ -168,7 +169,7 @@ export class BitgetUtilsService {
         }
 
         return {
-            TPPrice: sideOrder === 'long' ? newTps.sort() : newTps.sort().reverse(),
+            TPPrice: UtilService.sortBySide(newTps, sideOrder),
             TPSize: TPSizeCalculate,
         }
     }

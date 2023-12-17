@@ -20,6 +20,7 @@ import { SubscriptionEnum } from 'src/model/Subscription'
 import { IOrderStrategy } from 'src/interfaces/order-strategy.interface'
 import { IArrayModification } from 'src/util/util.interface'
 import { IOrderUpdate } from './bitget-action/bitget-action.interface'
+import { UtilService } from 'src/util/util.service'
 
 @Injectable()
 export class BitgetService {
@@ -107,12 +108,8 @@ export class BitgetService {
 
         const client = this.getClient(user._id);
 
-        
-        if (side === 'long') {
-            PEs = PEs.sort();
-        } else {
-            PEs = PEs.sort().reverse();
-        }
+        PEs = UtilService.sortBySide(PEs, side);
+        TPs = UtilService.sortBySide(TPs, side);
         const profile = await this.bitgetUtilsService.getProfile(client);
         if (profile.available < usdtSize * PEs.length) {
             while (Math.max(profile.available, 0) <= usdtSize * PEs.length) {

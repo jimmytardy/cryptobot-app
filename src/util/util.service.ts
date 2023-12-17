@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { IArrayModification } from './util.interface'
+import { FuturesHoldSide } from 'bitget-api';
 
 @Injectable()
 export class UtilService {
@@ -39,5 +40,15 @@ export class UtilService {
         }
 
         return modifications
+    }
+
+    static sortBySide(array: number[], side: FuturesHoldSide): number[] {
+        return array.sort((a, b) => {
+            if (side === 'long') {
+                return a - b
+            } else {
+                return b - a
+            }
+        })
     }
 }
