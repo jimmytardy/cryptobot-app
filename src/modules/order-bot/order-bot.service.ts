@@ -153,6 +153,7 @@ export class OrderBotService {
         if (PEModif.length === 0 && TPModif.length === 0 && !SLModif) return "Aucun modification n'a été effectué"
 
         oldOrder.PEs = newPes
+        console.log('newPes', newPes)
         oldOrder.markModified('PEs')
         oldOrder.TPs = newTps
         oldOrder.markModified('TPs')
