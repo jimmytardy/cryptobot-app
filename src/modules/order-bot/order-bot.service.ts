@@ -155,6 +155,7 @@ export class OrderBotService {
         oldOrder.PEs = orderDTO.PEs
         oldOrder.markModified('PEs')
         oldOrder.TPs = orderDTO.TPs
+        console.log('oldOrder.TPs', oldOrder.TPs)
         oldOrder.markModified('TPs')
         oldOrder.SL = orderDTO.SL
         oldOrder.markModified('SL')
