@@ -477,7 +477,7 @@ export class BitgetActionService {
                 await order.save()
             }
         } catch (e) {
-            console.log('newPE', newPE)
+            console.error('newPE', newPE)
             console.error('updateOrderPE', e)
         }
     }
