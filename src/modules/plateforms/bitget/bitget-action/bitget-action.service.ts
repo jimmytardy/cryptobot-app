@@ -88,7 +88,7 @@ export class BitgetActionService {
             let newOrder = new this.orderModel({
                 clOrderId,
                 PE: pe,
-                TPs: sideOrder === 'long' ? TPsCalculate : TPsCalculate.reverse(),
+                TPs: TPsCalculate,
                 SL: stopLoss,
                 symbol: symbolRules.symbol,
                 side: sideOrder,
