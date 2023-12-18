@@ -21,6 +21,7 @@ import { IOrderStrategy } from 'src/interfaces/order-strategy.interface'
 import { IArrayModification } from 'src/util/util.interface'
 import { IOrderUpdate } from './bitget-action/bitget-action.interface'
 import { UtilService } from 'src/util/util.service'
+import { AppConfigService } from 'src/modules/app-config/app-config.service'
 
 @Injectable()
 export class BitgetService {
@@ -34,7 +35,8 @@ export class BitgetService {
 
     constructor(
         private bitgetUtilsService: BitgetUtilsService,
-        private bitgetActionService: BitgetActionService
+        private bitgetActionService: BitgetActionService,
+        private appConfig: AppConfigService
     ) {
         this.logger = new Logger('BitgetService')
         this.client = {}

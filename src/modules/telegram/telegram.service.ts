@@ -2,11 +2,12 @@ import { Injectable, Logger } from '@nestjs/common'
 import { OrderBotService } from '../order-bot/order-bot.service'
 import { OrderBot } from 'src/model/OrderBot'
 import { Order } from 'src/model/Order'
+import { AppConfigService } from '../app-config/app-config.service'
 
 @Injectable()
 export class TelegramService {
     logger = new Logger(TelegramService.name)
-    constructor(private orderBotService: OrderBotService) {}
+    constructor(private orderBotService: OrderBotService, private appConfigService: AppConfigService) {}
 
     async webhook(body: any) {
         switch (body.type) {
@@ -28,6 +29,7 @@ export class TelegramService {
 
     async processingNewMessage(message: { id: string; text: string, reply_to_msg_id: string }) {
         if (!message) return 'Le message est vide';
+        if (!await this.appConfigService.botCan('placeOrder')) return 'Bot can\'t place order at the moment';
         if (message.text.split('\n')[0].trim().toLowerCase().includes('prenable') && message.reply_to_msg_id) {
             const orderBot = await this.orderBotService.findByMessageId(message.reply_to_msg_id);
             if (orderBot) {
@@ -49,6 +51,7 @@ export class TelegramService {
             message.text,
         )
         if (orderUpdated) {
+            if (!await this.appConfigService.botCan('updateOrder')) return 'Bot can\'t update order at the moment';
             orderUpdated.messageId = message.id;
             const orderBot = await this.orderBotService.findByMessageId(message.id, '_id');
             if (orderBot) {
@@ -65,6 +68,7 @@ export class TelegramService {
 
     async processingDeleteMessage(message: { id: string }) {
         if (!message) return 'Le message est vide';
+        if (!await this.appConfigService.botCan('cancelOrder')) return 'Bot can\'t cancel order at the moment';
         const orderBot = await this.orderBotService.findByMessageId(message.id, '_id');
         if (orderBot) {
             return await this.orderBotService.deleteOrderBot(orderBot._id);

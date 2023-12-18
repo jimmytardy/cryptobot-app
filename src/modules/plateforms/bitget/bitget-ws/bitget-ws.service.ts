@@ -245,7 +245,6 @@ export class BitgetWsService {
             _id: stopLoss.orderParentId,
             userId: stopLoss.userId,
         })
-        console.log('cancelOrder2')
         await this.orderService.cancelOrder(order._id, stopLoss.userId, true)
     }
 }

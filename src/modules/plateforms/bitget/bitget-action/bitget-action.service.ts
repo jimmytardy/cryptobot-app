@@ -553,7 +553,6 @@ export class BitgetActionService {
                 symbolRules,
                 order.side,
             )
-            console.log('newTPsCalculate', newTPsCalculate)
             if (newTPsCalculate.length !== order.TPs.length) {
                 // En premier on supprime tout les TPs
                 await Promise.all(

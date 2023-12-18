@@ -8,6 +8,7 @@ import { OrderModule } from 'src/modules/order/order.module'
 import { MongooseModule } from '@nestjs/mongoose'
 import { User, UserSchema } from 'src/model/User'
 import { PaymentsModule } from 'src/modules/payment/payments.module'
+import { AppConfigModule } from 'src/modules/app-config/app-config.module'
 
 @Module({
     imports: [
@@ -16,6 +17,7 @@ import { PaymentsModule } from 'src/modules/payment/payments.module'
         BitgetWsModule,
         OrderModule,
         PaymentsModule,
+        AppConfigModule,
         MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     ],
     controllers: [BitgetController],

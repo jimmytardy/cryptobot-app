@@ -14,6 +14,7 @@ import CryptobotRouter from './Cryptobot/cryptobot.router'
 import { IRoute } from './pages.interface'
 import { useEffect } from 'react'
 import OrderBotRouter from './Admin/OrderBot/index.router'
+import AppConfig from './Admin/AppConfig'
 
 export interface ICryptobotRouterProps {
     routes: IRoute[]
@@ -63,6 +64,11 @@ const Pages = () => {
             Component: OrderBotRouter,
             path: 'order-bot/*',
             title: 'Ordres du bot',
+        },
+        {
+            Component: AppConfig,
+            path: 'app-config',
+            title: 'Configuration du serveur',
         },
     ];
 
