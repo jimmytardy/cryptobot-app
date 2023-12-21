@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react'
-import { Button, Col, Container, FormCheck, FormGroup, FormLabel, Row } from 'react-bootstrap'
+import { useEffect, useState } from 'react'
+import { Button, Col, Container, FormCheck, FormGroup, Row } from 'react-bootstrap'
 import { useForm } from 'react-hook-form'
 import axiosClient from '../../../../axiosClient'
 import { AppConfigPayload } from './app-config.interface'
