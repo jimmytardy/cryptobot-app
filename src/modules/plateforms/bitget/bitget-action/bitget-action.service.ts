@@ -22,6 +22,7 @@ import { User } from 'src/model/User'
 import { IOrderStrategy } from 'src/interfaces/order-strategy.interface'
 import * as exactMath from 'exact-math';
 import { UtilService } from 'src/util/util.service'
+import { Symbol } from 'src/model/Symbol'
 
 @Injectable()
 export class BitgetActionService {
@@ -35,16 +36,7 @@ export class BitgetActionService {
         @InjectModel(StopLoss.name) private stopLossModel: Model<StopLoss>,
     ) {}
 
-    async setLeverageWithPreference(client: FuturesClient, user: User, symbol: string, price?: number): Promise<number> {
-        if (!price) {
-            price = await this.bitgetUtilsService.getCurrentPrice(client, symbol)
-        }
-        let leverage = this.bitgetUtilsService.getLeverageFromPreferences(user, price)
-        await this.setLeverage(client, symbol, leverage);
-        return Number(leverage)
-    }
-
-    private async setLeverage(client: FuturesClient, symbol: string, newLeverage: number): Promise<number> {
+    async setLeverage(client: FuturesClient, symbol: string, newLeverage: number): Promise<number> {
         await Promise.all([
             client.setLeverage(symbol, 'USDT', String(newLeverage), 'long').catch((e) => console.error('setLeverage', e)),
             client.setLeverage(symbol, 'USDT', String(newLeverage), 'short').catch((e) => console.error('setLeverage', e)),
@@ -59,31 +51,29 @@ export class BitgetActionService {
     async placeOrder(
         client: FuturesClient,
         user: User,
-        symbolRules: FuturesSymbolRule,
-        usdt: number,
+        symbolRules: Symbol,
         side: FuturesOrderSide,
         pe: number,
         tps: number[],
         stopLoss: number,
+        size: number,
         leverage: number,
         currentPrice: number,
         linkOrderId?: Types.ObjectId,
         marginCoin = 'USDT',
     ) {
         try {
-            const quantity = this.bitgetUtilsService.getQuantityForUSDT(usdt, pe, leverage)
-            const size = this.bitgetUtilsService.fixSizeByRules(quantity, symbolRules)
-            // @ts-ignore
-            if (size <= 0 || usdt < (symbolRules.minTradeUSDT || 1000000)) {
+            const margin = exactMath.mul(size, pe)
+            if (size <= 0 || size < (parseFloat(symbolRules.minTradeNum))) {
                 throw new Error(
                     // @ts-ignore
-                    `La quantité ${usdt} est trop petite pour un ordre, le minimum est ${symbolRules.minTradeUSDT}`,
+                    `La quantité ${margin} est trop petite pour un ordre, le minimum est ${symbolRules.minTradeNum}`,
                 )
             }
             const sideOrder = side.split('_')[1] as FuturesHoldSide
             let TPsCalculate = this.bitgetUtilsService.caculateTPsToUse(tps, size, user.preferences.order.TPSize, symbolRules, sideOrder).TPPrice
             // @ts-ignore
-            if (TPsCalculate.length === 0 || usdt < symbolRules.minTradeUSDT) throw new Error(`La quantité ${usdt} est trop petite pour un ordre`)
+            if (TPsCalculate.length === 0) throw new Error(`La quantité est trop petite pour la tailles des TPs`)
             const clOrderId = new Types.ObjectId()
             let newOrder = new this.orderModel({
                 clOrderId,
@@ -95,7 +85,7 @@ export class BitgetActionService {
                 linkOrderId,
                 quantity: size,
                 marginCoin,
-                usdt,
+                usdt: margin,
                 userId: user._id,
                 leverage,
             })
@@ -160,7 +150,7 @@ export class BitgetActionService {
         try {
             const order = await this.orderModel.findOneAndUpdate({ _id: orderId, inActivation: { $ne: true }, activated: false }, { $set: { inActivation: true } }, { new: true })
             if (!order || order.activated) return null
-            const symbolRules = await this.bitgetUtilsService.getSymbolBy(client, 'symbol', order.symbol)
+            const symbolRules = await this.bitgetUtilsService.getSymbolBy('symbol', order.symbol)
             if (!symbolRules) throw new Error('Symbol not found')
             // important for active TPs
             order.activated = true
@@ -527,7 +517,7 @@ export class BitgetActionService {
         if (!user) {
             user = await this.userModel.findById(order.userId)
         }
-        const symbolRules = await this.bitgetUtilsService.getSymbolBy(client, 'symbol', order.symbol)
+        const symbolRules = await this.bitgetUtilsService.getSymbolBy('symbol', order.symbol)
         if (order.sendToPlateform && order.activated) {
             const takeProfits = await this.takeProfitModel
                 .find({

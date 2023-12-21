@@ -1,28 +1,27 @@
 import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { InjectModel } from '@nestjs/mongoose'
-import {
-    FuturesClient,
-    FuturesHoldSide,
-    FuturesProductType,
-    FuturesSymbolRule,
-    SymbolRules,
-} from 'bitget-api'
+import { FuturesClient, FuturesHoldSide, FuturesProductType, FuturesSymbolRule, SymbolRules } from 'bitget-api'
 import { Order } from 'src/model/Order'
-import { TPSizeType, User } from 'src/model/User';
-import * as exactMath from 'exact-math';
+import { TPSizeType, User } from 'src/model/User'
+import * as exactMath from 'exact-math'
 import { UtilService } from 'src/util/util.service'
+import { Model } from 'mongoose'
+import { Symbol } from 'src/model/Symbol'
 
 @Injectable()
 export class BitgetUtilsService {
     DEFAULT_PERCENTAGE_ORDER = 4
     PRODUCT_TYPE: FuturesProductType = 'umcbl'
-    constructor(
-        configService: ConfigService,
-    ) {
+    constructor(configService: ConfigService, @InjectModel(Symbol.name) private symbolModel: Model<Symbol>) {
         if (configService.get('ENV') === 'dev') {
-            this.PRODUCT_TYPE = 'sumcbl';
+            this.PRODUCT_TYPE = 'sumcbl'
         }
+    }
+
+    async getLeverageLimit(client: FuturesClient, key: string, value: number | string): Promise<{ maxLeverage: number, minLeverage: number}> {
+        const symbolRules = await this.getSymbolBy(key, value);
+        return (await client.getLeverageMinMax(symbolRules.symbol)).data;
     }
 
     async getAccount(client: FuturesClient): Promise<any> {
@@ -39,19 +38,14 @@ export class BitgetUtilsService {
         const accountFuture = await this.getAccount(client)
         const result = {
             available: Number(accountFuture.fixedMaxAvailable),
-            totalPnL:
-                Number(accountFuture.usdtEquity) -
-                Number(accountFuture.unrealizedPL),
+            totalPnL: Number(accountFuture.usdtEquity) - Number(accountFuture.unrealizedPL),
             unrealizedPL: Number(accountFuture.unrealizedPL),
         }
         return result
     }
 
-    async getCurrentPrice(
-        client: FuturesClient,
-        symbol: string,
-    ): Promise<number> {  
-        return Number.parseFloat((await client.getMarkPrice(symbol)).data.markPrice);
+    async getCurrentPrice(client: FuturesClient, symbol: string): Promise<number> {
+        return Number.parseFloat((await client.getMarkPrice(symbol)).data.markPrice)
     }
 
     async getBaseCoins(client: FuturesClient): Promise<string[]> {
@@ -60,30 +54,18 @@ export class BitgetUtilsService {
         return coins
     }
 
-    async getSymbolBy(
-        client: FuturesClient,
-        key: string,
-        value: string | number,
-    ): Promise<FuturesSymbolRule> {
-        const result = await client.getSymbols(this.PRODUCT_TYPE)
-        const coin = result.data.find(
-            (currentCoin) => currentCoin[key] == value,
-        )
-        return coin
+    async getSymbolBy(key: string, value: string | number): Promise<Symbol> {
+        return await this.symbolModel.findOne({ [key]: value }).lean().exec();
     }
 
-    getQuantityForUSDT(
-        usdt: number,
-        coinPrice: number,
-        leverage: number,
-    ): number {
+    getQuantityForUSDT(usdt: number, coinPrice: number, leverage: number): number {
         return (usdt / coinPrice) * leverage
     }
 
     fixPriceByRules(price: number, symbolRules: FuturesSymbolRule): number {
-        const priceEndStep = parseInt(symbolRules.priceEndStep);
-        const pricePlace = parseInt(symbolRules.pricePlace) * -1;
-        return exactMath.round(exactMath.ceil((exactMath.round(price, pricePlace) / priceEndStep), pricePlace) * priceEndStep, pricePlace);
+        const priceEndStep = parseInt(symbolRules.priceEndStep)
+        const pricePlace = parseInt(symbolRules.pricePlace) * -1
+        return exactMath.round(exactMath.ceil(exactMath.round(price, pricePlace) / priceEndStep, pricePlace) * priceEndStep, pricePlace)
     }
 
     fixSizeByRules(quantity: number, symbolRules: FuturesSymbolRule) {
@@ -93,19 +75,10 @@ export class BitgetUtilsService {
         } else {
             // calculer la décimal la plus faible du multiplicateur
             if (sizeMultiplier < 1) {
-                const multiplierDecimalPlaces = (
-                    sizeMultiplier.toString().split('.')[1] || ''
-                ).length
-                const roundedQuantity = Number(
-                    quantity.toFixed(multiplierDecimalPlaces),
-                )
+                const multiplierDecimalPlaces = (sizeMultiplier.toString().split('.')[1] || '').length
+                const roundedQuantity = Number(quantity.toFixed(multiplierDecimalPlaces))
                 // Calculer le multiple précédent inférieur à quantity avec le même nombre de décimales que le multiplicateur
-                return parseFloat(
-                    (
-                        Math.floor(roundedQuantity / sizeMultiplier) *
-                        sizeMultiplier
-                    ).toFixed(multiplierDecimalPlaces),
-                )
+                return parseFloat((Math.floor(roundedQuantity / sizeMultiplier) * sizeMultiplier).toFixed(multiplierDecimalPlaces))
             }
             // Calculer le multiple précédent inférieur à quantity
             return Math.floor(quantity / sizeMultiplier) * sizeMultiplier
@@ -128,41 +101,56 @@ export class BitgetUtilsService {
         return symbol.split('_')[0]
     }
 
-    caculateTPsToUse(
-        tps: number[],
-        size: number,
-        TPSize: TPSizeType,
+    calculateLeverage(
+        PE: number,
+        margin: number,
+        SL: number,
         symbolRules: FuturesSymbolRule,
-        sideOrder: FuturesHoldSide,
-    ): { TPPrice: number[], TPSize: number[] } {
-        const newTps: number[] = [...tps];
-        let TPSizeCalculate: number[] = [];
+        minLeverage: number = 1,
+        maxLeverage: number = 30,
+    ): number | null {
+        console.log(minLeverage,
+        maxLeverage)
+        let leverage = maxLeverage
+        for (leverage; leverage >= minLeverage; leverage--) {
+            const size = this.fixSizeByRules(this.getQuantityForUSDT(margin, PE, leverage), symbolRules)
+            const liquidityPrice =  PE - (0.9 * margin) / size
+            if (liquidityPrice < SL) {
+                return leverage
+            }
+        }
+        throw new Error('No lever is compatible to respect the SL')
+    }
+
+    caculateTPsToUse(tps: number[], size: number, TPSize: TPSizeType, symbolRules: FuturesSymbolRule, sideOrder: FuturesHoldSide): { TPPrice: number[]; TPSize: number[] } {
+        const newTps: number[] = [...tps]
+        let TPSizeCalculate: number[] = []
         while (newTps.length > 0) {
-            let totalSize = 0;
+            let totalSize = 0
             TPSizeCalculate = []
             const TPSizeMultpliers = TPSize[newTps.length]
-            let TPListWrong = false;
+            let TPListWrong = false
             if (TPSizeMultpliers) {
                 for (let i = 0; i < TPSizeMultpliers.length; i++) {
                     const TPMultiplier = TPSizeMultpliers[i]
-                    const isLast = i === TPSizeMultpliers.length - 1;
-                    let currentSize = 0;
+                    const isLast = i === TPSizeMultpliers.length - 1
+                    let currentSize = 0
                     if (isLast) {
-                        currentSize = exactMath.sub(size, totalSize);
+                        currentSize = exactMath.sub(size, totalSize)
                     } else {
-                        currentSize = exactMath.mul(TPMultiplier, size);
+                        currentSize = exactMath.mul(TPMultiplier, size)
                     }
-                    const sizeTP = this.fixSizeByRules(currentSize, symbolRules);
-                    TPSizeCalculate.push(sizeTP);
-                    totalSize = exactMath.add(totalSize, sizeTP);
+                    const sizeTP = this.fixSizeByRules(currentSize, symbolRules)
+                    TPSizeCalculate.push(sizeTP)
+                    totalSize = exactMath.add(totalSize, sizeTP)
                     if (sizeTP <= 0 || totalSize > size) {
                         TPListWrong = true
                         break
                     }
                 }
-            } else TPListWrong = true;
+            } else TPListWrong = true
             if (!TPListWrong && totalSize === size) {
-                break;
+                break
             } else {
                 newTps.pop()
             }
@@ -174,24 +162,7 @@ export class BitgetUtilsService {
         }
     }
 
-    getLeverageFromPreferences(user: User, price: number) {
-        let levierSelect = user.preferences.order.levierSize[0];
-        for (const levierSetting of user.preferences.order.levierSize) {
-            if (
-                levierSelect.minPrice < levierSetting.minPrice &&
-                levierSetting.minPrice < price
-            ) {
-                levierSelect = levierSetting
-            }
-        }
-        return levierSelect.value
-    }
-
-    canSendBitget(
-        symbolRules: FuturesSymbolRule,
-        currentPrice: number,
-        order: Order,
-    ) {
+    canSendBitget(symbolRules: Symbol, currentPrice: number, order: Order) {
         const buyLimitPriceRatio = Number(symbolRules.buyLimitPriceRatio)
         const sellLimitPriceRatio = Number(symbolRules.sellLimitPriceRatio)
         // is in intervalle fixed by rules

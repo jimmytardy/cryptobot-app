@@ -91,30 +91,47 @@ export class BitgetService {
         )
     }
 
+    async getLeverageLimit(baseCoin: string) {
+        return await this.bitgetUtilsService.getLeverageLimit(
+            this.getFirstClient(),
+            'baseCoin',
+            baseCoin
+        )
+    }
+
+    async getCurrentPrice(key: string, value: string | number) {
+        const symbol = await this.bitgetUtilsService.getSymbolBy(key, value)
+        return await this.bitgetUtilsService.getCurrentPrice(
+            this.getFirstClient(),
+            symbol.symbol,
+        )
+    }
+
     async placeOrder(
         placeOrderDTO: PlaceOrderDTO,
         user: User,
         linkParentOrderId?: Types.ObjectId,
+        minLeverage: number = 1,
+        maxLeverage: number = 50,
+        currentPrice: number = null,
     ): Promise<any> {
         const userIdStr = user._id.toString()
-        let { PEs, SL, TPs, side, baseCoin, size: usdtSizeDTO } = placeOrderDTO;
+        let { PEs, SL, TPs, side, baseCoin, size: margin } = placeOrderDTO;
         const symbolRules = await this.bitgetUtilsService.getSymbolBy(
-            this.client[userIdStr],
             'baseCoin',
             baseCoin,
         )
         if (!symbolRules) {
             return
         }
-        const usdtSize = usdtSizeDTO || await this.getQuantityForOrder(user);
-
         const client = this.getClient(user._id);
 
         PEs = UtilService.sortBySide(PEs, side);
         TPs = UtilService.sortBySide(TPs, side);
+        if (!margin) margin = await this.getQuantityForOrder(user);
         const profile = await this.bitgetUtilsService.getProfile(client);
-        if (profile.available < usdtSize * PEs.length) {
-            while (Math.max(profile.available, 0) <= usdtSize * PEs.length) {
+        if (profile.available < margin * PEs.length) {
+            while (Math.max(profile.available, 0) <= margin * PEs.length) {
                 PEs.shift();
             }
             if (PEs.length === 0) {
@@ -123,42 +140,30 @@ export class BitgetService {
         }
         const fullSide = ('open_' + side) as FuturesOrderSide
         const linkOrderId = linkParentOrderId || new Types.ObjectId()
+        const PEAvg = PEs.reduce((a, b) => a + b, 0) / PEs.length
+        const leverage = this.bitgetUtilsService.calculateLeverage(PEAvg, margin * PEs.length, SL, symbolRules, minLeverage, maxLeverage)
+        const size = this.bitgetUtilsService.fixSizeByRules(this.bitgetUtilsService.getQuantityForUSDT(margin, PEAvg, leverage), symbolRules);
+        if (!currentPrice) currentPrice = await this.bitgetUtilsService.getCurrentPrice(client, symbolRules.symbol);
         const results = {
             errors: [],
             success: [],
         }
-
-        const peAvg = PEs.reduce((a, b) => a + b, 0) / PEs.length
-        const leverage = await this.bitgetActionService.setLeverageWithPreference(
-            this.client[userIdStr],
-            user,
-            symbolRules.symbol,
-            peAvg,
-        )
-
-        const currentPrice = await this.bitgetUtilsService.getCurrentPrice( 
-            this.client[userIdStr],
-            symbolRules.symbol,
-        )
-
-        await this.setLeverageWithPreference(user, {
-            baseCoin,
-        })
-
+        await this.bitgetActionService.setLeverage(client, symbolRules.symbol, leverage);
         await Promise.all(
             PEs.map(async (pe) => {
                 const PECalculate = this.bitgetUtilsService.fixPriceByRules(pe, symbolRules);
+                
                 try {
                     results.success.push(
                         await this.bitgetActionService.placeOrder(
-                            this.client[userIdStr],
+                            client,
                             user,
                             symbolRules,
-                            usdtSize,
                             fullSide,
                             PECalculate,
                             TPs,
                             SL,
+                            size,
                             leverage,
                             currentPrice,
                             linkOrderId,
@@ -170,7 +175,6 @@ export class BitgetService {
                         message: error.message,
                         userId: user._id,
                         symbolRules,
-                        usdtSize,
                         fullSide,
                         originalPE: pe,
                         PECalculate,
@@ -248,25 +252,6 @@ export class BitgetService {
             )
         } catch (e) {
             this.logger.error('disabledOrderLink', e)
-        }
-    }
-
-    async setLeverageWithPreference(user: User, leverageDTO: SetLeverageDTO) {
-        const client = this.getClient(user._id)
-        if (!client) {
-            throw new HttpException('Client not found', 404)
-        }
-        const symbolRules = await this.bitgetUtilsService.getSymbolBy(client, 'baseCoin', leverageDTO.baseCoin);
-        if (!symbolRules) throw new HttpException('Symbol not found', 404);
-
-        try {
-            return await this.bitgetActionService.setLeverageWithPreference(
-                this.getClient(user._id),
-                user,
-                symbolRules.symbol,
-            )
-        } catch (e) {
-            this.logger.error('setLeverageWithPreference', e)
         }
     }
 

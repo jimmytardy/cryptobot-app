@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { PaymentsService } from '../payment/payments.service'
 import { InjectModel } from '@nestjs/mongoose'
@@ -10,18 +10,26 @@ import { FuturesKlineInterval, FuturesSymbolRule } from 'bitget-api'
 import { BitgetActionService } from '../plateforms/bitget/bitget-action/bitget-action.service'
 import { User } from 'src/model/User'
 import { UserService } from '../user/user.service'
+import { Symbol } from 'src/model/Symbol'
 
 @Injectable()
-export class TasksService {
+export class TasksService implements OnApplicationBootstrap{
     private readonly logger = new Logger(TasksService.name)
 
     constructor(
         @InjectModel(Order.name) private orderModel: Model<Order>,
+        @InjectModel(Symbol.name) private symbolModel: Model<Symbol>,
         private userService: UserService,
         private bitgetUtilsService: BitgetUtilsService,
         private bitgetActionService: BitgetActionService,
         private bitgetService: BitgetService,
     ) {}
+
+    async onApplicationBootstrap() {
+        if (!await this.symbolModel.findOne({}).exec()) {
+            await this.updateSymbolRules();
+        }
+    }
 
     @Cron(CronExpression.EVERY_10_MINUTES)
     async sendPlateformsOrders() {
@@ -40,7 +48,7 @@ export class TasksService {
             }
             this.logger.log('Ordre en attente de placement:', ordersToSend.length)
             const rules: {
-                [key: string]: { symbolRules: FuturesSymbolRule; price: number }
+                [key: string]: { symbolRules: Symbol; price: number }
             } = {}
             const userMemo: {
                 [key: string]: User
@@ -49,7 +57,7 @@ export class TasksService {
                 const client = this.bitgetService.getFirstClient()
                 if (!rules[order.symbol]) {
                     const [symbolRules, price] = await Promise.all([
-                        this.bitgetUtilsService.getSymbolBy(client, 'symbol', order.symbol),
+                        this.bitgetUtilsService.getSymbolBy('symbol', order.symbol),
                         this.bitgetUtilsService.getCurrentPrice(client, order.symbol),
                     ])
                     rules[order.symbol] = {
@@ -64,7 +72,9 @@ export class TasksService {
                         if (!userMemo[order.userId.toString()]) {
                             userMemo[order.userId.toString()] = await this.userService.findById(order.userId)
                         }
-                        await this.bitgetActionService.setLeverageWithPreference(client, userMemo[order.userId.toString()], order.symbol, order.PE)
+                        if (order.leverage) {
+                            await this.bitgetActionService.setLeverage(client, order.symbol, order.leverage)
+                        }
                         await this.bitgetActionService.placeOrderBitget(client, order)
                     } catch (e) {
                         if (e.body.code === '40786') {
@@ -157,5 +167,15 @@ export class TasksService {
             console.error('e', e.stack)
             console.trace()
         }
+    }
+
+    @Cron(CronExpression.EVERY_DAY_AT_8AM)
+    async updateSymbolRules() {
+        const client = this.bitgetService.getFirstClient()
+        const symbols = await client.getSymbols(this.bitgetUtilsService.PRODUCT_TYPE);
+        
+        if (!symbols.data) return;
+        await this.symbolModel.deleteMany({}).exec();
+        await this.symbolModel.insertMany(symbols.data);
     }
 }

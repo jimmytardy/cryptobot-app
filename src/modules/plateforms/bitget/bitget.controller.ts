@@ -27,9 +27,4 @@ export class BitgetController {
     async getProfile(@Request() req) {
         return await this.bitgetService.getProfile(req.user._id);
     }
-
-    @Post('leverage')
-    async setLeverageWithPreference(@Request() req, @Body() body: SetLeverageDTO) {
-        return await this.bitgetService.setLeverageWithPreference(req.user, body);
-    }
 }

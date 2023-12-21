@@ -19,36 +19,6 @@ const defaultUserPreference: IUserPreferences = {
             5: [0.15, 0.2, 0.3, 0.2, 0.15],
             6: [0.1, 0.15, 0.25, 0.25, 0.15, 0.1],
         },
-        levierSize: [
-            {
-                minPrice: 0,
-                value: 3,
-            },
-            {
-                minPrice: 0.1,
-                value: 5,
-            },
-            {
-                minPrice: 1,
-                value: 8,
-            },
-            {
-                minPrice: 10,
-                value: 12,
-            },
-            {
-                minPrice: 50,
-                value: 15,
-            },
-            {
-                minPrice: 100,
-                value: 17,
-            },
-            {
-                minPrice: 500,
-                value: 22,
-            },
-        ],
         marginCoin: 'USDT',
     },
 }
@@ -75,9 +45,6 @@ export class IUserPreferencesOrder {
 
     @Prop({ type: SchemaTypes.Mixed })
     TPSize: TPSizeType
-
-    @Prop({ type: SchemaTypes.Mixed })
-    levierSize: LeviersSizeType
 
     @Prop({ type: String, default: 'USDT' })
     marginCoin: string
