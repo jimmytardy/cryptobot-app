@@ -4,6 +4,25 @@ import { Types } from 'mongoose'
 import { HydratedDocument } from 'mongoose'
 
 export type SymbolDocument = HydratedDocument<Symbol>
+ @Schema({
+    _id: false
+})
+export class SymbolPositionTier {
+    @Prop()
+    level: number
+
+    @Prop()
+    startUnit: number
+
+    @Prop()
+    endUnit: number
+
+    @Prop()
+    leverage: number
+
+    @Prop()
+    keepMarginRate: number
+}
 
 @Schema({
     timestamps: true,
@@ -61,6 +80,9 @@ export class Symbol implements FuturesSymbolRule {
     takerFeeRate: string
     @Prop()
     volumePlace: string
+    
+    @Prop({ select: false, default: [] })
+    positionTier: SymbolPositionTier[]
 
     @Prop({ default: 'bitget' })
     plateform: string

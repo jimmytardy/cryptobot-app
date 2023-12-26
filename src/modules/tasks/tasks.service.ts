@@ -6,14 +6,14 @@ import { Order } from 'src/model/Order'
 import { Model } from 'mongoose'
 import { BitgetUtilsService } from '../plateforms/bitget/bitget-utils/bitget-utils.service'
 import { BitgetService } from '../plateforms/bitget/bitget.service'
-import { FuturesKlineInterval, FuturesSymbolRule } from 'bitget-api'
+import { FuturesClient, FuturesKlineInterval, FuturesSymbolRule } from 'bitget-api'
 import { BitgetActionService } from '../plateforms/bitget/bitget-action/bitget-action.service'
 import { User } from 'src/model/User'
 import { UserService } from '../user/user.service'
 import { Symbol } from 'src/model/Symbol'
 
 @Injectable()
-export class TasksService implements OnApplicationBootstrap{
+export class TasksService implements OnApplicationBootstrap {
     private readonly logger = new Logger(TasksService.name)
 
     constructor(
@@ -26,8 +26,9 @@ export class TasksService implements OnApplicationBootstrap{
     ) {}
 
     async onApplicationBootstrap() {
-        if (!await this.symbolModel.findOne({}).exec()) {
-            await this.updateSymbolRules();
+        const symbol = await this.symbolModel.findOne({}, '+positionTier').exec()
+        if (!symbol?.positionTier || symbol.positionTier.length === 0) {
+            await this.updateSymbolRules()
         }
     }
 
@@ -172,10 +173,26 @@ export class TasksService implements OnApplicationBootstrap{
     @Cron(CronExpression.EVERY_DAY_AT_8AM)
     async updateSymbolRules() {
         const client = this.bitgetService.getFirstClient()
-        const symbols = await client.getSymbols(this.bitgetUtilsService.PRODUCT_TYPE);
-        
-        if (!symbols.data) return;
-        await this.symbolModel.deleteMany({}).exec();
-        await this.symbolModel.insertMany(symbols.data);
+        const symbols = await client.getSymbols(this.bitgetUtilsService.PRODUCT_TYPE)
+        if (!symbols.data) return
+
+        await this.symbolModel.deleteMany({}).exec()
+        await this.updatePositionTierAndInsert(client, symbols.data as Symbol[], 0)
+    }
+
+    async updatePositionTierAndInsert(client: FuturesClient, symbols: Symbol[], index: number) {
+        try {
+            if (index >= symbols.length) return
+            const symbol = symbols[index]
+            const newPositionTier = await client.getPositionTier(symbol.symbol, 'umcbl')
+            symbol.positionTier = newPositionTier.data.map((tier: any) => ({
+                ...tier,
+                keepMarginRate: parseFloat(tier.keepMarginRate),
+            }))
+            await this.symbolModel.insertMany(symbol)
+            this.updatePositionTierAndInsert(client, symbols, index + 1)
+        } catch (e) {
+            this.logger.error('updatePositionTierAndInsert', e)
+        }
     }
 }

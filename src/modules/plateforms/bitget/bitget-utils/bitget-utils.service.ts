@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { InjectModel } from '@nestjs/mongoose'
-import { FuturesClient, FuturesHoldSide, FuturesProductType, FuturesSymbolRule, SymbolRules } from 'bitget-api'
+import { FuturesClient, FuturesHoldSide, FuturesProductType, FuturesSymbolRule } from 'bitget-api'
 import { Order } from 'src/model/Order'
 import { TPSizeType, User } from 'src/model/User'
 import * as exactMath from 'exact-math'
 import { UtilService } from 'src/util/util.service'
-import { Model } from 'mongoose'
-import { Symbol } from 'src/model/Symbol'
+import { Model, ProjectionType } from 'mongoose'
+import { Symbol, SymbolPositionTier } from 'src/model/Symbol'
 
 @Injectable()
 export class BitgetUtilsService {
@@ -54,8 +54,8 @@ export class BitgetUtilsService {
         return coins
     }
 
-    async getSymbolBy(key: string, value: string | number): Promise<Symbol> {
-        return await this.symbolModel.findOne({ [key]: value }).lean().exec();
+    async getSymbolBy(key: string, value: string | number, select?: ProjectionType<Symbol>): Promise<Symbol> {
+        return await this.symbolModel.findOne({ [key]: value }, select).lean().exec();
     }
 
     getQuantityForUSDT(usdt: number, coinPrice: number, leverage: number): number {
@@ -101,20 +101,31 @@ export class BitgetUtilsService {
         return symbol.split('_')[0]
     }
 
+    getPositionTier(symbolRules: Symbol, size: number): SymbolPositionTier | undefined {
+        const positionTier = symbolRules.positionTier
+        for (let i = 0; i < positionTier.length; i++) {
+            const tier = positionTier[i]
+            if (size >= tier.startUnit && size <= tier.endUnit) {
+                return tier;
+            }
+        }
+        return undefined;
+    }
+
     calculateLeverage(
         PE: number,
         margin: number,
         SL: number,
-        symbolRules: FuturesSymbolRule,
-        minLeverage: number = 1,
-        maxLeverage: number = 30,
+        symbolRules: Symbol,
     ): number | null {
-        console.log(minLeverage,
-        maxLeverage)
-        let leverage = maxLeverage
+        const positionTier = this.getPositionTier(symbolRules, margin)
+        let leverage = positionTier.leverage;
+        const minLeverage = symbolRules.positionTier[symbolRules.positionTier.length - 1].leverage;
         for (leverage; leverage >= minLeverage; leverage--) {
-            const size = this.fixSizeByRules(this.getQuantityForUSDT(margin, PE, leverage), symbolRules)
-            const liquidityPrice =  PE - (0.9 * margin) / size
+            const size = this.fixSizeByRules(this.getQuantityForUSDT(margin, PE, leverage), symbolRules);
+            const fullQuantityUSDT = size * PE;
+            const fees = fullQuantityUSDT * (Number(symbolRules.takerFeeRate) + positionTier.keepMarginRate) ;
+            const liquidityPrice =  PE - (0.95 * (margin - fees)) / size
             if (liquidityPrice < SL) {
                 return leverage
             }

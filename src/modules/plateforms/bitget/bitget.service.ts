@@ -120,6 +120,7 @@ export class BitgetService {
         const symbolRules = await this.bitgetUtilsService.getSymbolBy(
             'baseCoin',
             baseCoin,
+            '+positionTier'
         )
         if (!symbolRules) {
             return
@@ -141,7 +142,7 @@ export class BitgetService {
         const fullSide = ('open_' + side) as FuturesOrderSide
         const linkOrderId = linkParentOrderId || new Types.ObjectId()
         const PEAvg = PEs.reduce((a, b) => a + b, 0) / PEs.length
-        const leverage = this.bitgetUtilsService.calculateLeverage(PEAvg, margin * PEs.length, SL, symbolRules, minLeverage, maxLeverage)
+        const leverage = this.bitgetUtilsService.calculateLeverage(PEAvg, margin * PEs.length, SL, symbolRules)
         const size = this.bitgetUtilsService.fixSizeByRules(this.bitgetUtilsService.getQuantityForUSDT(margin, PEAvg, leverage), symbolRules);
         if (!currentPrice) currentPrice = await this.bitgetUtilsService.getCurrentPrice(client, symbolRules.symbol);
         const results = {
