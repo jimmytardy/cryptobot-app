@@ -111,8 +111,6 @@ export class BitgetService {
         placeOrderDTO: PlaceOrderDTO,
         user: User,
         linkParentOrderId?: Types.ObjectId,
-        minLeverage: number = 1,
-        maxLeverage: number = 50,
         currentPrice: number = null,
     ): Promise<any> {
         const userIdStr = user._id.toString()

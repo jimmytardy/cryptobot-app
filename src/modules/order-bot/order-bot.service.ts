@@ -111,7 +111,7 @@ export class OrderBotService {
             return await Promise.all(
                 users.map(
                     async (user) =>
-                        await this.bitgetService.placeOrder(orderBot, user, orderBot.linkOrderId, leveragesLimit.minLeverage, leveragesLimit.maxLeverage, price).catch((error) => {
+                        await this.bitgetService.placeOrder(orderBot, user, orderBot.linkOrderId, price).catch((error) => {
                             this.logger.error(user._id, error)
                             return error
                         }),

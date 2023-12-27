@@ -26,8 +26,6 @@ import Strategie from './Strategie'
 
 export type TPSizeType = { [x: string]: number[] }
 
-export type LeviersSizeType = { minPrice: number; value: number }[]
-
 export interface IOrderStrategy {
     '0': SLStepEnum, // for TP1
     '1': SLStepEnum, // for TP2
@@ -50,8 +48,7 @@ export interface IPreferencePayload {
     order: {
         pourcentage?: number
         quantity?: number
-        TPSize: TPSizeType
-        levierSize: LeviersSizeType
+        TPSize: TPSizeType,
         marginCoin: string,
         strategy?: IOrderStrategy
     }
@@ -216,33 +213,8 @@ const Preferences = () => {
                                 <Col xs={12}>
                                     <FormGroup>
                                         <FormLabel>
-                                            <b>Levier utilisé: </b>
+                                            <b>Le levier est calculé pour chaque trade pour être au plus proche de la SL.</b>
                                         </FormLabel>
-                                        {methods
-                                            .getValues('order.levierSize')
-                                            .map((levier, index) => (
-                                                <Row
-                                                    key={
-                                                        'order.levier-' + index
-                                                    }
-                                                >
-                                                    <Col xs={12}>
-                                                        <FormLabel>
-                                                            <b>
-                                                                {levier.value}x
-                                                            </b>
-                                                            : à partir du prix
-                                                            de la crypto de{' '}
-                                                            <b>
-                                                                {
-                                                                    levier.minPrice
-                                                                }{' '}
-                                                                USDT
-                                                            </b>
-                                                        </FormLabel>
-                                                    </Col>
-                                                </Row>
-                                            ))}
                                     </FormGroup>
                                 </Col>
                             </Row>

@@ -63,7 +63,7 @@ export class BitgetActionService {
         marginCoin = 'USDT',
     ) {
         try {
-            const margin = exactMath.mul(size, pe)
+            const margin = exactMath.round(exactMath.mul(size, pe) / leverage, -3)
             if (size <= 0 || size < (parseFloat(symbolRules.minTradeNum))) {
                 throw new Error(
                     // @ts-ignore
