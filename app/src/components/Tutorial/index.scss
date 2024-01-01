@@ -1,0 +1,12 @@
+.tutorial {
+    padding: 0;
+    .tutorial-content {
+        width: calc(100% - 300px);
+        margin-left: 300px;
+
+        .tutorial-step-group {
+            padding-top: 2em;
+            width: 100%;
+        }
+    }
+}

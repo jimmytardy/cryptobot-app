@@ -1,0 +1,25 @@
+.tutorial-step-item {
+    padding: 2em;
+    border-bottom: 2px dashed #ccc;
+
+    .tutorial-step__description {
+        font-size: 1em;
+        margin-bottom: 1em;
+    }
+
+    .tutorial-step__title {
+        font-size: 1.5em;
+        font-weight: bold;
+        margin-bottom: 1em;
+    }
+
+    .tutorial-step__image {
+        text-align: center;
+        width: 100%;
+        img {
+            max-height: 500px;
+            max-width: 800px;
+            margin-bottom: 1em;
+        }
+    }
+}

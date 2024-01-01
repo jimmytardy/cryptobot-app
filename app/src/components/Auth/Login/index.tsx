@@ -113,7 +113,7 @@ const Login = (): JSX.Element => {
                                         Se connecter
                                     </Button>
                                     <CardText className="pb-2">
-                                        Vous avez un compte ? <br />
+                                        Vous n'avez pas de un compte ? <br />
                                         <Link
                                             style={{
                                                 textDecoration: 'none',
@@ -121,6 +121,17 @@ const Login = (): JSX.Element => {
                                             to={'/register'}
                                         >
                                             S'inscrire
+                                        </Link>
+                                    </CardText>
+                                    <CardText className="pb-2">
+                                        Vous ne savez pas par où commencer ? <br />
+                                        <Link
+                                            style={{
+                                                textDecoration: 'none',
+                                            }}
+                                            to={'/tutorial'}
+                                        >
+                                            Suivez ce tutoriel
                                         </Link>
                                     </CardText>
                                 </div>

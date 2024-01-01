@@ -15,6 +15,7 @@ import { IRoute } from './pages.interface'
 import { useEffect } from 'react'
 import OrderBotRouter from './Admin/OrderBot/index.router'
 import AppConfig from './Admin/AppConfig'
+import Tutorial from '../Tutorial'
 
 export interface ICryptobotRouterProps {
     routes: IRoute[]
@@ -101,6 +102,7 @@ const Pages = () => {
                     element={<AdminRouter routes={adminRoutes}/>}
                     children={generateRoutes(adminRoutes)}
                 />
+                <Route path="/tutorial" element={<Tutorial />} />
                 <Route
                     path="conditions-generales-utilisation"
                     element={<CGU />}
