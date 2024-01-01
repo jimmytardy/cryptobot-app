@@ -1,8 +1,13 @@
 .tutorial {
-    padding: 0;
+    padding: 0!important;
     .tutorial-content {
         width: calc(100% - 300px);
         margin-left: 300px;
+
+        @media screen and (max-width: 1200px) {
+            width: 100%;
+            margin-left: 0;;
+        }
 
         .tutorial-step-group {
             padding-top: 2em;

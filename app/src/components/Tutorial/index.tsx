@@ -1,4 +1,4 @@
-import { Col, Container, Nav, Row } from 'react-bootstrap'
+import { Col, Container, Row } from 'react-bootstrap'
 import './index.scss'
 import TutorialSidebar from './Sidebar'
 import TutorialStep from './TutorialStep'
@@ -15,7 +15,7 @@ const Tutorial = () => {
         <Container fluid className="tutorial">
             <TutorialSidebar show={showSideBar} />
             <Row className="tutorial-content">
-                <Col className="tutorial-step-group" id="inscription-bitget">
+                <Col xs={12} className="tutorial-step-group" id="inscription-bitget">
                     <h3>1 - Inscription sur bitget</h3>
                     <TutorialStep
                         step={'1.1'}
@@ -42,7 +42,7 @@ const Tutorial = () => {
                         image={`${urlImage}/bitget-inscription/2-verification-identite.png`}
                     />
                 </Col>
-                <Col className="tutorial-step-group" id="bitget-api">
+                <Col xs={12} className="tutorial-step-group" id="bitget-api">
                     <h3>2 - Création d'une clé API</h3>
                     <TutorialStep step={'2.1'} title="Rendez-vous sur la page des clés API" image={`${urlImage}/bitget-api/compte-principal/1-Aller-Dans-interface.png`} />
                     <TutorialStep step={'2.2'} title="Générez une clé API par le système" image={`${urlImage}/bitget-api/compte-principal/2-generer-cle.png`} />
@@ -79,7 +79,7 @@ const Tutorial = () => {
                         image={`${urlImage}/bitget-api/compte-principal/4-retenir-cle-API.png`}
                     />
                 </Col>
-                <Col className="tutorial-step-group" id="bitget-depot">
+                <Col xs={12} className="tutorial-step-group" id="bitget-depot">
                     <h3>3 - Déposer de l'argent sur votre compte futures</h3>
                     <TutorialStep
                         step={'3.1'}
@@ -89,15 +89,23 @@ const Tutorial = () => {
                             <>
                                 Peu importe la méthode que vous utilisez, il est important de retenir que vous devez:
                                 <ol>
-                                    <li><strong>acheter des USDT</strong></li>
-                                    <li><strong>déposer sur votre compte USDT-M account</strong> (=compte de futures). Si vous ne l'avez pas fait, vous devrez transférez vos fonds sur votre compte future</li>
-                                    <li>faire un virement d'au minimum 500/600 USDT (seulement une recommandation). <strong>En dessous, de 300 USDT, le bot ne pourra pas fonctionner avec suffisament de marge</strong></li>
+                                    <li>
+                                        <strong>acheter des USDT</strong>
+                                    </li>
+                                    <li>
+                                        <strong>déposer sur votre compte USDT-M account</strong> (=compte de futures). Si vous ne l'avez pas fait, vous devrez transférez vos fonds
+                                        sur votre compte future
+                                    </li>
+                                    <li>
+                                        faire un virement d'au minimum 500/600 USDT (seulement une recommandation).{' '}
+                                        <strong>En dessous, de 300 USDT, le bot ne pourra pas fonctionner avec suffisament de marge</strong>
+                                    </li>
                                 </ol>
                             </>
                         }
                     />
                 </Col>
-                <Col className="tutorial-step-group" id="cryptobot-inscription">
+                <Col xs={12} className="tutorial-step-group" id="cryptobot-inscription">
                     <h3>4 - Création d'un compte sur Cryptobot</h3>
                     <TutorialStep
                         step={'4.1'}
@@ -137,9 +145,7 @@ const Tutorial = () => {
                                 </ol>
                                 Si ces 2 champs ne sont pas remplis, cela utilisera le solde actuel disponible sur votre compte, et mettra 4% par trade. <br />
                                 <strong>Il est fortement conseillé de mettre la même quantité initiale de quantité que vous avez sur votre compte futures</strong> <br />
-                                <strong>
-                                    Il est fortement déconseillé de dépasser 5% par ordre. Vous risquez de tout perdre si vous ne maîtriser pas le money management.
-                                </strong>
+                                <strong>Il est fortement déconseillé de dépasser 5% par ordre. Vous risquez de tout perdre si vous ne maîtriser pas le money management.</strong>
                                 <br />
                                 Si vous êtes un trader plus expérimenté, vous pouvez modifier la stratégie utilisée qui déplace la SL ou les tailles des TPs à prendre. <br />
                             </>

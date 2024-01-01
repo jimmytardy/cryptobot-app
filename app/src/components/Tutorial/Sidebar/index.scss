@@ -78,3 +78,17 @@ a:focus {
         background: #6d7fcc;
     }
 }
+
+@media screen and (max-width: 1200px) {
+    #sidebar {
+        min-width: 100%;
+        max-width: 100%;
+        position: relative;
+        height: auto;
+        
+        ul.components > li:last-child {
+            border-bottom: none;
+        }
+    }
+    
+}

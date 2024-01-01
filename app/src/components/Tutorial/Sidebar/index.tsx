@@ -20,7 +20,6 @@ const TutorialSidebar = ({ show }: ITutorialSidebarProps) => {
             const groups = document.querySelectorAll('.tutorial-step-group')
             for (const group of groups) {
                 const title = group.querySelector('h3')
-                console.log(group.id, title?.textContent)
                 const steps = group.querySelectorAll('.tutorial-step-item')
                 const subList = []
                 for (const step of steps) {
@@ -37,7 +36,6 @@ const TutorialSidebar = ({ show }: ITutorialSidebarProps) => {
                     subList,
                 })
             }
-            console.log('menuList', menuList)
             setMenuGroups(menuList)
         }
     }, [show])
@@ -48,7 +46,7 @@ const TutorialSidebar = ({ show }: ITutorialSidebarProps) => {
                     <li key={group.id}>
                         <a href={`#${group.id}`}>{group.title}</a>
                         <li className="sidebar-subList">
-                            <ul className="list-unstyled" id={group.id}>
+                            <ul className="list-unstyled" id={'menu-' + group.id}>
                                 {group.subList?.map((sub) => (
                                     <li key={sub.id}>
                                         <a href={`#${sub.id}`}>{sub.title}</a>
