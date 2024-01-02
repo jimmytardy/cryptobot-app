@@ -44,7 +44,7 @@ const Users = () => {
                 <Col xs={4} md={3}>
                     Email
                 </Col>
-                <Col md={2}>
+                <Col md={4}>
                     Abonnement
                 </Col>
                 <Col className="text-end">Actions</Col>
@@ -52,13 +52,13 @@ const Users = () => {
             {users.map((user) => {
                 return (
                     <Row key={user._id} className="list-body">
-                        <Col xs={4} md={3} lg={2}>
+                        <Col xs={4} md={3}>
                             {user.firstname} {user.lastname}
                         </Col>
-                        <Col xs={4} md={3} lg={2}>
+                        <Col xs={4} md={3}>
                             {user.email}
                         </Col>
-                        <Col xs={6}>
+                        <Col md={4}>
                             {!user.subscription?.active ? 'Aucun abonnement' : `[${user.subscription.name}]: ${user.subscription.active ? 'Actif' : 'Inactif'}`}
                         </Col>
                         <Col><PersonFillDown onClick={() =>  handleConnectIn(user)} /></Col>
