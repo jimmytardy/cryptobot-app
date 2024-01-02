@@ -9,7 +9,6 @@ const AdminRouter = ({ routes }: IPagesRouterProps) => {
             <NavBarCryptobot
                 routes={routes}
                 theme="dark"
-                title="Admin Cryptobot"
             />
             <Container className="bg-dark text-white container-admin" fluid>
                 <Outlet />

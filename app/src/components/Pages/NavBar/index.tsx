@@ -13,7 +13,6 @@ import { IRoute } from '../pages.interface';
 interface NavBarCryptobotProps {
     routes: IRoute[];
     theme?: string;
-    title: string;
 }
 
 const NavBarCryptobot: React.FC<NavBarCryptobotProps> = ({ routes, theme }) => {
