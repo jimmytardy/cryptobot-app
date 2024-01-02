@@ -52,10 +52,6 @@ class UpdatePreferencesOrderDTO {
     @Type(() => Object)
     TPSize: TPSizeType
 
-    @IsArray()
-    @ArrayNotEmpty()
-    levierSize: LeviersSizeType
-
     @IsOptional()
     @IsString()
     marginCoin: string
