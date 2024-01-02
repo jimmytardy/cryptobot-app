@@ -5,6 +5,10 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        background-color: #181437;
+        &:nth-child(2n + 1) {
+            background-color: #eb3463;
+        }
 
         & > div {
             display: flex;

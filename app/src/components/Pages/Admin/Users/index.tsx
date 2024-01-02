@@ -38,10 +38,10 @@ const Users = () => {
         <Container className="users">
             <h2>Liste des utilisateurs</h2>
             <Row className="list-header">
-                <Col xs={4} md={3} lg={2}>
+                <Col xs={4} md={3}>
                     Prénom NOM
                 </Col>
-                <Col xs={4} md={3} lg={2}>
+                <Col xs={4} md={3}>
                     Email
                 </Col>
                 <Col md={2}>
