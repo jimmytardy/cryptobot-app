@@ -6,6 +6,7 @@ import {
     HttpException,
     HttpStatus,
     Post,
+    Req,
     Request,
     UseGuards,
 } from '@nestjs/common'
@@ -14,6 +15,8 @@ import { LocalAuthGuard } from 'src/guards/local-auth.guard'
 import { CreateUserDTO } from '../user/user.dto'
 import { UserService } from '../user/user.service'
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard'
+import { User } from 'src/model/User'
+import { ConnectInDTO } from './auth.dto'
 
 @Controller('auth')
 export class AuthController {
@@ -36,5 +39,12 @@ export class AuthController {
         } catch (e) {
             throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
         }
+    }
+
+    @Post('connect-in')
+    @UseGuards(JwtAuthGuard)
+    async connectIn(@Req() req, @Body() body: ConnectInDTO) {
+        if (!req.user.isAdmin) throw new HttpException('Vous n\'avez pas les droits pour accéder à cette ressource', 403);
+        return this.authService.connectIn(body.userId);
     }
 }

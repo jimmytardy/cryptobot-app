@@ -16,6 +16,7 @@ import { useEffect } from 'react'
 import OrderBotRouter from './Admin/OrderBot/index.router'
 import AppConfig from './Admin/AppConfig'
 import Tutorial from '../Tutorial'
+import Users from './Admin/Users'
 
 export interface ICryptobotRouterProps {
     routes: IRoute[]
@@ -71,6 +72,11 @@ const Pages = () => {
             path: 'app-config',
             title: 'Configuration du serveur',
         },
+        {
+            Component: Users,
+            path: 'users',
+            title: 'Utilisateurs',
+        }
     ];
 
     const changeUserMode = (e: any) => {

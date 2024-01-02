@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Put, Query, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, Post, Put, Query, Req, Request, UseGuards } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from 'src/model/User';
@@ -60,5 +60,12 @@ export class UserController {
     @Get('stats')
     async getStats(@Request() req, @Query() query: UserStatsDTO) {
         return await this.userService.getOrdersStats(req.user._id, query.dateFrom, query.dateTo);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('admin/users')
+    async getUsers(@Req() req) {
+        if (!req.user.isAdmin) throw new HttpException('Vous n\'avez pas les droits pour accéder à cette ressource', 403);
+        return await this.userService.getFullUsersForAdmin();
     }
 }

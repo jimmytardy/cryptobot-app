@@ -14,6 +14,7 @@ import { PaymentsService } from '../payment/payments.service'
 import { OrderService } from '../order/order.service'
 import { TakeProfit } from 'src/model/TakeProfit'
 import { Order } from 'src/model/Order'
+import { ISubscriptionUser } from '../payment/payments.interface'
 
 @Injectable()
 export class UserService implements OnApplicationBootstrap {
@@ -117,12 +118,12 @@ export class UserService implements OnApplicationBootstrap {
         }
     }
 
-    async getSubscriptions(user: User) {
+    async getSubscriptions(user: User): Promise<ISubscriptionUser> {
         const { stripeCustomerId } = await this.findById(
             user._id,
             '+stripeCustomerId',
         )
-        if (!stripeCustomerId) return {}
+        if (!stripeCustomerId) return {} as ISubscriptionUser;
         return await this.paymentService.getSubscriptions(stripeCustomerId)
     }
 
@@ -177,5 +178,14 @@ export class UserService implements OnApplicationBootstrap {
             }
         }
         return results;
+    }
+
+    async getFullUsersForAdmin() {
+        const users: (User & { subscription: ISubscriptionUser })[] = await this.userModel.find().lean();
+
+        for (const user of users) {
+            user.subscription = await this.getSubscriptions(user);
+        }
+        return users;
     }
 }
