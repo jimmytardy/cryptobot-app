@@ -23,10 +23,10 @@ const NavBarCryptobot: React.FC<NavBarCryptobotProps> = ({ routes, theme }) => {
 
     return (
         <Navbar expand="lg" bg={theme} data-bs-theme={theme} className="navbar-cryptobot bg-body-tertiary">
+            <Navbar.Brand onClick={() => navigate('home')}>
+                <img src={'/banniere.png'} alt="Logo" />
+            </Navbar.Brand>
             <Container>
-                <Navbar.Brand onClick={() => navigate('home')}>
-                    <img src={'/icon.png'} alt="Logo" />
-                </Navbar.Brand>
                 <Navbar.Toggle aria-controls="navbar-nav" />
                 <Navbar.Collapse id='navbar-bar' className='navbar-body bg-body-tertiary p-3'>
                     <Nav>
@@ -55,7 +55,7 @@ const NavBarCryptobot: React.FC<NavBarCryptobotProps> = ({ routes, theme }) => {
                                                 'ms-3' +
                                                 (route.disabled
                                                     ? ' fw-light'
-                                                    : location.pathname.includes(pathTo) ? ' fw-bold' :  ' fw-normal')
+                                                    : location.pathname.includes(pathTo) ? ' fw-bold' : ' fw-normal')
                                             }
                                             onClick={
                                                 route.disabled
