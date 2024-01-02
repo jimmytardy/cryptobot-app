@@ -21,13 +21,13 @@ const NavBarCryptobot: React.FC<NavBarCryptobotProps> = ({ routes, theme }) => {
     const { logout } = useAuth()
 
     return (
-        <Navbar expand="lg" bg={theme} data-bs-theme={theme} className="navbar-cryptobot bg-body-tertiary">
+        <Navbar expand="lg" bg={theme} data-bs-theme={theme} className="navbar-cryptobot">
             <Navbar.Brand onClick={() => navigate('home')}>
-                <img src={'/banniere.png'} alt="Logo" />
+                <img src={'/banner.png'} alt="Logo" />
             </Navbar.Brand>
             <Container>
                 <Navbar.Toggle aria-controls="navbar-nav" />
-                <Navbar.Collapse id='navbar-bar' className='navbar-body bg-body-tertiary p-3'>
+                <Navbar.Collapse id='navbar-bar' className='navbar-body p-3'>
                     <Nav>
                         {routes
                             .filter((route) => route.title)

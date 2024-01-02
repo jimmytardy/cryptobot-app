@@ -3,13 +3,15 @@
     max-height: 88px;
     display: flex;
     align-items: center;
+    background-color: #181437;
+    color: #FA551C;
     .navbar-brand {
         display: flex;
         align-items: center;
         cursor: pointer;
         img {
             margin-right: 1rem;
-            aspect-ratio: 2/1;
+            aspect-ratio: 4/1;
             height: 88px;
         }
     }
@@ -19,5 +21,18 @@
 
     .navbar-body {
         border-radius: 0 0 15px 15px;
+
+        a {
+            color: #FA551C;
+
+            &:hover {
+                opacity: 0.8;
+                color: #EB3463;
+            }
+
+            &.active {
+                color: white!important;
+            }
+        }
     }
 }

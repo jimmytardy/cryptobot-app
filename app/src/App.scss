@@ -1,3 +1,7 @@
+* {
+    font-family: './assets/fonts/TTRounds', serif, sans-serif;
+}
+
 form {
     display: flex;
     flex-direction: column;
@@ -10,28 +14,206 @@ form {
     align-items: center;
 }
 
+// h2 {
+//     background-color: black;
+//     padding: 0.5em 0 !important;
+//     text-align: center;
+//     color: white !important;
+//     margin-bottom: 1em!important;
+// }
+
 h2 {
-    background-color: black;
-    padding: 0.5em 0 !important;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    width: 160px;
     text-align: center;
-    color: white !important;
-    margin-bottom: 1em!important;
+    margin: auto;
+    white-space: nowrap;
+    padding-bottom: 13px;
+}
+h2:before {
+    background-color: #c50000;
+    content: '';
+    display: block;
+    height: 3px;
+    width: 75px;
+    margin-bottom: 5px;
+}
+h2:after {
+    background-color: #c50000;
+    content: '';
+    display: block;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    width: 75px;
+    margin-bottom: 0.25em;
 }
 
-*::-webkit-scrollbar-track
-{
-	-webkit-box-shadow: inset 0 0 6px darkgray;
-	background-color: #F5F5F5;
+*::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 6px darkgray;
+    background-color: #f5f5f5;
 }
 
-*::-webkit-scrollbar
-{
-	width: 10px;
-	background-color: #F5F5F5;
+*::-webkit-scrollbar {
+    width: 10px;
+    background-color: #f5f5f5;
 }
 
-*::-webkit-scrollbar-thumb
-{
-	-webkit-box-shadow: inset 0 0 6px darkgray;
-	background-color: #555;
+*::-webkit-scrollbar-thumb {
+    -webkit-box-shadow: inset 0 0 6px darkgray;
+    background-color: #555;
+}
+
+@font-face {
+    font-family: './assets/fonts/TTRounds';
+    src: url('./assets/fonts/TTRounds-Black.eot');
+    src:
+        local('☞TTRounds-Black'),
+        local('./assets/fonts/TTRounds-Black'),
+        url('./assets/fonts/TTRounds-Black.eot?#iefix') format('embedded-opentype'),
+        url('./assets/fonts/TTRounds-Black.woff2') format('woff2'),
+        url('./assets/fonts/TTRounds-Black.woff') format('woff'),
+        url('./assets/fonts/TTRounds-Black.ttf') format('truetype');
+    font-weight: 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: './assets/fonts/TTRounds';
+    src: url('./assets/fonts/TTRounds-Bold.eot');
+    src:
+        local('☞TTRounds-Bold'),
+        local('./assets/fonts/TTRounds-Bold'),
+        url('./assets/fonts/TTRounds-Bold.eot?#iefix') format('embedded-opentype'),
+        url('./assets/fonts/TTRounds-Bold.woff2') format('woff2'),
+        url('./assets/fonts/TTRounds-Bold.woff') format('woff'),
+        url('./assets/fonts/TTRounds-Bold.ttf') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: './assets/fonts/TTRounds';
+    src: url('./assets/fonts/TTRounds-BlackItalic.eot');
+    src:
+        local('☞TTRounds-BlackItalic'),
+        local('./assets/fonts/TTRounds-BlackItalic'),
+        url('./assets/fonts/TTRounds-BlackItalic.eot?#iefix') format('embedded-opentype'),
+        url('./assets/fonts/TTRounds-BlackItalic.woff2') format('woff2'),
+        url('./assets/fonts/TTRounds-BlackItalic.woff') format('woff'),
+        url('./assets/fonts/TTRounds-BlackItalic.ttf') format('truetype');
+    font-weight: 900;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: './assets/fonts/TTRounds';
+    src: url('./assets/fonts/TTRounds-BoldItalic.eot');
+    src:
+        local('☞TTRounds-BoldItalic'),
+        local('./assets/fonts/TTRounds-BoldItalic'),
+        url('./assets/fonts/TTRounds-BoldItalic.eot?#iefix') format('embedded-opentype'),
+        url('./assets/fonts/TTRounds-BoldItalic.woff2') format('woff2'),
+        url('./assets/fonts/TTRounds-BoldItalic.woff') format('woff'),
+        url('./assets/fonts/TTRounds-BoldItalic.ttf') format('truetype');
+    font-weight: bold;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: './assets/fonts/TTRounds';
+    src: url('./assets/fonts/TTRounds-LightItalic.eot');
+    src:
+        local('☞TTRounds-LightItalic'),
+        local('./assets/fonts/TTRounds-LightItalic'),
+        url('./assets/fonts/TTRounds-LightItalic.eot?#iefix') format('embedded-opentype'),
+        url('./assets/fonts/TTRounds-LightItalic.woff2') format('woff2'),
+        url('./assets/fonts/TTRounds-LightItalic.woff') format('woff'),
+        url('./assets/fonts/TTRounds-LightItalic.ttf') format('truetype');
+    font-weight: 300;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: './assets/fonts/TTRounds';
+    src: url('./assets/fonts/TTRounds-Thin.eot');
+    src:
+        local('☞TTRounds-Thin'),
+        local('./assets/fonts/TTRounds-Thin'),
+        url('./assets/fonts/TTRounds-Thin.eot?#iefix') format('embedded-opentype'),
+        url('./assets/fonts/TTRounds-Thin.woff2') format('woff2'),
+        url('./assets/fonts/TTRounds-Thin.woff') format('woff'),
+        url('./assets/fonts/TTRounds-Thin.ttf') format('truetype');
+    font-weight: 100;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: './assets/fonts/TTRounds';
+    src: url('./assets/fonts/TTRounds-Italic.eot');
+    src:
+        local('☞TTRounds-Italic'),
+        local('./assets/fonts/TTRounds-Italic'),
+        url('./assets/fonts/TTRounds-Italic.eot?#iefix') format('embedded-opentype'),
+        url('./assets/fonts/TTRounds-Italic.woff2') format('woff2'),
+        url('./assets/fonts/TTRounds-Italic.woff') format('woff'),
+        url('./assets/fonts/TTRounds-Italic.ttf') format('truetype');
+    font-weight: normal;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: './assets/fonts/TTRounds';
+    src: url('./assets/fonts/TTRounds-Regular.eot');
+    src:
+        local('☞TTRounds-Regular'),
+        local('./assets/fonts/TTRounds-Regular'),
+        url('./assets/fonts/TTRounds-Regular.eot?#iefix') format('embedded-opentype'),
+        url('./assets/fonts/TTRounds-Regular.woff2') format('woff2'),
+        url('./assets/fonts/TTRounds-Regular.woff') format('woff'),
+        url('./assets/fonts/TTRounds-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: './assets/fonts/TTRounds';
+    src: url('./assets/fonts/TTRounds-ThinItalic.eot');
+    src:
+        local('☞TTRounds-ThinItalic'),
+        local('./assets/fonts/TTRounds-ThinItalic'),
+        url('./assets/fonts/TTRounds-ThinItalic.eot?#iefix') format('embedded-opentype'),
+        url('./assets/fonts/TTRounds-ThinItalic.woff2') format('woff2'),
+        url('./assets/fonts/TTRounds-ThinItalic.woff') format('woff'),
+        url('./assets/fonts/TTRounds-ThinItalic.ttf') format('truetype');
+    font-weight: 100;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: './assets/fonts/TTRounds';
+    src: url('./assets/fonts/TTRounds-Light.eot');
+    src:
+        local('☞TTRounds-Light'),
+        local('./assets/fonts/TTRounds-Light'),
+        url('./assets/fonts/TTRounds-Light.eot?#iefix') format('embedded-opentype'),
+        url('./assets/fonts/TTRounds-Light.woff2') format('woff2'),
+        url('./assets/fonts/TTRounds-Light.woff') format('woff'),
+        url('./assets/fonts/TTRounds-Light.ttf') format('truetype');
+    font-weight: 300;
+    font-style: normal;
+    font-display: swap;
 }
