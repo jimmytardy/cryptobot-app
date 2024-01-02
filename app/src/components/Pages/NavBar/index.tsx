@@ -16,7 +16,7 @@ interface NavBarCryptobotProps {
     title: string;
 }
 
-const NavBarCryptobot: React.FC<NavBarCryptobotProps> = ({ routes, theme, title }) => {
+const NavBarCryptobot: React.FC<NavBarCryptobotProps> = ({ routes, theme }) => {
     const navigate = useNavigate()
     const location = useLocation()
     const { logout } = useAuth()
@@ -25,8 +25,7 @@ const NavBarCryptobot: React.FC<NavBarCryptobotProps> = ({ routes, theme, title 
         <Navbar expand="lg" bg={theme} data-bs-theme={theme} className="navbar-cryptobot bg-body-tertiary">
             <Container>
                 <Navbar.Brand onClick={() => navigate('home')}>
-                    <img src={'/icon.svg'} alt="Logo" />
-                    {title}
+                    <img src={'/icon.png'} alt="Logo" />
                 </Navbar.Brand>
                 <Navbar.Toggle aria-controls="navbar-nav" />
                 <Navbar.Collapse id='navbar-bar' className='navbar-body bg-body-tertiary p-3'>

@@ -40,7 +40,7 @@ const TutorialSidebar = ({ show }: ITutorialSidebarProps) => {
         }
     }, [show])
     return (
-        <nav id="sidebar">
+        <nav id="sidebar" className='navbar navbar-tutorial'>
             <ul className="list-unstyled components">
                 {menuGroups.map((group) => (
                     <li key={group.id}>

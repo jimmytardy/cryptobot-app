@@ -5,7 +5,7 @@ import { IPagesRouterProps } from '../pages.interface';
 const CryptobotRouter = ({ routes }: IPagesRouterProps) => {
     return (
         <>
-            <NavBarCryptobot title="Cryptobot" routes={routes} />
+            <NavBarCryptobot routes={routes} />
             <Outlet />
         </>
     )

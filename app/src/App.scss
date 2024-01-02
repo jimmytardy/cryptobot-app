@@ -17,3 +17,21 @@ h2 {
     color: white !important;
     margin-bottom: 1em!important;
 }
+
+*::-webkit-scrollbar-track
+{
+	-webkit-box-shadow: inset 0 0 6px darkgray;
+	background-color: #F5F5F5;
+}
+
+*::-webkit-scrollbar
+{
+	width: 10px;
+	background-color: #F5F5F5;
+}
+
+*::-webkit-scrollbar-thumb
+{
+	-webkit-box-shadow: inset 0 0 6px darkgray;
+	background-color: #555;
+}
