@@ -5,7 +5,13 @@
     align-items: center;
     background-color: #181437;
     color: #FA551C;
+    padding: 0!important;
+
+    .container-fluid {
+        padding: 0!important;
+    }
     .navbar-brand {
+        padding: 0;
         display: flex;
         align-items: center;
         cursor: pointer;
@@ -19,7 +25,19 @@
         width: 100%;
     }
 
+    .navbar-toggler  {
+        color: #FA551C;
+        font-size: 2em;
+        border: 1px solid #FA551C;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
     .navbar-body {
+        background-color: #181437;
+        z-index: 1000000;
+        width: 100%;
         border-radius: 0 0 15px 15px;
 
         a {

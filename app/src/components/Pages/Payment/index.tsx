@@ -1,26 +1,14 @@
-import {
-    Button,
-    Col,
-    Container,
-    FormGroup,
-    FormLabel,
-    Row,
-} from 'react-bootstrap'
+import { Button, Col, Container, FormGroup, FormLabel, Row } from 'react-bootstrap'
 import * as React from 'react'
 
 import { useAuth } from '../../../hooks/AuthContext'
 import axiosClient from '../../../axiosClient'
-import {
-    IUserSubscriptionItem,
-} from '../../../interfaces/user.interface'
+import { IUserSubscriptionItem } from '../../../interfaces/user.interface'
 
 declare global {
     namespace JSX {
         interface IntrinsicElements {
-            'stripe-pricing-table': React.DetailedHTMLProps<
-                React.HTMLAttributes<HTMLElement>,
-                HTMLElement
-            >
+            'stripe-pricing-table': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement>
         }
     }
 }
@@ -28,15 +16,11 @@ declare global {
 const Payement = () => {
     const { user } = useAuth()
     const handleRedirectAccount = async () => {
-        const result = await axiosClient.post(
-            '/payment/stripe/create-customer-portal-session',
-        )
+        const result = await axiosClient.post('/payment/stripe/create-customer-portal-session')
         window.location.href = result.data.url
     }
 
-    const getSubscriptionDescription = (
-        subscription: IUserSubscriptionItem,
-    ) => {
+    const getSubscriptionDescription = (subscription: IUserSubscriptionItem) => {
         switch (subscription.status) {
             case 'trialing':
                 return "L'abonnement en cours de période d'essai."
@@ -64,16 +48,9 @@ const Payement = () => {
                         <FormGroup>
                             <FormLabel>
                                 <b>[{user.subscription?.name || 'Abonnement'}]: </b>
-                                {user.subscription.active
-                                    ? 'Actif'
-                                    : 'Inactif'}{' '}
-                                {user.subscription.status === 'trialing' && (
-                                    <i>- Essai gratuit</i>
-                                )}
+                                {user.subscription.active ? 'Actif' : 'Inactif'} {user.subscription.status === 'trialing' && <i>- Essai gratuit</i>}
                             </FormLabel>
-                            <p>
-                                {getSubscriptionDescription(user.subscription)}
-                            </p>
+                            <p>{getSubscriptionDescription(user.subscription)}</p>
                         </FormGroup>
                     )}
                 </Col>
@@ -81,9 +58,7 @@ const Payement = () => {
             {Object.keys(user.subscription).length === 0 ? (
                 <Row>
                     <stripe-pricing-table
-                        pricing-table-id={
-                            import.meta.env.VITE_STRIPE_PRICING_TABLE
-                        }
+                        pricing-table-id={import.meta.env.VITE_STRIPE_PRICING_TABLE}
                         publishable-key={import.meta.env.VITE_STRIPE_KEY}
                         customer-email={user.email}
                     ></stripe-pricing-table>
@@ -91,7 +66,7 @@ const Payement = () => {
             ) : (
                 <Row>
                     <Col xs={6} md={2}>
-                        <Button onClick={handleRedirectAccount}>
+                        <Button style={{ whiteSpace: 'nowrap' }} onClick={handleRedirectAccount}>
                             Gérer mon abonnement
                         </Button>
                     </Col>
