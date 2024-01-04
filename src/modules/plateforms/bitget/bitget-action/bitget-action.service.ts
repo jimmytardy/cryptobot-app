@@ -458,7 +458,7 @@ export class BitgetActionService {
                     await order.save()
                     return true
                 } else {
-                    console.log('order not activated')
+                    console.info('order not activated')
                     return false
                 }
             } else {

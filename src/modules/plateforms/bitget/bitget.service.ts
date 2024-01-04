@@ -101,7 +101,6 @@ export class BitgetService {
 
     async getCurrentPrice(key: string, value: string | number) {
         const symbol = await this.bitgetUtilsService.getSymbolBy(key, value)
-        console.log('symbol', symbol, key, value)
         return await this.bitgetUtilsService.getCurrentPrice(
             this.getFirstClient(),
             symbol.symbol,
