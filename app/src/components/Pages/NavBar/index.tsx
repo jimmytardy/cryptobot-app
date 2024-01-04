@@ -2,7 +2,7 @@ import { Container, Nav, Navbar, OverlayTrigger, Tooltip } from 'react-bootstrap
 import './index.scss'
 import { useLocation, useNavigate } from 'react-router'
 import { useAuth } from '../../../hooks/AuthContext'
-import { IPagesRouterProps, IRoute } from '../pages.interface'
+import { IPagesRouterProps } from '../pages.interface'
 import { List } from 'react-bootstrap-icons'
 import { useState } from 'react'
 
