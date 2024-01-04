@@ -27,7 +27,7 @@ const NavBarCryptobot: React.FC<NavBarCryptobotProps> = ({ routes, onClickLogo, 
                 <Navbar.Brand onClick={onClickLogo}>
                     <img src={'/banner.png'} alt="Logo" />
                 </Navbar.Brand>
-                <Navbar.Toggle aria-controls="navbar-nav" onClick={() => setExpanded(true)}>
+                <Navbar.Toggle aria-controls="navbar-nav" onClick={() => setExpanded((old) => !old)}>
                     <List />
                 </Navbar.Toggle>
                 <Navbar.Collapse id="navbar-bar" className="navbar-body p-3">
