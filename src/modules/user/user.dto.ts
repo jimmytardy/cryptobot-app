@@ -1,7 +1,5 @@
 import { Type } from 'class-transformer'
 import {
-    ArrayNotEmpty,
-    IsArray,
     IsBoolean,
     IsDate,
     IsDefined,
@@ -10,13 +8,10 @@ import {
     IsObject,
     IsOptional,
     IsString,
-    Validate,
     ValidateNested,
 } from 'class-validator'
 import {
     IUserCryptoExchange,
-    IUserPreferences,
-    LeviersSizeType,
     TPSizeType,
 } from 'src/model/User'
 

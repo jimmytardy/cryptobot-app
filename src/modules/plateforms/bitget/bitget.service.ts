@@ -101,6 +101,7 @@ export class BitgetService {
 
     async getCurrentPrice(key: string, value: string | number) {
         const symbol = await this.bitgetUtilsService.getSymbolBy(key, value)
+        console.log('symbol', symbol, key, value)
         return await this.bitgetUtilsService.getCurrentPrice(
             this.getFirstClient(),
             symbol.symbol,
@@ -113,13 +114,13 @@ export class BitgetService {
         linkParentOrderId?: Types.ObjectId,
         currentPrice: number = null,
     ): Promise<any> {
-        const userIdStr = user._id.toString()
         let { PEs, SL, TPs, side, baseCoin, size: margin } = placeOrderDTO;
         const symbolRules = await this.bitgetUtilsService.getSymbolBy(
             'baseCoin',
             baseCoin,
             '+positionTier'
         )
+        console.log('symbolRules', symbolRules)
         if (!symbolRules) {
             return
         }

@@ -125,7 +125,7 @@ export class BitgetUtilsService {
             const size = this.fixSizeByRules(this.getQuantityForUSDT(margin, PE, leverage), symbolRules);
             const fullQuantityUSDT = size * PE;
             const exactMargin = fullQuantityUSDT / leverage;
-            const fees = fullQuantityUSDT * (Number(symbolRules.takerFeeRate) + positionTier.keepMarginRate);
+            const fees = fullQuantityUSDT * (Number(symbolRules.takerFeeRate) + positionTier.keepMarginRate + Number(symbolRules.feeRateUpRatio));
             const liquidityPrice =  PE - (0.98 * (exactMargin - fees)) / size
             if (liquidityPrice < SL) {
                 return leverage

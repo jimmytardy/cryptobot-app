@@ -2,16 +2,15 @@ import { Container, Nav, Navbar, OverlayTrigger, Tooltip } from 'react-bootstrap
 import './index.scss'
 import { useLocation, useNavigate } from 'react-router'
 import { useAuth } from '../../../hooks/AuthContext'
-import { IRoute } from '../pages.interface'
+import { IPagesRouterProps, IRoute } from '../pages.interface'
 import { List } from 'react-bootstrap-icons'
 import { useState } from 'react'
 
-interface NavBarCryptobotProps {
-    routes: IRoute[]
+interface NavBarCryptobotProps extends IPagesRouterProps {
     theme?: string
 }
 
-const NavBarCryptobot: React.FC<NavBarCryptobotProps> = ({ routes, theme }) => {
+const NavBarCryptobot: React.FC<NavBarCryptobotProps> = ({ routes, onClickLogo, theme }) => {
     const navigate = useNavigate()
     const location = useLocation()
     const [expanded, setExpanded] = useState<boolean>(false)
@@ -25,7 +24,7 @@ const NavBarCryptobot: React.FC<NavBarCryptobotProps> = ({ routes, theme }) => {
     return (
         <Navbar expand="xl" bg={theme} data-bs-theme={theme} className="navbar-cryptobot" expanded={expanded}>
             <Container fluid>
-                <Navbar.Brand onClick={() => navigate('home')}>
+                <Navbar.Brand onClick={onClickLogo}>
                     <img src={'/banner.png'} alt="Logo" />
                 </Navbar.Brand>
                 <Navbar.Toggle aria-controls="navbar-nav" onClick={() => setExpanded(true)}>

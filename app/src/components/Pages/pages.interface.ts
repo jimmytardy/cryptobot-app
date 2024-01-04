@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 
 export interface IPagesRouterProps {
     routes: IRoute[]
+    onClickLogo?: (e: any) => void
 }
 
 export interface IRoute {

@@ -23,7 +23,7 @@ export interface ICryptobotRouterProps {
 }
 
 const Pages = () => {
-    const { user } = useAuth();
+    const { user } = useAuth()
     const location = useLocation()
     const navigate = useNavigate()
     if (!user) return <div></div>
@@ -76,47 +76,40 @@ const Pages = () => {
             Component: Users,
             path: 'users',
             title: 'Utilisateurs',
-        }
-    ];
+        },
+    ]
 
-    const changeUserMode = (e: any) => {
+    const changeUserModeListener = (e: any) => {
         if (e.ctrlKey && e.shiftKey) {
             if (e.key === ' ') {
-                navigate(location.pathname.includes('admin') ? 'home' : 'admin');
+                navigate(location.pathname.includes('admin') ? 'home' : 'admin')
             }
         }
     }
 
+    const changeUserMode = () => {
+        navigate(!user.isAdmin || location.pathname.includes('admin') ? 'home' : 'admin')
+    }
+
     useEffect(() => {
-        user.isAdmin && window.addEventListener('keydown', changeUserMode);
+        user.isAdmin && window.addEventListener('keydown', changeUserModeListener)
         return () => {
-            user.isAdmin && window.removeEventListener('keydown', changeUserMode);
+            user.isAdmin && window.removeEventListener('keydown', changeUserModeListener)
         }
-    }, [location, user.isAdmin]);
+    }, [location, user.isAdmin])
 
     return (
         <>
             <Routes>
-                <Route
-                    path={'/'}
-                    element={<CryptobotRouter routes={cryptobotRoutes} />}
-                    children={generateRoutes(cryptobotRoutes)}
-                />
+                <Route path={'/'} element={<CryptobotRouter onClickLogo={changeUserMode} routes={cryptobotRoutes} />} children={generateRoutes(cryptobotRoutes)} />
+                {user.isAdmin && <Route path={'admin'} element={<AdminRouter onClickLogo={changeUserMode} routes={adminRoutes} />} children={generateRoutes(adminRoutes)} />}
 
-                <Route
-                    path={'admin'}
-                    element={<AdminRouter routes={adminRoutes}/>}
-                    children={generateRoutes(adminRoutes)}
-                />
                 <Route path="/tutorial" element={<Tutorial />} />
-                <Route
-                    path="conditions-generales-utilisation"
-                    element={<CGU />}
-                />
+                <Route path="conditions-generales-utilisation" element={<CGU />} />
                 <Route path="*" element={<NotFound />} />
             </Routes>
         </>
     )
 }
 
-export default Pages;
+export default Pages
