@@ -120,7 +120,6 @@ export class BitgetService {
             baseCoin,
             '+positionTier'
         )
-        console.log('symbolRules', symbolRules)
         if (!symbolRules) {
             return
         }
@@ -148,6 +147,7 @@ export class BitgetService {
             errors: [],
             success: [],
         }
+        await this.bitgetActionService.setMarginMode(client, symbolRules.symbol);
         await this.bitgetActionService.setLeverage(client, symbolRules.symbol, leverage);
         await Promise.all(
             PEs.map(async (pe) => {

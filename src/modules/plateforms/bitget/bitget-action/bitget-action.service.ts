@@ -125,7 +125,6 @@ export class BitgetActionService {
     }
 
     async placeOrderBitget(client: FuturesClient, order: Order) {
-        await this.setMarginMode(client, order.symbol);
         const newOrderParams: NewFuturesOrder = {
             marginCoin: order.marginCoin,
             orderType: 'limit',

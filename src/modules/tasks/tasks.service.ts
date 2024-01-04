@@ -55,7 +55,7 @@ export class TasksService implements OnApplicationBootstrap {
                 [key: string]: User
             } = {}
             for (const order of ordersToSend) {
-                const client = this.bitgetService.getFirstClient()
+                const client = this.bitgetService.getClient(order.userId);
                 if (!rules[order.symbol]) {
                     const [symbolRules, price] = await Promise.all([
                         this.bitgetUtilsService.getSymbolBy('symbol', order.symbol),
@@ -74,6 +74,7 @@ export class TasksService implements OnApplicationBootstrap {
                             userMemo[order.userId.toString()] = await this.userService.findById(order.userId)
                         }
                         if (order.leverage) {
+                            await this.bitgetActionService.setMarginMode(client, order.symbol);
                             await this.bitgetActionService.setLeverage(client, order.symbol, order.leverage)
                         }
                         await this.bitgetActionService.placeOrderBitget(client, order)
