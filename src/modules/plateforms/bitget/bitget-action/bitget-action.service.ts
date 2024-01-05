@@ -4,6 +4,7 @@ import {
     FuturesClient,
     FuturesHoldSide,
     FuturesOrderSide,
+    FuturesOrderType,
     FuturesSymbolRule,
     ModifyFuturesOrder,
     ModifyFuturesPlanStopOrder,
@@ -115,6 +116,8 @@ export class BitgetActionService {
                 } finally {
                     newOrder.PE = PEOriginPrice
                 }
+            } else {
+                await this.placeOrderBitget(client, newOrder, 'market');
             }
 
             return await newOrder.save()
@@ -124,15 +127,15 @@ export class BitgetActionService {
         }
     }
 
-    async placeOrderBitget(client: FuturesClient, order: Order) {
+    async placeOrderBitget(client: FuturesClient, order: Order, orderType: FuturesOrderType = 'limit') {
         const newOrderParams: NewFuturesOrder = {
             marginCoin: order.marginCoin,
-            orderType: 'limit',
-            price: String(order.PE),
+            orderType,
             side: ('open_' + order.side) as FuturesOrderSide,
             size: String(order.quantity),
             symbol: order.symbol,
             clientOid: order.clOrderId.toString(),
+            ...(orderType === 'limit' ? { price: String(order.PE) } : {})
         }
         const result = await client.submitOrder(newOrderParams).catch((e) => {
             console.error('placeOrderBitget', e, newOrderParams)
