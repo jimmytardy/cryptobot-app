@@ -16,7 +16,7 @@ import { InjectModel } from '@nestjs/mongoose'
 import { Order, OrderDocument } from 'src/model/Order'
 import { Model, Types } from 'mongoose'
 import { TakeProfit, TakeProfitDocument } from 'src/model/TakeProfit'
-import { StopLoss } from 'src/model/StopLoss'
+import { StopLoss, StopLossDocument } from 'src/model/StopLoss'
 import { OrderService } from 'src/modules/order/order.service'
 import { User } from 'src/model/User'
 import { IOrderStrategy } from 'src/interfaces/order-strategy.interface'
@@ -580,11 +580,24 @@ export class BitgetActionService {
     async updateOrderSL(client: FuturesClient, order: OrderDocument, newSL: number): Promise<boolean> {
         try {
             if (order.sendToPlateform && order.activated) {
-                const stopLoss = await this.stopLossModel.findOne({
+                let stopLoss: StopLossDocument = await this.stopLossModel.findOne({
                     orderParentId: order._id,
                     terminated: false,
                 })
-                if (!stopLoss) return false
+                if (!stopLoss) stopLoss = new this.stopLossModel({
+                    activated: true,
+                    cancelled: false,
+                    clOrderId: new Types.ObjectId(),
+                    historyTrigger: [],
+                    orderParentId: order._id,
+                    price: newSL,
+                    symbol: order.symbol,
+                    side: order.side,
+                    terminated: false,
+                    triggerPrice: newSL,
+                    userId: order.userId,
+                    step: -1,
+                });
                 const paramsSL: ModifyFuturesPlanStopOrder = {
                     marginCoin: order.marginCoin,
                     orderId: stopLoss.orderId,
