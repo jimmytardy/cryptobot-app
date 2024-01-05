@@ -20,7 +20,7 @@ import { StopLoss, StopLossDocument } from 'src/model/StopLoss'
 import { OrderService } from 'src/modules/order/order.service'
 import { User } from 'src/model/User'
 import { IOrderStrategy } from 'src/interfaces/order-strategy.interface'
-import * as exactMath from 'exact-math';
+import * as exactMath from 'exact-math'
 import { UtilService } from 'src/util/util.service'
 import { Symbol } from 'src/model/Symbol'
 
@@ -64,7 +64,7 @@ export class BitgetActionService {
     ) {
         try {
             const margin = exactMath.round(exactMath.mul(size, pe) / leverage, -3)
-            if (size <= 0 || size < (parseFloat(symbolRules.minTradeNum))) {
+            if (size <= 0 || size < parseFloat(symbolRules.minTradeNum)) {
                 throw new Error(
                     // @ts-ignore
                     `La quantité ${margin} est trop petite pour un ordre, le minimum est ${symbolRules.minTradeNum}`,
@@ -93,18 +93,18 @@ export class BitgetActionService {
             this.orderService.checkNewOrder(newOrder)
 
             newOrder.sendToPlateform = this.bitgetUtilsService.canSendBitget(symbolRules, currentPrice, newOrder)
-            const PEOriginPrice = newOrder.PE;
+            const PEOriginPrice = newOrder.PE
             if (newOrder.sendToPlateform) {
                 return await this.placeOrderBitget(client, newOrder)
             } else if ((sideOrder === 'long' && pe < currentPrice) || (sideOrder === 'short' && pe > currentPrice)) {
                 try {
                     newOrder.PE = currentPrice
                     if (sideOrder === 'long') {
-                        newOrder.PE = exactMath.mul(newOrder.PE, exactMath.sub(1, Number(symbolRules.buyLimitPriceRatio)));
+                        newOrder.PE = exactMath.mul(newOrder.PE, exactMath.sub(1, Number(symbolRules.buyLimitPriceRatio)))
                     } else {
-                        newOrder.PE = exactMath.mul(newOrder.PE, exactMath.add(1, Number(symbolRules.sellLimitPriceRatio)));
+                        newOrder.PE = exactMath.mul(newOrder.PE, exactMath.add(1, Number(symbolRules.sellLimitPriceRatio)))
                     }
-                    
+
                     newOrder.PE = this.bitgetUtilsService.fixPriceByRules(newOrder.PE, symbolRules)
                     newOrder = await this.placeOrderBitget(client, newOrder)
                     newOrder.sendToPlateform = true
@@ -237,7 +237,7 @@ export class BitgetActionService {
             clientOid: clOrderId.toString(),
         }
         try {
-            const result = await client.submitStopOrder(params);
+            const result = await client.submitStopOrder(params)
             const { orderId } = result.data
             await new this.takeProfitModel({
                 triggerPrice: newTP,
@@ -349,7 +349,8 @@ export class BitgetActionService {
                     try {
                         await client.cancelOrder(order.symbol, order.marginCoin, undefined, order.clOrderId?.toString())
                     } catch (e) {
-                        if (e.body.code !== '40768') { // order not exists
+                        if (e.body.code !== '40768') {
+                            // order not exists
                             console.error('cancelOrder > client', e)
                         }
                     }
@@ -584,40 +585,31 @@ export class BitgetActionService {
                     orderParentId: order._id,
                     terminated: false,
                 })
-                if (!stopLoss) stopLoss = new this.stopLossModel({
-                    activated: true,
-                    cancelled: false,
-                    clOrderId: new Types.ObjectId(),
-                    historyTrigger: [],
-                    orderParentId: order._id,
-                    price: newSL,
-                    symbol: order.symbol,
-                    side: order.side,
-                    terminated: false,
-                    triggerPrice: newSL,
-                    userId: order.userId,
-                    step: -1,
-                });
-                const paramsSL: ModifyFuturesPlanStopOrder = {
-                    marginCoin: order.marginCoin,
-                    orderId: stopLoss.orderId,
-                    clientOid: stopLoss.clOrderId.toString(),
-                    planType: 'loss_plan',
-                    symbol: order.symbol,
-                    triggerPrice: newSL.toString(),
+                if (!stopLoss) {
+                    const symbolRules = await this.bitgetUtilsService.getSymbolBy('symbol', order.symbol)
+                    await this.activeSL(client, symbolRules, order)
+                } else {
+                    const paramsSL: ModifyFuturesPlanStopOrder = {
+                        marginCoin: order.marginCoin,
+                        orderId: stopLoss.orderId,
+                        clientOid: stopLoss.clOrderId.toString(),
+                        planType: 'loss_plan',
+                        symbol: order.symbol,
+                        triggerPrice: newSL.toString(),
+                    }
+                    const result = await client.modifyStopOrder(paramsSL)
+                    stopLoss.orderId = result.data.orderId
+                    stopLoss.triggerPrice = newSL
+                    stopLoss.price = newSL
+                    await stopLoss.save()
                 }
-                const result = await client.modifyStopOrder(paramsSL)
-                stopLoss.orderId = result.data.orderId
-                stopLoss.triggerPrice = newSL
-                stopLoss.price = newSL
-                await stopLoss.save()
             }
             order.SL = newSL
             await order.save()
             return true
         } catch (e) {
             console.error('updateOrderSL', e)
-            return false;
+            return false
         }
     }
 }
