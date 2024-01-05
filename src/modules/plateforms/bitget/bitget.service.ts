@@ -2,24 +2,16 @@ import {
     HttpException,
     Injectable,
     Logger,
-    OnApplicationBootstrap,
-    OnModuleInit,
 } from '@nestjs/common'
-import { PlaceOrderDTO, SetLeverageDTO } from './bitget.dto'
-import { ConfigService } from '@nestjs/config'
+import { PlaceOrderDTO } from './bitget.dto'
 import { FuturesClient, FuturesOrderSide, RestClientV2 } from 'bitget-api'
 import { BitgetActionService } from './bitget-action/bitget-action.service'
 import { BitgetUtilsService } from './bitget-utils/bitget-utils.service'
-import { Model, Types } from 'mongoose'
+import { Types } from 'mongoose'
 import { Order, OrderDocument } from 'src/model/Order'
 import { StopLoss } from 'src/model/StopLoss'
 import { User } from 'src/model/User'
-import { InjectModel } from '@nestjs/mongoose'
-import { PaymentsService } from 'src/modules/payment/payments.service'
-import { SubscriptionEnum } from 'src/model/Subscription'
 import { IOrderStrategy } from 'src/interfaces/order-strategy.interface'
-import { IArrayModification } from 'src/util/util.interface'
-import { IOrderUpdate } from './bitget-action/bitget-action.interface'
 import { UtilService } from 'src/util/util.service'
 import { AppConfigService } from 'src/modules/app-config/app-config.service'
 

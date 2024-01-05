@@ -614,8 +614,10 @@ export class BitgetActionService {
             }
             order.SL = newSL
             await order.save()
+            return true
         } catch (e) {
             console.error('updateOrderSL', e)
+            return false;
         }
     }
 }
