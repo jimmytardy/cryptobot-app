@@ -174,7 +174,7 @@ export class BitgetUtilsService {
         }
     }
 
-    canSendBitget(symbolRules: Symbol, currentPrice: number, order: Order) {
+    canTakeOpenOrder(symbolRules: Symbol, currentPrice: number, order: Order) {
         const buyLimitPriceRatio = Number(symbolRules.buyLimitPriceRatio)
         const sellLimitPriceRatio = Number(symbolRules.sellLimitPriceRatio)
         // is in intervalle fixed by rules
