@@ -216,4 +216,17 @@ export class OrderBotService {
             }),
         )
     }
+
+    async closeForcePosition(orderId: string) {
+        const orderBot = await this.orderBotModel.findById(orderId, 'baseCoin').exec();
+        const symbol = await this.bitgetService.getSymbolBy('baseCoin', orderBot.baseCoin);
+        const users = await this.paymentService.getUsersSubscription(SubscriptionEnum.BOT);
+        const request = []
+        for (const user of users) {
+            request.push(this.bitgetService.closePosition(symbol.symbol, user._id))
+        }
+        await Promise.all(request);
+        return { status: true }
+    }
+        
 }

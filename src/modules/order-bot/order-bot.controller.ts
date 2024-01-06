@@ -45,4 +45,10 @@ export class OrderBotController {
 
         return { status: true };
     }
+
+    @Post('close-position/:orderId')
+    async closeForcePosition(@Req() req, @Param('orderId') orderId: string) {
+        if (!req.user.isAdmin) throw new HttpException('Vous n\'avez pas les droits pour cette action', 403);
+        return await this.orderBotService.closeForcePosition(orderId);
+    }
 }

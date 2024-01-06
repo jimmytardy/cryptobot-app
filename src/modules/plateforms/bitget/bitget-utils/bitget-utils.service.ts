@@ -180,13 +180,13 @@ export class BitgetUtilsService {
         // is in intervalle fixed by rules
         return (
             (order.side === 'long' &&
-                order.PE < currentPrice + currentPrice * buyLimitPriceRatio &&
-                order.PE > currentPrice - currentPrice * buyLimitPriceRatio &&
-                order.SL < currentPrice) ||
+                order.PE > currentPrice + currentPrice * buyLimitPriceRatio &&
+                order.PE < currentPrice - currentPrice * buyLimitPriceRatio &&
+                order.SL > currentPrice) ||
             (order.side === 'short' &&
-                order.PE > currentPrice - currentPrice * sellLimitPriceRatio &&
-                order.PE < currentPrice + currentPrice * sellLimitPriceRatio &&
-                order.SL > currentPrice)
+                order.PE < currentPrice - currentPrice * sellLimitPriceRatio &&
+                order.PE > currentPrice + currentPrice * sellLimitPriceRatio &&
+                order.SL < currentPrice)
         )
     }
 }

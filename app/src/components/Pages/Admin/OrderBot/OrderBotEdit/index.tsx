@@ -12,7 +12,7 @@ import NotFound from '../../../../utils/NotFound'
 const OrderBotEdit = () => {
     const [isLoading, setIsLoading] = useState<boolean>(true)
     const [message, setMessage] = useState<string>()
-    const [showModal, setShowModal] = useState<'resume' | 'delete' | undefined>()
+    const [showModal, setShowModal] = useState<'resume' | 'delete' | 'close-position' | undefined>()
     const side = useRef<IOrderBot['side']>()
     const navigate = useNavigate()
     let { id } = useParams()
@@ -85,9 +85,10 @@ const OrderBotEdit = () => {
 
     const handleOpenModalDelete = () => setShowModal('delete')
     const handleOpenModalResume = () => setShowModal('resume')
-    const handleCloseModal = () => setShowModal(undefined)
+    const handleOpenModalForceClosePosition = () => setShowModal('close-position')
+    const handleCloseModal = () => setShowModal(undefined);
 
-    const handleActionModal = async (action: 'delete' | 'resume') => {
+    const handleActionModal = async (action: 'delete' | 'resume' | 'close-position') => {
         try {
             if (action === 'delete') {
                 await axiosClient.delete('/order-bot/' + id)
@@ -95,6 +96,9 @@ const OrderBotEdit = () => {
             } else if (action === 'resume') {
                 await axiosClient.put('/order-bot/' + id)
                 setMessage('Ordre de bot repris')
+            } else if (action === 'close-position') {
+                await axiosClient.post('/order-bot/close-position/' + id);
+                setMessage('Toutes les positions ont bien été fermées')
             }
         } catch (error: any) {
             setMessage(error.response.data.message)
@@ -148,14 +152,17 @@ const OrderBotEdit = () => {
                             {message && <p>{message}</p>}
                         </Col>
                         <Col xs={12} className="text-center m-auto">
-                            <Button style={{ width: 100 }} disabled={!formState.isDirty} type="submit">
+                            <Button style={{ width: 150 }} disabled={!formState.isDirty} type="submit">
                                 Enregistrer
                             </Button>
-                            <Button className="ms-5" style={{ width: 100 }} onClick={handleOpenModalResume}>
+                            <Button className="ms-5" style={{ width: 150 }} onClick={handleOpenModalResume}>
                                 Reprendre
                             </Button>
                             <Button className="ms-5" variant="danger" style={{ width: 300 }} type="button" onClick={handleOpenModalDelete}>
                                 Supprimer tous les ordres en cours
+                            </Button>
+                            <Button className="ms-5" variant="danger" style={{ width: 300 }} onClick={handleOpenModalForceClosePosition}>
+                                Fermer toutes les positions
                             </Button>
                         </Col>
                     </Row>
@@ -173,9 +180,13 @@ const OrderBotEdit = () => {
                                     <Button variant="primary" onClick={() => handleActionModal(showModal)}>
                                         Reprendre
                                     </Button>
-                                ) : (
+                                ) : showModal === 'delete' ? (
                                     <Button variant="danger" onClick={() => handleActionModal(showModal)}>
                                         Supprimer
+                                    </Button>
+                                ) : (
+                                    <Button variant="danger" onClick={() => handleActionModal(showModal)}>
+                                        Fermer toutes les positions
                                     </Button>
                                 ))}
                         </Modal.Footer>

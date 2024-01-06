@@ -14,6 +14,7 @@ import { User } from 'src/model/User'
 import { IOrderStrategy } from 'src/interfaces/order-strategy.interface'
 import { UtilService } from 'src/util/util.service'
 import { AppConfigService } from 'src/modules/app-config/app-config.service'
+import { Symbol } from 'src/model/Symbol'
 
 @Injectable()
 export class BitgetService {
@@ -89,6 +90,10 @@ export class BitgetService {
             'baseCoin',
             baseCoin
         )
+    }
+
+    async getSymbolBy(key: string, value: string | number): Promise<Symbol> {
+        return await this.bitgetUtilsService.getSymbolBy(key, value)
     }
 
     async getCurrentPrice(key: string, value: string | number) {
