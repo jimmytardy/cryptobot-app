@@ -14,7 +14,7 @@ const AppConfig = () => {
             reset(response.data)
             setIsLoading(false)
         })()
-    }, []);
+    }, [])
 
     if (isLoading) return <Loader />
 
@@ -28,25 +28,31 @@ const AppConfig = () => {
             <form onSubmit={handleSubmit(onSubmitData)}>
                 <h3>Configuration du bot</h3>
                 <Row>
-                    <div className='form-title'>Droits du bot</div>
-                    <Col xs={12} className='mt-2'>
+                    <div className="form-title">Droits du bot</div>
+                    <Col xs={12} className="mt-2">
                         <FormGroup>
                             <FormCheck type="switch" label="Placer un ordre" {...register('bot.placeOrder')} />
                         </FormGroup>
                     </Col>
-                    <Col xs={12} className='mt-2'>
+                    <Col xs={12} className="mt-2">
                         <FormGroup>
                             <FormCheck type="switch" label="Modifier un ordre" {...register('bot.updateOrder')} />
                         </FormGroup>
                     </Col>
-                    <Col xs={12} className='mt-2'>
+                    <Col xs={12} className="mt-2">
                         <FormGroup>
                             <FormCheck type="switch" label="Annuler un ordre" {...register('bot.cancelOrder')} />
                         </FormGroup>
                     </Col>
                 </Row>
-                <Row className='mt-4'>
-                    <Col className='text-center'>
+                <Row>
+                <div className="form-title">Tâches récurrentes</div>
+                    <FormGroup>
+                        <FormCheck type="switch" label="Activer la synchronisation avec bitget" {...register('syncOrdersBitget.active')} />
+                    </FormGroup>
+                </Row>
+                <Row className="mt-4">
+                    <Col className="text-center">
                         <Button type="submit" style={{ width: 150 }}>
                             Enregistrer
                         </Button>

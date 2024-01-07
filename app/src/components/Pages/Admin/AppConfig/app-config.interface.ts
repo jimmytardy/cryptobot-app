@@ -4,4 +4,8 @@ export interface AppConfigPayload {
         updateOrder: boolean
         cancelOrder: boolean
     }
+    syncOrdersBitget: {
+        active: boolean
+        lastUpdated: number
+    }
 }
