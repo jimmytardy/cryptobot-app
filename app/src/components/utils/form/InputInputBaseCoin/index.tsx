@@ -1,15 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import axiosClient from '../../../../axiosClient'
-import { Controller, ControllerProps } from 'react-hook-form'
 import Loader from '../../Loader'
-import { FormSelect, FormSelectProps } from 'react-bootstrap'
+import { FormSelect } from 'react-bootstrap'
 
 interface IInputBaseCoinProps {
     onSelect: (coin: string) => void
     baseCoinExcluded?: string[]
 }
 
-const InputBaseCoin = <T extends object>({ onSelect, baseCoinExcluded }: IInputBaseCoinProps) => {
+const InputBaseCoin = ({ onSelect, baseCoinExcluded }: IInputBaseCoinProps) => {
     const [baseCoins, setBaseCoins] = useState<string[]>([]) // Un état pour stocker les baseCoins
     const coins = useMemo(() => baseCoins.filter((coin) => !baseCoinExcluded || !baseCoinExcluded.includes(coin)), [baseCoins, baseCoinExcluded])
 

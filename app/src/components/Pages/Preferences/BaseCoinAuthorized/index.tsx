@@ -1,6 +1,6 @@
 import { useFormContext } from 'react-hook-form'
 import { IPreferencePayload } from '..'
-import { Col, Container, Row } from 'react-bootstrap'
+import { Col, Row } from 'react-bootstrap'
 import InputBaseCoin from '../../../utils/form/InputInputBaseCoin'
 import './index.scss'
 import { X } from 'react-bootstrap-icons'
