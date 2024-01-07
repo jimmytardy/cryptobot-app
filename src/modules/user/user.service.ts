@@ -172,7 +172,7 @@ export class UserService implements OnApplicationBootstrap {
                 }
             }
             
-            if (order.SL?.activated) {
+            if (order.SL?.terminated) {
                 results.nbSL[order.SL.step]++;
                 results.nbTotalSL++;
             }
