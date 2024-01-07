@@ -94,7 +94,7 @@ export class OrderBotService {
 
             const newOrderBot = new this.orderBotModel(orderBot)
             await newOrderBot.save()
-            const users = await this.paymentService.getUsersSubscription(SubscriptionEnum.BOT)
+            const users = await this.paymentService.getUsersSubscription(SubscriptionEnum.BOT);
             await this.placeOrderBot(orderBot, users)
         } catch (e) {
             this.logger.error('placeOrderBot', e)
@@ -106,9 +106,10 @@ export class OrderBotService {
 
     async placeOrderBot(orderBot: OrderBot, users: User[]) {
         try {
+            const userFiltered = users.filter((user) => !user.preferences.order.baseCoinAuthorized || user.preferences.order.baseCoinAuthorized.includes(orderBot.baseCoin))
             const price = await this.bitgetService.getCurrentPrice('baseCoin', orderBot.baseCoin)
             return await Promise.all(
-                users.map(
+                userFiltered.map(
                     async (user) =>
                         await this.bitgetService.placeOrder(orderBot, user, orderBot.linkOrderId, price).catch((error) => {
                             this.logger.error('placeOrderBot > Promise.map > catch', user._id, error)

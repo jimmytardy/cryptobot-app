@@ -33,7 +33,6 @@ export class TasksService implements OnApplicationBootstrap {
         if (!symbol?.positionTier || symbol.positionTier.length === 0) {
             await this.updateSymbolRules()
         }
-        await this.syncOrders();
     }
 
     @Cron(CronExpression.EVERY_DAY_AT_2AM)

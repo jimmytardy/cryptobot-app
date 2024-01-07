@@ -1,0 +1,39 @@
+.basecoin-authorized {
+    background-color: blanchedalmond;
+    border-radius: 15px;
+    margin-top: 1em;
+    margin-bottom: 1em;
+    padding: 0.5rem;
+    .coin-list {
+        padding-top: 1rem;
+        display: flex;
+        flex-wrap: wrap;
+
+        span:not(.coin-item) {
+            font-weight: 700;
+        }
+        span.coin-item {
+            background-color: darkred;
+            color: white;
+            padding: 0.3em 3em 0.3em 1em;
+            margin: 0.5rem;
+            border-radius: 15px;
+            font-size: 1em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            svg {
+                position: absolute;
+                right: 0;
+                cursor: pointer;
+                font-size: 2em;
+                background-color: black;
+                height: 100%;
+                margin-right: -1px;
+                border-top-right-radius: 15px;
+                border-bottom-right-radius: 15px;
+            }
+        }
+    }
+}

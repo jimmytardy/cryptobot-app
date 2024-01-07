@@ -20,6 +20,7 @@ const defaultUserPreference: IUserPreferences = {
             6: [0.1, 0.15, 0.25, 0.25, 0.15, 0.1],
         },
         marginCoin: 'USDT',
+        baseCoinAuthorized: undefined
     },
 }
 
@@ -51,6 +52,9 @@ export class IUserPreferencesOrder {
     
     @Prop({ type: SchemaTypes.Mixed })
     strategy?: IOrderStrategy
+
+    @Prop({ type: SchemaTypes.Array})
+    baseCoinAuthorized?: string[]
 }
 
 export class IUserPreferences {

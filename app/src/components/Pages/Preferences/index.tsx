@@ -23,6 +23,7 @@ import { InfoCircle } from 'react-bootstrap-icons'
 import ControllerArrayNumber from '../../utils/form/ControllerArrayNumber'
 import './index.scss'
 import Strategie from './Strategie'
+import BaseCoinAuthorized from './BaseCoinAuthorized'
 
 export type TPSizeType = { [x: string]: number[] }
 
@@ -51,6 +52,7 @@ export interface IPreferencePayload {
         TPSize: TPSizeType,
         marginCoin: string,
         strategy?: IOrderStrategy
+        baseCoinAuthorized?: string[]
     }
 }
 
@@ -209,6 +211,7 @@ const Preferences = () => {
                                 </Col>
                             </Row>
                             <Strategie />
+                            <BaseCoinAuthorized />
                             <Row>
                                 <Col xs={12}>
                                     <FormGroup>
