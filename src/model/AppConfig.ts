@@ -17,11 +17,24 @@ export class AppConfigBot {
     cancelOrder: boolean
 }
 
-const appConfigDefault = {
+@Schema({ _id: false })
+export class AppConfigSync {
+    @Prop()
+    active: boolean
+
+    @Prop()
+    lastUpdated: number
+}
+
+export const appConfigDefault = {
     bot: {
         placeOrder: true,
         updateOrder: true,
         cancelOrder: true
+    },
+    syncOrdersBitget: {
+        active: false,
+        lastUpdated: 1704628908
     }
 }
 
@@ -36,6 +49,9 @@ export class AppConfig {
 
     @Prop({ type: () => AppConfigBot, default: appConfigDefault.bot }) 
     bot: AppConfigBot
+
+    @Prop({ default: appConfigDefault.syncOrdersBitget, type: () => AppConfigSync})
+    syncOrdersBitget: AppConfigSync;
 }
 
 export const AppConfigSchema = SchemaFactory.createForClass(AppConfig);

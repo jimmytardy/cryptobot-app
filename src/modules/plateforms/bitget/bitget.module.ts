@@ -17,7 +17,6 @@ import { AppConfigModule } from 'src/modules/app-config/app-config.module'
         BitgetWsModule,
         OrderModule,
         PaymentsModule,
-        AppConfigModule,
         MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     ],
     controllers: [BitgetController],

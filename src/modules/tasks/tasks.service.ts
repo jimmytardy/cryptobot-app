@@ -3,7 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule'
 import { PaymentsService } from '../payment/payments.service'
 import { InjectModel } from '@nestjs/mongoose'
 import { Order } from 'src/model/Order'
-import { Model } from 'mongoose'
+import { Model, Types } from 'mongoose'
 import { BitgetUtilsService } from '../plateforms/bitget/bitget-utils/bitget-utils.service'
 import { BitgetService } from '../plateforms/bitget/bitget.service'
 import { FuturesClient, FuturesKlineInterval, FuturesSymbolRule } from 'bitget-api'
@@ -11,6 +11,8 @@ import { BitgetActionService } from '../plateforms/bitget/bitget-action/bitget-a
 import { User } from 'src/model/User'
 import { UserService } from '../user/user.service'
 import { Symbol } from 'src/model/Symbol'
+import * as exactMath from 'exact-math'
+import { AppConfig } from 'src/model/AppConfig'
 
 @Injectable()
 export class TasksService implements OnApplicationBootstrap {
@@ -19,6 +21,7 @@ export class TasksService implements OnApplicationBootstrap {
     constructor(
         @InjectModel(Order.name) private orderModel: Model<Order>,
         @InjectModel(Symbol.name) private symbolModel: Model<Symbol>,
+        @InjectModel(AppConfig.name) private appConfigModel: Model<AppConfig>,
         private userService: UserService,
         private bitgetUtilsService: BitgetUtilsService,
         private bitgetActionService: BitgetActionService,
@@ -29,6 +32,35 @@ export class TasksService implements OnApplicationBootstrap {
         const symbol = await this.symbolModel.findOne({}, '+positionTier').exec()
         if (!symbol?.positionTier || symbol.positionTier.length === 0) {
             await this.updateSymbolRules()
+        }
+        await this.syncOrders();
+    }
+
+    @Cron(CronExpression.EVERY_DAY_AT_2AM)
+    async syncOrders() {
+        const appConfig = await this.appConfigModel.findOne()
+        if (appConfig.syncOrdersBitget.active) {
+            const now = Date.now()
+            const users = await this.userService.getListOfTraders()
+            for (const user of users) {
+                const client = this.bitgetService.getClient(user._id)
+                const symbols = await this.orderModel.distinct('symbol', { userId: user._id }).exec()
+                for (const symbol of symbols) {
+                    const ordersBitget = await client.getOrderHistory(symbol, String(appConfig.syncOrdersBitget.lastUpdated), String(now), '10')
+                    if (ordersBitget.data.orderList) {
+                        for (const orderBitget of ordersBitget.data.orderList) {
+                            if (!Types.ObjectId.isValid(orderBitget.clientOid)) continue
+                            const order = await this.orderModel.findOne({ clOrderId: new Types.ObjectId(orderBitget.clientOid) }).exec()
+                            if (!order) continue
+                            order.PE = orderBitget.price || orderBitget.priceAvg
+                            order.usdt = exactMath.round(exactMath.mul(orderBitget.size, order.PE) / order.leverage, -3)
+                            await order.save()
+                        }
+                    }
+                }
+            }
+            appConfig.syncOrdersBitget.lastUpdated = now
+            await appConfig.save()
         }
     }
 
