@@ -179,6 +179,12 @@ const Positions = () => {
                                                 >
                                                     PE: {order.PE} USDT
                                                 </Col>
+                                                <Col
+                                                    xs={3}
+                                                    className="order-Gain"
+                                                >
+                                                    Gain maximum ≈ <b>{order.TPs.reduce((acc, current) => acc + current.PnL, 0).toFixed(2)} USDT (+{order.TPs.reduce((acc, current) => acc + current.PnLPourcentage, 0).toFixed(2)}%)</b>
+                                                </Col>
                                                 <Col className="order-quantity text-right">
                                                     {order.usdt
                                                         ? order.usdt + 'USDT'
