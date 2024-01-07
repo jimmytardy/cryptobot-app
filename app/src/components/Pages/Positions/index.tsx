@@ -17,6 +17,8 @@ interface IUserOrderTPSL extends IOrderStatus {
     quantity: number
     clOrder: string
     num: number
+    PnL: number
+    PnLPourcentage: number;
 }
 
 interface IUserOrder extends IOrderStatus {
@@ -41,7 +43,7 @@ const Positions = () => {
     const loadOrders = async () => {
         setIsLoading(true)
         const ordersResults =
-            await axiosClient.get<IUserOrder[]>('/user/orders')
+            await axiosClient.get<IUserOrder[]>('/user/orders-active')
         const newPositions: IPosition = {}
         for (const order of ordersResults.data) {
             if (order.linkOrderId) {
@@ -189,7 +191,7 @@ const Positions = () => {
                                                     Status
                                                 </Col>
                                                 <Col xs={5}>Prix</Col>
-                                                <Col xs={5}>Quantité</Col>
+                                                <Col xs={5} className='justify-content-end'>Gain</Col>
                                             </Row>
                                             {order.activated &&
                                                 order.TPs.concat([
@@ -249,15 +251,7 @@ const Positions = () => {
                                                             md={5}
                                                             className="order-quantity"
                                                         >
-                                                            {tp.quantity
-                                                                ? (
-                                                                      tp.quantity /
-                                                                      order.quantity
-                                                                  ).toFixed(2) +
-                                                                  '%'
-                                                                : order.quantity +
-                                                                  ' ' +
-                                                                  baseCoin}
+                                                            {tp.PnL ? `≈ ${tp.PnL?.toFixed(2)} USDT (${(tp.PnLPourcentage).toFixed(2)}%)` : `${order.quantity} ${baseCoin}`}
                                                         </Col>
                                                     </Row>
                                                 ))}

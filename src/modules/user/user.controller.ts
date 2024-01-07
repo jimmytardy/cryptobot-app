@@ -30,9 +30,9 @@ export class UserController {
     }
 
     @UseGuards(JwtAuthGuard)
-    @Get('orders')
+    @Get('orders-active')
     async getOrders(@Request() req) {
-        return this.orderService.getOrders({
+        return this.orderService.getFullOrders(req.user, {
             userId: req.user._id,
             terminated: false,
         });

@@ -7,7 +7,7 @@ import { PlaceOrderDTO } from './bitget.dto'
 import { FuturesClient, FuturesOrderSide, RestClientV2 } from 'bitget-api'
 import { BitgetActionService } from './bitget-action/bitget-action.service'
 import { BitgetUtilsService } from './bitget-utils/bitget-utils.service'
-import { Types } from 'mongoose'
+import { ProjectionType, Types } from 'mongoose'
 import { Order, OrderDocument } from 'src/model/Order'
 import { StopLoss } from 'src/model/StopLoss'
 import { User } from 'src/model/User'
@@ -92,8 +92,8 @@ export class BitgetService {
         )
     }
 
-    async getSymbolBy(key: string, value: string | number): Promise<Symbol> {
-        return await this.bitgetUtilsService.getSymbolBy(key, value)
+    async getSymbolBy(key: string, value: string | number, select?: ProjectionType<Symbol>): Promise<Symbol> {
+        return await this.bitgetUtilsService.getSymbolBy(key, value, select)
     }
 
     async getCurrentPrice(key: string, value: string | number) {
@@ -136,7 +136,7 @@ export class BitgetService {
         const fullSide = ('open_' + side) as FuturesOrderSide
         const linkOrderId = linkParentOrderId || new Types.ObjectId()
         const PEAvg = PEs.reduce((a, b) => a + b, 0) / PEs.length
-        const leverage = this.bitgetUtilsService.calculateLeverage(PEAvg, margin * PEs.length, SL, symbolRules)
+        const leverage = this.bitgetUtilsService.calculateLeverage(PEAvg, margin * PEs.length, SL, symbolRules, side)
         const size = this.bitgetUtilsService.fixSizeByRules(this.bitgetUtilsService.getQuantityForUSDT(margin, PEAvg, leverage), symbolRules);
         if (!currentPrice) currentPrice = await this.bitgetUtilsService.getCurrentPrice(client, symbolRules.symbol);
         const results = {

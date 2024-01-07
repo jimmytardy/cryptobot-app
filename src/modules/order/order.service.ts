@@ -4,6 +4,14 @@ import { FilterQuery, Model, Types } from 'mongoose'
 import { Order } from 'src/model/Order'
 import { StopLoss } from 'src/model/StopLoss'
 import { TakeProfit } from 'src/model/TakeProfit'
+import { User } from 'src/model/User'
+import { UtilService } from 'src/util/util.service'
+import _ from 'underscore'
+
+export interface IOrderPopulated extends Omit<Omit<Order, 'SL'>, 'TPs'> {
+    SL: StopLoss
+    TPs: TakeProfit[]
+}
 
 @Injectable()
 export class OrderService {
@@ -50,7 +58,20 @@ export class OrderService {
         )
     }
 
-    async getOrders(filterQuery: FilterQuery<Order>) {
+    async getFullOrders(user: User, filterQuery: FilterQuery<Order>) {
+        const orders: (IOrderPopulated & any)[]= await this.getOrders(filterQuery);
+
+        for (const order of orders) {
+            for (const TP of order.TPs) {
+                const pourcentage =  user.preferences.order.TPSize[order.TPs.length][TP.num - 1];
+                TP.PnL = UtilService.getPnL(order.quantity * pourcentage, order.PE, TP.triggerPrice, order.side);
+                TP.PnLPourcentage = TP.PnL / order.usdt * 100;
+            }
+        }
+        return orders;
+    }
+
+    async getOrders(filterQuery: FilterQuery<Order>): Promise<IOrderPopulated[]> {
         try {
             const results = await this.orderModel.aggregate([
                 {

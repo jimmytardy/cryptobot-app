@@ -117,6 +117,7 @@ export class BitgetUtilsService {
         margin: number,
         SL: number,
         symbolRules: Symbol,
+        side: FuturesHoldSide,
     ): number | null {
         const positionTier = this.getPositionTier(symbolRules, margin)
         let leverage = positionTier.leverage;
@@ -126,9 +127,16 @@ export class BitgetUtilsService {
             const fullQuantityUSDT = size * PE;
             const exactMargin = fullQuantityUSDT / leverage;
             const fees = fullQuantityUSDT * (Number(symbolRules.takerFeeRate) + positionTier.keepMarginRate + Number(symbolRules.feeRateUpRatio));
-            const liquidityPrice =  PE - (0.98 * (exactMargin - fees)) / size
-            if (liquidityPrice < SL) {
-                return leverage
+            if (side === 'long') {
+                const liquidityPrice =  PE - (0.98 * (exactMargin - fees)) / size
+                if (liquidityPrice < SL) {
+                    return leverage
+                }
+            } else {
+                const liquidityPrice =  PE + (0.98 * (exactMargin - fees)) / size
+                if (liquidityPrice > SL) {
+                    return leverage
+                }
             }
         }
         throw new Error('No lever is compatible to respect the SL')

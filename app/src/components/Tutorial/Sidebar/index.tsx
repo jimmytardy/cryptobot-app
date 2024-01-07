@@ -24,7 +24,6 @@ const TutorialSidebar = ({ show }: ITutorialSidebarProps) => {
                 const subList = []
                 for (const step of steps) {
                     const stepTitle = step.querySelector('.tutorial-step__title')
-                    console.log(stepTitle?.textContent, step?.id)
                     subList.push({
                         title: stepTitle?.textContent || '',
                         id: step?.id || '',

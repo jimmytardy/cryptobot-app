@@ -51,4 +51,12 @@ export class UtilService {
             }
         })
     }
+
+    static getPnL(size: number, PE: number, triggerPrice: number, side: FuturesHoldSide): number {
+        if (side === 'long') {
+            return (triggerPrice - PE) * size
+        } else {
+            return (PE - triggerPrice) * size
+        }
+    }
 }
