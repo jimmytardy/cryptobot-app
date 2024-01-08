@@ -535,6 +535,7 @@ export class BitgetActionService {
             const takeProfitNotTerminated = []
             for (let i = 0; i < takeProfits.length; i++) {
                 if (takeProfits[i].terminated) {
+                    console.log('tp', takeProfits[i].num, takeProfits[i].activated);
                     TPList.splice(takeProfits[i].num - 1);
                 } else {
                     takeProfitNotTerminated.push(takeProfits[i])
