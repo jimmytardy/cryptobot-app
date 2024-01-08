@@ -14,7 +14,7 @@ export interface IOrderPopulated extends Omit<Omit<Order, 'SL'>, 'TPs'> {
 }
 
 @Injectable()
-export class OrderService implements OnApplicationBootstrap {
+export class OrderService {
     constructor(
         @InjectModel(Order.name) private readonly orderModel: Model<Order>,
         @InjectModel(TakeProfit.name)
@@ -22,13 +22,6 @@ export class OrderService implements OnApplicationBootstrap {
         @InjectModel(StopLoss.name)
         private readonly stopLossModel: Model<StopLoss>,
     ) {}
-
-    async onApplicationBootstrap() {
-        const ordersIds = await this.orderModel.distinct('_id', { symbol: 'ETHUSDT_UMCBL', terminated: true }).exec()
-        await this.orderModel.deleteMany({ _id: { $in: ordersIds }}).exec()
-        await this.stopLossModel.deleteMany({ orderParentId: { $in: ordersIds }}).exec()
-        await this.takeProfitModel.deleteMany({ orderParentId: { $in: ordersIds }}).exec()
-    }
 
     async cancelOrder(
         orderId: string | Types.ObjectId,
