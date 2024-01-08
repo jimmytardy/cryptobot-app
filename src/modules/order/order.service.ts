@@ -62,7 +62,12 @@ export class OrderService {
         const orders: (IOrderPopulated & any)[]= await this.getOrders(filterQuery);
 
         for (const order of orders) {
+            if (!order.TPs) order.TPs = [];
+            if (!order.SL) order.SL = null;
             for (const TP of order.TPs) {
+                console.log('user.preferences.order.TPSize', user?.preferences?.order?.TPSize)
+                console.log('order.TPs', order.TPs)
+                console.log('TP', TP)
                 const pourcentage =  user.preferences.order.TPSize[order.TPs.length][TP.num - 1];
                 TP.PnL = UtilService.getPnL(order.quantity * pourcentage, order.PE, TP.triggerPrice, order.side);
                 TP.PnLPourcentage = TP.PnL / order.usdt * 100;
@@ -97,7 +102,10 @@ export class OrderService {
                     },
                 },
                 {
-                    $unwind: '$SL',
+                    $unwind: {
+                        path: '$SL',
+                        preserveNullAndEmptyArrays: true,
+                    },
                 },
             ])
             return results
