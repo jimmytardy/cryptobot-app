@@ -2,6 +2,7 @@ import {
     HttpException,
     Injectable,
     Logger,
+    OnApplicationBootstrap,
 } from '@nestjs/common'
 import { PlaceOrderDTO } from './bitget.dto'
 import { FuturesClient, FuturesOrderSide, RestClientV2 } from 'bitget-api'

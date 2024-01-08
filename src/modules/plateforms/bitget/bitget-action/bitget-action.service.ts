@@ -95,14 +95,10 @@ export class BitgetActionService {
 
             newOrder.sendToPlateform = false;
             const PEOriginPrice = newOrder.PE
-            console.log(user.email, 'infos', sideOrder === 'long' , currentPrice, newOrder.PE)
-            console.log(user.email, 'test', sideOrder === 'long' , newOrder.PE > currentPrice)
-            console.log(user.email, 'test 2',sideOrder === 'short' , newOrder.PE > currentPrice)
             if ((sideOrder === 'long' && newOrder.PE > currentPrice) || (sideOrder === 'short' && newOrder.PE < currentPrice)) {
                 newOrder.PE = currentPrice
                 return await this.placeOrderBitget(client, newOrder, 'market')
             } else {
-                console.log(user.email,'place limit', newOrder.PE)
                 try {
                     newOrder.PE = currentPrice
                     if (sideOrder === 'long') {
