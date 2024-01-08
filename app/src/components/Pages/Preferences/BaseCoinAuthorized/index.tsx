@@ -9,7 +9,6 @@ const BaseCoinAuthorized = () => {
     const { watch, setValue, getValues } = useFormContext<IPreferencePayload>()
     const coins = watch('order.baseCoinAuthorized')
     const addCoin = (coin: string) => {
-        console.log('coin', coin)
         const currentCoins = getValues('order.baseCoinAuthorized')
         setValue('order.baseCoinAuthorized', [...(currentCoins || []), coin])
     }

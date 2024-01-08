@@ -107,7 +107,6 @@ export class BitgetActionService {
                         newOrder.PE = exactMath.mul(newOrder.PE, exactMath.add(1, Number(symbolRules.sellLimitPriceRatio)))
                     }
                     newOrder.PE = this.bitgetUtilsService.fixPriceByRules(newOrder.PE, symbolRules)
-                    console.log('newOrder.PE', newOrder.PE)
                     newOrder = await this.placeOrderBitget(client, newOrder)
                     newOrder.sendToPlateform = true
                     await this.updateOrderPE(client, newOrder, PEOriginPrice)
@@ -218,7 +217,7 @@ export class BitgetActionService {
                 clientOid: takeProfit.clOrderId.toString(),
                 orderId: takeProfit.orderId,
             }
-            await client.cancelPlanOrderTPSL(params)
+            await client.cancelPlanOrderTPSL(params).catch(e => console.error('cancelTPOfOrderActivate > bitget', e));
             await this.takeProfitModel.deleteOne({ _id: takeProfit._id })
         } catch (e) {
             console.error('cancelTPOfOrderActivate', e)
@@ -538,7 +537,6 @@ export class BitgetActionService {
                     takeProfitNotTerminated.push(takeProfits[i])
                 }
             }
-            console.log(takeProfitNotTerminated.map((tp) => tp.triggerPrice))
             const { TPPrice: newTPsCalculate, TPSize: newTPSizeCalculate } = this.bitgetUtilsService.caculateTPsToUse(
                 TPList,
                 totalQuantity,
