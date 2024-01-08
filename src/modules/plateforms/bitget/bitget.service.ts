@@ -186,12 +186,13 @@ export class BitgetService {
         return results
     }
 
-    async activeOrder(orderId: Types.ObjectId, user: User) {
+    async activeOrder(orderId: Types.ObjectId, user: User, orderEvent: any) {
         try {
             return await this.bitgetActionService.activeOrder(
                 this.client[user._id.toString()],
                 orderId,
                 user,
+                orderEvent
             )
         } catch (e) {
             this.logger.error('activeOrder', e)

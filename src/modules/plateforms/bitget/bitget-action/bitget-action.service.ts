@@ -146,10 +146,11 @@ export class BitgetActionService {
         return await this.orderModel.findOneAndUpdate({ _id: order._id }, order, { new: true, upsert: true })
     }
 
-    async activeOrder(client: FuturesClient, orderId: Types.ObjectId, user: User) {
+    async activeOrder(client: FuturesClient, orderId: Types.ObjectId, user: User, orderBitget: any) {
         try {
             const order = await this.orderModel.findOneAndUpdate({ _id: orderId, inActivation: { $ne: true }, activated: false }, { $set: { inActivation: true } }, { new: true })
             if (!order || order.activated) return null
+            order.quantity = parseFloat(orderBitget.sz);
             const symbolRules = await this.bitgetUtilsService.getSymbolBy('symbol', order.symbol)
             if (!symbolRules) throw new Error('Symbol not found')
             // important for active TPs
