@@ -527,6 +527,8 @@ export class BitgetActionService {
                 .sort({ num: order.side === 'long' ? 1 : -1 })
                 .exec()
 
+            const orderBitget = (await client.getOrder(order.symbol, order.orderId, order.clOrderId?.toString())).data;
+            order.quantity = orderBitget.size;
             const totalQuantity =  exactMath.sub(order.quantity, takeProfits.reduce((acc, currentTP) => acc + (currentTP.terminated ? currentTP.quantity : 0), 0));
             const TPList = [...newTPs]
             const takeProfitNotTerminated = []
