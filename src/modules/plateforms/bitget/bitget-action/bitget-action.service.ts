@@ -96,8 +96,12 @@ export class BitgetActionService {
             newOrder.sendToPlateform = false;
             const PEOriginPrice = newOrder.PE
             if (!this.bitgetUtilsService.canTakeOpenOrder(symbolRules, currentPrice, newOrder)) {
-                newOrder.PE = currentPrice
-                return await this.placeOrderBitget(client, newOrder, 'market')
+                if ((sideOrder === 'long' && currentPrice > newOrder.PE) || (sideOrder === 'short' && currentPrice < newOrder.PE)) {
+                    newOrder.PE = currentPrice
+                    return await this.placeOrderBitget(client, newOrder, 'market')
+                } else {
+                    return await this.placeOrderBitget(client, newOrder)
+                }
             } else {
                 try {
                     newOrder.PE = currentPrice
