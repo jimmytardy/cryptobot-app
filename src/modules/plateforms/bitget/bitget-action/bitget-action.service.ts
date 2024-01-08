@@ -623,7 +623,7 @@ export class BitgetActionService {
                             symbol: symbolv2,
                             productType: 'USDT-FUTURES'
                         })
-                        const stopLossBitget = history.data.entrustedList.find((item) => item.planType === 'loss_plan' && item.planStatus === 'live' && Types.ObjectId.isValid(item.clientOid) && (
+                        const stopLossBitget = history.data?.entrustedList?.find((item) => item.planType === 'loss_plan' && item.planStatus === 'live' && Types.ObjectId.isValid(item.clientOid) && (
                             [...order.TPs, order.SL].includes(parseFloat(item.triggerPrice || 0)) ||
                             [...order.TPs, order.SL].includes(parseFloat(item.stopLossTriggerPrice || 0)) ||
                             order.quantity === parseFloat(item.size)
