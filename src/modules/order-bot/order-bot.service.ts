@@ -176,6 +176,7 @@ export class OrderBotService {
                             success++
                         }
                     }
+                    console.log('TPModif', TPModif)
                     if (TPModif.length > 0) {
                         await this.bitgetService.updateTPsOfOrder(order, orderDTO.TPs, userMemo[order.userId.toString()])
                         success += TPModif.length

@@ -107,6 +107,7 @@ export class BitgetActionService {
                         newOrder.PE = exactMath.mul(newOrder.PE, exactMath.add(1, Number(symbolRules.sellLimitPriceRatio)))
                     }
                     newOrder.PE = this.bitgetUtilsService.fixPriceByRules(newOrder.PE, symbolRules)
+                    console.log('newOrder.PE', newOrder.PE)
                     newOrder = await this.placeOrderBitget(client, newOrder)
                     newOrder.sendToPlateform = true
                     await this.updateOrderPE(client, newOrder, PEOriginPrice)
@@ -527,18 +528,19 @@ export class BitgetActionService {
                 .sort({ num: order.side === 'long' ? 1 : -1 })
                 .exec()
 
-            const totalQuantity = order.quantity - takeProfits.reduce((acc, currentTP) => acc + (currentTP.terminated ? currentTP.quantity : 0), 0)
+            const totalQuantity =  exactMath.sub(order.quantity, takeProfits.reduce((acc, currentTP) => acc + (currentTP.terminated ? currentTP.quantity : 0), 0));
             const TPList = [...newTPs]
             const takeProfitNotTerminated = []
             for (let i = 0; i < takeProfits.length; i++) {
                 if (takeProfits[i].terminated) {
-                    TPList.splice(takeProfits[i].num - 1, 1)
+                    TPList.splice(takeProfits[i].num - 1);
                 } else {
                     takeProfitNotTerminated.push(takeProfits[i])
                 }
             }
+            console.log(takeProfitNotTerminated.map((tp) => tp.triggerPrice))
             const { TPPrice: newTPsCalculate, TPSize: newTPSizeCalculate } = this.bitgetUtilsService.caculateTPsToUse(
-                newTPs,
+                TPList,
                 totalQuantity,
                 user.preferences.order.TPSize,
                 symbolRules,
