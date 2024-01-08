@@ -532,16 +532,15 @@ export class BitgetActionService {
             order.quantity = orderBitget.size;
             const totalQuantity =  exactMath.sub(order.quantity, takeProfits.reduce((acc, currentTP) => acc + (currentTP.terminated ? currentTP.quantity : 0), 0));
             const TPList = [...newTPs]
+            console.log(newTPs)
             const takeProfitNotTerminated = []
             for (let i = 0; i < takeProfits.length; i++) {
                 if (takeProfits[i].terminated) {
-                    console.log('tp', takeProfits[i].num, takeProfits[i].activated);
-                    TPList.splice(takeProfits[i].num - 1);
+                    TPList.splice(takeProfits[i].num - 1, 1);
                 } else {
                     takeProfitNotTerminated.push(takeProfits[i])
                 }
             }
-            console.log(user.email, takeProfitNotTerminated.map(t => t.num), TPList)
             const { TPPrice: newTPsCalculate, TPSize: newTPSizeCalculate } = this.bitgetUtilsService.caculateTPsToUse(
                 TPList,
                 totalQuantity,
@@ -549,7 +548,6 @@ export class BitgetActionService {
                 symbolRules,
                 order.side,
             )
-            console.log(user.email, newTPsCalculate.length, order.TPs.length)
             if (newTPsCalculate.length !== order.TPs.length) {
                 // En premier on supprime tout les TPs
                 await Promise.all(
