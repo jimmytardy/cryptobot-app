@@ -22,7 +22,7 @@ export class BitgetService {
     client: {
         [key: string]: FuturesClient
     }
-    clientV2: {
+    static clientV2: {
         [key: string]: RestClientV2
     }
     logger: Logger
@@ -34,7 +34,7 @@ export class BitgetService {
     ) {
         this.logger = new Logger('BitgetService')
         this.client = {}
-        this.clientV2 = {}
+        BitgetService.clientV2 = {}
     }
 
     addNewTrader(user: User) {
@@ -45,8 +45,8 @@ export class BitgetService {
                 apiPass: user.bitget.api_pass,
             })
         }
-        if (!this.clientV2[user._id.toString()]) {
-            this.clientV2[user._id.toString()] = new RestClientV2({
+        if (!BitgetService.clientV2[user._id.toString()]) {
+            BitgetService.clientV2[user._id.toString()] = new RestClientV2({
                 apiKey: user.bitget.api_key,
                 apiSecret: user.bitget.api_secret_key,
                 apiPass: user.bitget.api_pass,
@@ -62,7 +62,7 @@ export class BitgetService {
         return this.client[userId.toString()]
     }
 
-    getClientV2(userId: Types.ObjectId): RestClientV2 {
+    static getClientV2(userId: Types.ObjectId): RestClientV2 {
         return this.clientV2[userId.toString()]
     }
 
@@ -218,7 +218,7 @@ export class BitgetService {
 
     async closePosition(symbol: string, userId: Types.ObjectId) {
         try {
-            const client = this.getClientV2(userId);
+            const client = BitgetService.getClientV2(userId);
             return await this.bitgetActionService.closePosition(
                 client,
                 userId,

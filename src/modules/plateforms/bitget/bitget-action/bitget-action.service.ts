@@ -24,6 +24,7 @@ import { IOrderStrategy } from 'src/interfaces/order-strategy.interface'
 import * as exactMath from 'exact-math'
 import { UtilService } from 'src/util/util.service'
 import { Symbol } from 'src/model/Symbol'
+import { BitgetService } from '../bitget.service'
 
 @Injectable()
 export class BitgetActionService {
@@ -167,10 +168,15 @@ export class BitgetActionService {
 
     private async activeSL(client: FuturesClient, symbolRules: FuturesSymbolRule, order: Order) {
         try {
+            const TPQuantityClose = await this.takeProfitModel.find({
+                orderParentId: order._id,
+                terminated: true,
+            });
+            const totalQuantity = exactMath.sub(order.quantity, TPQuantityClose.reduce((acc, currentTP) => acc + currentTP.quantity, 0));
             const clientOid = new Types.ObjectId()
             const params: NewFuturesPlanStopOrder = {
                 symbol: symbolRules.symbol,
-                size: order.quantity.toString(),
+                size: totalQuantity.toString(),
                 marginCoin: order.marginCoin,
                 planType: 'loss_plan',
                 triggerType: 'fill_price',
@@ -529,10 +535,9 @@ export class BitgetActionService {
                 .exec()
 
             const orderBitget = (await client.getOrder(order.symbol, order.orderId, order.clOrderId?.toString())).data;
-            order.quantity = orderBitget.size;
+            order.quantity = parseFloat(orderBitget.size);
             const totalQuantity =  exactMath.sub(order.quantity, takeProfits.reduce((acc, currentTP) => acc + (currentTP.terminated ? currentTP.quantity : 0), 0));
             const TPList = [...newTPs]
-            console.log(newTPs)
             const takeProfitNotTerminated = []
             for (let i = 0; i < takeProfits.length; i++) {
                 if (takeProfits[i].terminated) {
@@ -586,11 +591,14 @@ export class BitgetActionService {
     async updateOrderSL(client: FuturesClient, order: OrderDocument, newSL: number): Promise<boolean> {
         try {
             if (order.sendToPlateform && order.activated) {
+                const orderBitget = (await client.getOrder(order.symbol, order.orderId, order.clOrderId?.toString())).data;
+                order.quantity = parseFloat(orderBitget.size);
                 let stopLoss: StopLossDocument = await this.stopLossModel.findOne({
                     orderParentId: order._id,
                     terminated: false,
                 })
                 if (!stopLoss) {
+                    order.SL = newSL;
                     const symbolRules = await this.bitgetUtilsService.getSymbolBy('symbol', order.symbol)
                     await this.activeSL(client, symbolRules, order)
                 } else {
@@ -602,11 +610,37 @@ export class BitgetActionService {
                         symbol: order.symbol,
                         triggerPrice: newSL.toString(),
                     }
-                    const result = await client.modifyStopOrder(paramsSL)
-                    stopLoss.orderId = result.data.orderId
-                    stopLoss.triggerPrice = newSL
-                    stopLoss.price = newSL
-                    await stopLoss.save()
+                    try {
+                        const result = await client.modifyStopOrder(paramsSL)
+                        stopLoss.orderId = result.data.orderId
+                        stopLoss.triggerPrice = newSL
+                        stopLoss.price = newSL
+                        await stopLoss.save()
+                    } catch(e) {
+                        const symbolv2 = this.bitgetUtilsService.convertSymbolToV2(order.symbol);
+                        const history = await BitgetService.getClientV2(order.userId).getFuturesPlanOrders({
+                            planType: 'profit_loss',
+                            symbol: symbolv2,
+                            productType: 'USDT-FUTURES'
+                        })
+                        const stopLossBitget = history.data.entrustedList.find((item) => item.planType === 'loss_plan' && item.planStatus === 'live' && Types.ObjectId.isValid(item.clientOid) && (
+                            [...order.TPs, order.SL].includes(parseFloat(item.triggerPrice || 0)) ||
+                            [...order.TPs, order.SL].includes(parseFloat(item.stopLossTriggerPrice || 0)) ||
+                            order.quantity === parseFloat(item.size)
+                        ));
+                        if (stopLossBitget) {
+                            await client.cancelPlanOrderTPSL({
+                                marginCoin: 'USDT',
+                                planType: 'loss_plan',
+                                symbol: order.symbol,
+                                clientOid: stopLossBitget.clientOid,
+                                orderId: stopLossBitget.orderId
+                            }).catch(console.error)
+                        }
+                        await stopLoss.deleteOne();
+                        return this.updateOrderSL(client, order, newSL);
+                    }
+                    
                 }
             }
             order.SL = newSL
