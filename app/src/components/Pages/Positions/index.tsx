@@ -131,7 +131,7 @@ const Positions = () => {
                                         </span>
                                     </Col>
                                     <Col md={4} className="position-SL">
-                                        {orders[0].SL.triggerPrice}
+                                        {orders[0].SL?.triggerPrice}
                                     </Col>
                                 </Accordion.Header>
                                 <Accordion.Body as={Row} className="orders">
@@ -250,7 +250,7 @@ const Positions = () => {
                                                             md={5}
                                                             className="order-PE"
                                                         >
-                                                            {tp.triggerPrice}
+                                                            {tp?.triggerPrice}
                                                         </Col>
                                                         <Col
                                                             xs={3}
