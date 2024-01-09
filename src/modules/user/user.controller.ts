@@ -34,6 +34,7 @@ export class UserController {
     async getOrders(@Request() req) {
         return this.orderService.getFullOrders(req.user, {
             userId: req.user._id,
+            activated: true,
             terminated: false,
         });
     }
