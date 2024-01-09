@@ -35,12 +35,15 @@ const OrderBotEdit = () => {
 
     const handleOrderBotSave = async (data: IOrderBot) => {
         let modeSort = side.current === 'long' ? ArraySortEnum.ASC : ArraySortEnum.DESC
-        if (Math.max(...(data.PEs as number[])) > Math.min(...(data.TPs as number[]))) {
+        if (
+            (side.current === 'long' && Math.max(...(data.PEs as number[])) > Math.min(...(data.TPs as number[]))) ||
+            (side.current === 'short' && Math.min(...(data.PEs as number[])) < Math.max(...(data.TPs as number[])))
+        ) {
             setMessage('Les PEs doivent être inférieurs aux TPs')
             return
         }
 
-        if (data.SL > Math.min(...(data.PEs as number[]))) {
+        if ((side.current === 'long' && data.SL > Math.min(...(data.PEs as number[]))) || (side.current === 'short' && data.SL < Math.max(...(data.PEs as number[])))) {
             setMessage('Le SL doit être inférieur aux PEs')
             return
         }
@@ -58,7 +61,6 @@ const OrderBotEdit = () => {
             setMessage('Chaque TP ouvert doit être définis')
             return
         }
-
         if (checkSortArray(data.PEs as number[]) !== modeSort) {
             setMessage('Les PEs doivent être triés par ordre ' + modeSort)
             return
@@ -86,7 +88,7 @@ const OrderBotEdit = () => {
     const handleOpenModalDelete = () => setShowModal('delete')
     const handleOpenModalResume = () => setShowModal('resume')
     const handleOpenModalForceClosePosition = () => setShowModal('close-position')
-    const handleCloseModal = () => setShowModal(undefined);
+    const handleCloseModal = () => setShowModal(undefined)
 
     const handleActionModal = async (action: 'delete' | 'resume' | 'close-position') => {
         try {
@@ -97,7 +99,7 @@ const OrderBotEdit = () => {
                 await axiosClient.put('/order-bot/' + id)
                 setMessage('Ordre de bot repris')
             } else if (action === 'close-position') {
-                await axiosClient.post('/order-bot/close-position/' + id);
+                await axiosClient.post('/order-bot/close-position/' + id)
                 setMessage('Toutes les positions ont bien été fermées')
             }
         } catch (error: any) {

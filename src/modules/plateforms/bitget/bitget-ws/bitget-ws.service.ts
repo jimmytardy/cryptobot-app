@@ -27,24 +27,27 @@ export class BitgetWsService {
     }
 
     loggerTrace(logger: Logger, type: 'log' | 'fatal' | 'error' | 'verbose' | 'warn' | 'debug', userId: string) {
-        return (...params: any[]) => logger[type](params.map((p) => typeof p === 'object' ? JSON.stringify(p) : p).join(' '));
+        return (...params: any[]) => logger[type](params.map((p) => (typeof p === 'object' ? JSON.stringify(p) : p)).join(' '))
     }
-    
+
     addNewTrader(user: User) {
-        const userId = user._id.toString();
-        const logger: Logger = new Logger('BitgetWS-' + user._id);
-        this.client[userId] = new WebsocketClient({
-            apiKey: user.bitget.api_key,
-            apiPass: user.bitget.api_pass,
-            apiSecret: user.bitget.api_secret_key, 
-        }, {
-            debug: this.loggerTrace(logger, 'debug', userId),
-            error: this.loggerTrace(logger, 'error', userId),
-            info: this.loggerTrace(logger, 'log', userId),
-            notice: this.loggerTrace(logger, 'verbose', userId),
-            silly: this.loggerTrace(logger, 'verbose', userId),
-            warning: this.loggerTrace(logger, 'warn', userId)
-        })
+        const userId = user._id.toString()
+        const logger: Logger = new Logger('BitgetWS-' + user._id)
+        this.client[userId] = new WebsocketClient(
+            {
+                apiKey: user.bitget.api_key,
+                apiPass: user.bitget.api_pass,
+                apiSecret: user.bitget.api_secret_key,
+            },
+            {
+                debug: this.loggerTrace(logger, 'debug', userId),
+                error: this.loggerTrace(logger, 'error', userId),
+                info: this.loggerTrace(logger, 'log', userId),
+                notice: this.loggerTrace(logger, 'verbose', userId),
+                silly: this.loggerTrace(logger, 'verbose', userId),
+                warning: this.loggerTrace(logger, 'warn', userId),
+            },
+        )
         this.activateWebSocket(user)
     }
 
@@ -79,10 +82,7 @@ export class BitgetWsService {
                 userId: user._id,
             })
             if (takeProfit) {
-                return await this.onUpdatedOrderAlgoTP(
-                    orderAlgoEvent,
-                    takeProfit,
-                )
+                return await this.onUpdatedOrderAlgoTP(orderAlgoEvent, takeProfit)
             }
 
             const stopLoss = await this.stopLossModel.findOne({
@@ -97,10 +97,7 @@ export class BitgetWsService {
         }
     }
 
-    private async onUpdatedOrderAlgoSL(
-        orderAlgoEvent: any,
-        stopLoss: StopLossDocument,
-    ) {
+    private async onUpdatedOrderAlgoSL(orderAlgoEvent: any, stopLoss: StopLossDocument) {
         switch (orderAlgoEvent.state) {
             case 'cancel':
                 stopLoss.terminated = true
@@ -108,9 +105,7 @@ export class BitgetWsService {
                 await stopLoss.save()
                 break
             case 'not_trigger':
-                if (
-                    stopLoss.triggerPrice !== Number(orderAlgoEvent.triggerPx)
-                ) {
+                if (stopLoss.triggerPrice !== Number(orderAlgoEvent.triggerPx)) {
                     stopLoss.triggerPrice = Number(orderAlgoEvent.triggerPx)
                     stopLoss.updated = true
                     await stopLoss.save()
@@ -120,40 +115,26 @@ export class BitgetWsService {
                 await this.onStopLossTriggered(stopLoss)
                 break
             default:
-                console.info(
-                    'onUpdatedOrderAlgoSL',
-                    orderAlgoEvent.state,
-                    'not implemented',
-                )
+                console.info('onUpdatedOrderAlgoSL', orderAlgoEvent.state, 'not implemented')
         }
     }
 
-    private async onUpdatedOrderAlgoTP(
-        orderAlgoEvent: any,
-        takeProfit: TakeProfitDocument,
-    ) {
+    private async onUpdatedOrderAlgoTP(orderAlgoEvent: any, takeProfit: TakeProfitDocument) {
         switch (orderAlgoEvent.state) {
             case 'cancel':
                 takeProfit.terminated = true
                 takeProfit.cancelled = true
                 await takeProfit.save()
-                const takesProfitsNotTerminated =
-                    await this.takeProfitModel.countDocuments({
-                        orderParentId: takeProfit.orderParentId,
-                        terminated: { $ne: true },
-                    })
+                const takesProfitsNotTerminated = await this.takeProfitModel.countDocuments({
+                    orderParentId: takeProfit.orderParentId,
+                    terminated: { $ne: true },
+                })
                 if (takesProfitsNotTerminated === 0) {
-                    await this.orderService.cancelOrder(
-                        takeProfit.orderParentId,
-                        takeProfit.userId,
-                        true
-                    )
+                    await this.orderService.cancelOrder(takeProfit.orderParentId, takeProfit.userId, true)
                 }
                 break
             case 'not_trigger':
-                if (
-                    takeProfit.triggerPrice !== Number(orderAlgoEvent.triggerPx)
-                ) {
+                if (takeProfit.triggerPrice !== Number(orderAlgoEvent.triggerPx)) {
                     takeProfit.triggerPrice = Number(orderAlgoEvent.triggerPx)
                     takeProfit.updated = true
                     await takeProfit.save()
@@ -163,11 +144,7 @@ export class BitgetWsService {
                 await this.onTakeProfitTriggered(takeProfit)
                 break
             default:
-                console.info(
-                    'onUpdatedOrderAlgoTP',
-                    orderAlgoEvent.state,
-                    'not implemented',
-                )
+                console.info('onUpdatedOrderAlgoTP', orderAlgoEvent.state, 'not implemented')
         }
     }
 
@@ -187,15 +164,15 @@ export class BitgetWsService {
         }
     }
 
-    private async onOrderEvent(
-        orderEvent: any,
-        user: User,
-        order: OrderDocument,
-    ) {
+    private async onOrderEvent(orderEvent: any, user: User, order: OrderDocument) {
         switch (orderEvent.status) {
             case 'full-fill':
             case 'partial-fill':
-                if (orderEvent.side === 'buy' && !order.activated && !order.inActivation) {
+                if (
+                    ((orderEvent.side === 'buy' && orderEvent.posSide === 'long') || (orderEvent.side === 'sell' && orderEvent.posSide === 'short')) &&
+                    !order.activated &&
+                    !order.inActivation
+                ) {
                     await this.bitgetService.activeOrder(order._id, user, orderEvent)
                     break
                 }
@@ -214,21 +191,15 @@ export class BitgetWsService {
         const order = await this.orderModel.findById(takeProfit.orderParentId)
         // close order if has take all TPs
         try {
-            const user = await this.userModel.findById(
-                order.userId,
-                'preferences.order.strategy',
-            )
+            const user = await this.userModel.findById(order.userId, 'preferences.order.strategy')
             // upgrade stop loss
             await this.bitgetService.upgradeSL(
                 order,
                 user.preferences.order.strategy,
-                order.TPs.findIndex((tp: number) => tp === takeProfit.triggerPrice)
+                order.TPs.findIndex((tp: number) => tp === takeProfit.triggerPrice),
             )
             // cancel other order that not actived
-            await this.bitgetService.disabledOrderLink(
-                order.linkOrderId,
-                order.userId,
-            )
+            await this.bitgetService.disabledOrderLink(order.linkOrderId, order.userId)
             if (takeProfit.num === order.TPs.length) {
                 await this.orderService.cancelOrder(order._id, order.userId)
             }

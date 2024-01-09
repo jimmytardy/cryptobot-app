@@ -66,8 +66,7 @@ export enum ArraySortEnum {
     NOT_SORTED = 'Non trié'
 }
 
-export const checkSortArray = (array: number[]): ArraySortEnum => {
-    const aa = array.slice(1);
+export const checkSortArray = (aa: number[]): ArraySortEnum => {
     if (aa.every((a, i) => i === 0 || a > aa[i - 1])) {
         return ArraySortEnum.ASC
     }
