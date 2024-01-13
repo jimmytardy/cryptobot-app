@@ -167,7 +167,6 @@ export class BitgetWsService {
     private async onOrderEvent(orderEvent: any, user: User, order: OrderDocument) {
         switch (orderEvent.status) {
             case 'full-fill':
-            case 'partial-fill':
                 if (
                     ((orderEvent.side === 'buy' && orderEvent.posSide === 'long') || (orderEvent.side === 'sell' && orderEvent.posSide === 'short')) &&
                     !order.activated &&

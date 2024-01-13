@@ -109,7 +109,7 @@ export class BitgetActionService {
                     }
                     newOrder.PE = this.bitgetUtilsService.fixPriceByRules(newOrder.PE, symbolRules)
                     newOrder = await this.placeOrderBitget(client, newOrder)
-                    newOrder.sendToPlateform = true
+                    newOrder.sendToPlateform = true;
                     await this.updateOrderPE(client, newOrder, PEOriginPrice)
                 } catch (e) {
                     console.error('placeOrder > manual place order', e)
