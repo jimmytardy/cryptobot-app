@@ -1,0 +1,31 @@
+.list {
+    .list-body {
+        .list-body-item {
+            height: 40px;
+            display: flex;
+            align-items: center;
+            background-color: #181437;
+            &:nth-child(2n + 1) {
+                background-color: #fa551c;
+            }
+
+            & > div {
+                display: flex;
+                align-items: center;
+
+                &:last-child {
+                    justify-content: flex-end;
+                }
+            }
+
+            .list-body-actions {
+                padding: 0 0.5rem;
+                svg {
+                    font-size: 1.5em;
+                    min-width: 1.5em;
+                    cursor: pointer;
+                }
+            }
+        }
+    }
+}

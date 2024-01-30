@@ -70,7 +70,7 @@ const Pages = () => {
         {
             Component: AppConfig,
             path: 'app-config',
-            title: 'Configuration du serveur',
+            title: 'Configuration du Bot télégram',
         },
         {
             Component: Users,

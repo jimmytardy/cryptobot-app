@@ -3,47 +3,50 @@ import { IOrderBot } from '../order-bot.interface'
 import { useNavigate, useParams } from 'react-router'
 import axiosClient from '../../../../../axiosClient'
 import Loader from '../../../../utils/Loader'
-import { FormProvider, useForm, useFormState } from 'react-hook-form'
-import { Col, Container, Row, Form, Button, Modal } from 'react-bootstrap'
-import ControllerArrayNumber from '../../../../utils/form/ControllerArrayNumber'
+import { FormProvider, useForm } from 'react-hook-form'
+import { Col, Container, Row, Button, Modal } from 'react-bootstrap'
 import { ArraySortEnum, checkSortArray, isObjectId } from '../../../../../utils'
 import NotFound from '../../../../utils/NotFound'
+import PlaceOrderForm from '../../../../PlaceOrderForm'
 
 const OrderBotEdit = () => {
     const [isLoading, setIsLoading] = useState<boolean>(true)
     const [message, setMessage] = useState<string>()
     const [showModal, setShowModal] = useState<'resume' | 'delete' | 'close-position' | undefined>()
-    const side = useRef<IOrderBot['side']>()
     const navigate = useNavigate()
     let { id } = useParams()
     const methods = useForm<IOrderBot>()
-    const formState = useFormState<IOrderBot>({ control: methods.control })
+    const [lockedFields, setlockedFields] = useState<{ baseCoin: string; side: IOrderBot['side'] }>()
+
     useEffect(() => {
         if (!isObjectId(id)) return
         ;(async () => {
             const response = await axiosClient.get<IOrderBot>('/order-bot/' + id)
             if (!response) return navigate('/admin/order-bot')
             methods.reset(response.data)
-            side.current = response.data.side
+            setlockedFields({
+                baseCoin: response.data.baseCoin,
+                side: response.data.side,
+            })
             setIsLoading(false)
         })()
     }, [])
 
     if (isObjectId(id) === false) return <NotFound />
 
-    if (isLoading) return <Loader />
+    if (isLoading && !lockedFields) return <Loader />
 
     const handleOrderBotSave = async (data: IOrderBot) => {
-        let modeSort = side.current === 'long' ? ArraySortEnum.ASC : ArraySortEnum.DESC
+        let modeSort = lockedFields?.side === 'long' ? ArraySortEnum.ASC : ArraySortEnum.DESC
         if (
-            (side.current === 'long' && Math.max(...(data.PEs as number[])) > Math.min(...(data.TPs as number[]))) ||
-            (side.current === 'short' && Math.min(...(data.PEs as number[])) < Math.max(...(data.TPs as number[])))
+            (lockedFields?.side === 'long' && Math.max(...(data.PEs as number[])) > Math.min(...(data.TPs as number[]))) ||
+            (lockedFields?.side === 'short' && Math.min(...(data.PEs as number[])) < Math.max(...(data.TPs as number[])))
         ) {
             setMessage('Les PEs doivent être inférieurs aux TPs')
             return
         }
 
-        if ((side.current === 'long' && data.SL > Math.min(...(data.PEs as number[]))) || (side.current === 'short' && data.SL < Math.max(...(data.PEs as number[])))) {
+        if ((lockedFields?.side === 'long' && data.SL > Math.min(...(data.PEs as number[]))) || (lockedFields?.side === 'short' && data.SL < Math.max(...(data.PEs as number[])))) {
             setMessage('Le SL doit être inférieur aux PEs')
             return
         }
@@ -114,47 +117,15 @@ const OrderBotEdit = () => {
             <h2>Edition d'un ordre de bot</h2>
             <FormProvider {...methods}>
                 <form onSubmit={methods.handleSubmit(handleOrderBotSave)}>
-                    <Row className="mb-4">
-                        <Col xs={4} md={2}>
-                            <Form.Label htmlFor="baseCoin">Base Coin</Form.Label>
-                            <Form.Control
-                                {...methods.register('baseCoin', {
-                                    required: true,
-                                    valueAsNumber: true,
-                                    disabled: true,
-                                })}
-                            />
-                        </Col>
-                        <Col xs={4} md={2}>
-                            <Form.Label htmlFor="side">Side</Form.Label>
-                            <Form.Control
-                                {...methods.register('side', {
-                                    required: true,
-                                    valueAsNumber: true,
-                                    disabled: true,
-                                })}
-                            />
-                        </Col>
-                    </Row>
-                    <ControllerArrayNumber<IOrderBot> field={'PEs'} />
-                    <ControllerArrayNumber<IOrderBot> field={'TPs'} max={6} />
-                    <Row className="mb-4">
-                        <Col xs={4} md={2}>
-                            <Form.Label htmlFor="SL">SL</Form.Label>
-                            <Form.Control
-                                {...methods.register('SL', {
-                                    required: true,
-                                    valueAsNumber: true,
-                                })}
-                            />
-                        </Col>
-                    </Row>
+                    <PlaceOrderForm
+                        lockedFields={lockedFields}
+                    />
                     <Row className="mb-4">
                         <Col xs={12} className="text-center">
                             {message && <p>{message}</p>}
                         </Col>
                         <Col xs={12} className="text-center m-auto">
-                            <Button style={{ width: 150 }} disabled={!formState.isDirty} type="submit">
+                            <Button style={{ width: 150 }} type="submit">
                                 Enregistrer
                             </Button>
                             <Button className="ms-5" style={{ width: 150 }} onClick={handleOpenModalResume}>

@@ -128,7 +128,7 @@ export class OrderBotService {
         return await this.orderBotModel
             .find({ deleted: { $ne: true } })
             .sort({ createdAt: -1 })
-            .limit(20)
+            .limit(50)
             .exec()
     }
 

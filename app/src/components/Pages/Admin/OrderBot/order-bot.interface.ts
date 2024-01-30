@@ -1,10 +1,6 @@
-export interface IOrderBot {
-    _id: string;
+import { IOrder } from "../../../../interfaces/order.interface";
+
+export interface IOrderBot extends IOrder {
     messageId: string;
-    PEs: (number | undefined)[]
-    TPs: (number | undefined)[]
-    SL: number
-    baseCoin: string;
-    side: 'long' | 'short';
     linkOrderId: string;
 }

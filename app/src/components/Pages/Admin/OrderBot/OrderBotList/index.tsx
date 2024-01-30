@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Col, Container, Row } from 'react-bootstrap'
+import { Button, Col, Container, Row } from 'react-bootstrap'
 import { IOrderBot } from '../order-bot.interface'
 import axiosClient from '../../../../../axiosClient'
 import Loader from '../../../../utils/Loader'
@@ -9,42 +9,46 @@ import { useNavigate } from 'react-router'
 
 const OrderBotList = () => {
     const [orders, setOrders] = useState<IOrderBot[]>()
-    const navigate = useNavigate();
+    const navigate = useNavigate()
     useEffect(() => {
         ;(async () => {
             const response = await axiosClient.get('/order-bot')
             setOrders(response.data)
         })()
-    }, []);
+    }, [])
 
     const handleEdit = (id: string) => {
-        navigate('/admin/order-bot/' + id);
+        navigate('/admin/order-bot/' + id)
     }
 
     if (!orders) return <Loader />
 
     return (
-        <Container className="order-bot">
+        <Container className="order-bot list">
             <h2>Liste des ordres du bots</h2>
-            <Row className="order-bot-list">
-                <Col xs={12} className='order-bot-list-header'>
-                    <Row>
-                        <Col xs={1}>Base Coin</Col>
-                        <Col xs={2}>PE</Col>
-                        {[1, 2, 3, 4, 5, 6].map((tp, index) => (
-                            <Col xs={1} key={'TP-' + index}>
-                                TP{tp}
-                            </Col>
-                        ))}
-                        <Col xs={1}>SL</Col>
-                        <Col xs={2} className="text-end">
-                            Action
-                        </Col>
-                    </Row>
+            <Row>
+                <Button style={{width: 200}} className="ms-auto mb-4" variant='success' onClick={() => navigate('/admin/order-bot/new')}>
+                    Ajouter un ordre
+                </Button>
+            </Row>
+            <Row className="list-header">
+                <Col xs={1}>Base Coin</Col>
+                <Col xs={1}>PE 1</Col>
+                <Col xs={1}>PE 2</Col>
+                {[1, 2, 3, 4, 5, 6].map((tp, index) => (
+                    <Col xs={1} key={'TP-' + index}>
+                        TP{tp}
+                    </Col>
+                ))}
+                <Col xs={1}>SL</Col>
+                <Col xs={2} className="text-end">
+                    Action
                 </Col>
-                <Col xs={12} className='order-bot-list-body'>
+            </Row>
+            <Row className="list-body">
+                <Col>
                     {orders.map((order) => (
-                        <Row className="order-line" key={order._id}>
+                        <Row className="list-body-item" key={order._id}>
                             <Col xs={1}>{order.baseCoin}</Col>
                             <Col xs={1}>{order.PEs[0]}</Col>
                             <Col xs={1}>{order.PEs[1]}</Col>
@@ -53,8 +57,17 @@ const OrderBotList = () => {
                                     {tp}
                                 </Col>
                             ))}
+                            {Array(6 - order.TPs.length)
+                                .fill(0)
+                                .map((_, index) => (
+                                    <Col xs={1} key={order._id + '-TP-' + (order.TPs.length + index)}>
+                                        -
+                                    </Col>
+                                ))}
                             <Col xs={1}>{order.SL}</Col>
-                            <Col className='text-end'><PencilSquare onClick={() => handleEdit(order._id)} /></Col>
+                            <Col className="text-end">
+                                <PencilSquare cursor={'pointer'} onClick={() => handleEdit(order._id)} />
+                            </Col>
                         </Row>
                     ))}
                 </Col>

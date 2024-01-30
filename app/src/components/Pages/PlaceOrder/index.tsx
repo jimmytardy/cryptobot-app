@@ -4,6 +4,7 @@ import { Form, Button, Row, Col, Container } from 'react-bootstrap'
 import axiosClient from '../../../axiosClient'
 import { FormProvider, useForm, useFormState } from 'react-hook-form'
 import ControllerArrayNumber from '../../utils/form/ControllerArrayNumber'
+import PlaceOrderForm from '../../PlaceOrderForm'
 
 interface IPlaceOrderPayload {
     TPs: (string | undefined)[]
@@ -94,57 +95,7 @@ const PlaceOrder = () => {
             <h2>Placer un ordre</h2>
             <FormProvider {...methods}>
                 <Form onSubmit={methods.handleSubmit(submitOrder)}>
-                    <ControllerArrayNumber<IPlaceOrderPayload> field="PEs" max={2} />
-                    <ControllerArrayNumber<IPlaceOrderPayload> field="TPs"max={6} />
-                    <Row className="mb-4">
-                        <Col xs={4}>
-                            <Form.Label htmlFor="SL">SL</Form.Label>
-                            <Form.Control
-                                {...methods.register('SL', {
-                                    required: true,
-                                    valueAsNumber: true,
-                                })}
-                            />
-                        </Col>
-                    </Row>
-
-                    <Row className="mb-4">
-                        <Col xs={4}>
-                            <Form.Label htmlFor="baseCoin">
-                                Base Coin
-                            </Form.Label>
-                            {baseCoins.length > 0 && (
-                                <Form.Select
-                                    {...methods.register('baseCoin', {
-                                        required: true,
-                                    })}
-                                    defaultValue={methods.getValues('baseCoin')}
-                                >
-                                    {baseCoins.map((coin) => (
-                                        <option
-                                            key={coin}
-                                            value={coin}
-                                            defaultValue={coin}
-                                        >
-                                            {coin}
-                                        </option>
-                                    ))}
-                                </Form.Select>
-                            )}
-                        </Col>
-                        <Col xs={4}>
-                            <Form.Label htmlFor="side">Side</Form.Label>
-                            <Form.Select
-                                {...methods.register('side', {
-                                    required: true,
-                                })}
-                                value={methods.getValues('side') || 'long'}
-                            >
-                                <option value="long">long</option>
-                                <option value="short">short</option>
-                            </Form.Select>
-                        </Col>
-                    </Row>
+                    <PlaceOrderForm />
                     <Row className="mb-4">
                         <Col xs={12}>
                             <h3>Valeurs optionnelles</h3>
