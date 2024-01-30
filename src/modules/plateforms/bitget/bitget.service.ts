@@ -123,11 +123,13 @@ export class BitgetService {
         const client = this.getClient(user._id);
 
         PEs = UtilService.sortBySide(PEs, side);
+        console.log('b PEs', PEs)
         TPs = UtilService.sortBySide(TPs, side);
         if (!margin) margin = await this.getQuantityForOrder(user);
         const profile = await this.bitgetUtilsService.getProfile(client);
         if (profile.available < margin * PEs.length) {
             while (Math.max(profile.available, 0) <= margin * PEs.length) {
+                console.log('supprime: ', Math.max(profile.available, 0), margin * PEs.length)
                 PEs.shift();
             }
             if (PEs.length === 0) {
@@ -137,6 +139,8 @@ export class BitgetService {
         const fullSide = ('open_' + side) as FuturesOrderSide
         const linkOrderId = linkParentOrderId || new Types.ObjectId()
         const PEAvg = PEs.reduce((a, b) => a + b, 0) / PEs.length
+        console.log('a PEs', PEs)
+        console.log('PEAvg', PEAvg)
         const leverage = this.bitgetUtilsService.calculateLeverage(PEAvg, margin * PEs.length, SL, symbolRules, side)
         const size = this.bitgetUtilsService.fixSizeByRules(this.bitgetUtilsService.getQuantityForUSDT(margin, PEAvg, leverage), symbolRules);
         if (!currentPrice) currentPrice = await this.bitgetUtilsService.getCurrentPrice(client, symbolRules.symbol);
