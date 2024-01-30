@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { IOrderBot } from '../order-bot.interface'
 import { useNavigate, useParams } from 'react-router'
 import axiosClient from '../../../../../axiosClient'

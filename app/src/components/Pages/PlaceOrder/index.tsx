@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import './index.scss'
 import { Form, Button, Row, Col, Container } from 'react-bootstrap'
 import axiosClient from '../../../axiosClient'
 import { FormProvider, useForm, useFormState } from 'react-hook-form'
-import ControllerArrayNumber from '../../utils/form/ControllerArrayNumber'
 import PlaceOrderForm from '../../PlaceOrderForm'
 
 interface IPlaceOrderPayload {
