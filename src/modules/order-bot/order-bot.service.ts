@@ -114,9 +114,11 @@ export class OrderBotService {
             return await Promise.all(
                 userFiltered.map(
                     async (user) =>
-                        await this.bitgetService.placeOrder(orderBot, user, orderBot.linkOrderId, price).catch((error) => {
+                        {
+                            const orderCloned = JSON.parse(JSON.stringify(orderBot)) // if shift PE/TPs/SL, not share array
+                            await this.bitgetService.placeOrder(orderCloned, user, orderBot.linkOrderId, price).catch((error) => {
                             this.logger.error('placeOrderBot > Promise.map > catch', user._id, error)
-                        }),
+                        })},
                 ),
             )
         } catch (e) {

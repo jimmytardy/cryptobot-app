@@ -29,6 +29,7 @@ const OrderBotNew = () => {
         try {
             await axiosClient.post('/order-bot/new', data);
             setMessage('Ordre créé avec succès');
+            methods.reset();
         } catch (e) {
             console.error(e);
         }
