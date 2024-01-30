@@ -19,14 +19,7 @@ interface IPlaceOrderPayload {
 const PlaceOrder = () => {
     const methods = useForm<IPlaceOrderPayload>({
         defaultValues: {
-            TPs: [
-                undefined,
-                undefined,
-                undefined,
-                undefined,
-                undefined,
-                undefined,
-            ], // Un tableau pour stocker les TP
+            TPs: [], // Un tableau pour stocker les TP
             PEs: [undefined, undefined], // Un tableau pour stocker les PE
             SL: 0,
             baseCoin: 'BTC',
@@ -40,14 +33,6 @@ const PlaceOrder = () => {
     })
     const [results, setResults] = useState<{ success: any[]; errors: any[] }>()
     const [submitDisabled, setSubmitDisabled] = useState<boolean>(false) // Un état pour désactiver le bouton d'envoi du formulaire
-    const [baseCoins, setBaseCoins] = useState<string[]>([]) // Un état pour stocker les baseCoins
-
-    useEffect(() => {
-        ;(async () => {
-            const result = await axiosClient.get('/bitget/baseCoins')
-            setBaseCoins(result.data.sort())
-        })()
-    }, [])
 
     // Soumettre le formulaire
     const submitOrder = async (data: IPlaceOrderPayload) => {

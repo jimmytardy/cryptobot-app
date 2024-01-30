@@ -5,7 +5,7 @@ import { IPagesRouterProps } from '../pages.interface'
 import './index.scss'
 const AdminRouter = (props: IPagesRouterProps) => {
     return (
-        <Container fluid className='bg-dark'>
+        <Container fluid className='bg-dark p-0'>
             <NavBarCryptobot
                 {...props}
                 theme="dark"

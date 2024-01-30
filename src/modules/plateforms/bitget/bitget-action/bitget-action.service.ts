@@ -469,7 +469,6 @@ export class BitgetActionService {
                     const newClientOid = new Types.ObjectId()
                     const params: ModifyFuturesOrder = {
                         symbol: order.symbol,
-                        // orderId: order.orderId,
                         clientOid: order.clOrderId?.toString(),
                         newClientOid: newClientOid.toString(),
                         price: String(newPE),
@@ -489,8 +488,8 @@ export class BitgetActionService {
                 await order.save()
             }
         } catch (e) {
-            this.logger.error('newPE', newPE)
-            this.logger.error('updateOrderPE', e)
+            this.logger.error('newPE: '+ newPE)
+            this.logger.error('updateOrderPE : ' + e)
         }
     }
 

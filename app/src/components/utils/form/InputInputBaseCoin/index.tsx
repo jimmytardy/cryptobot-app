@@ -5,10 +5,11 @@ import { FormSelect } from 'react-bootstrap'
 
 interface IInputBaseCoinProps {
     onSelect: (coin: string) => void
-    baseCoinExcluded?: string[]
+    baseCoinExcluded?: string[];
+    defaultCoin?: string;
 }
 
-const InputBaseCoin = ({ onSelect, baseCoinExcluded }: IInputBaseCoinProps) => {
+const InputBaseCoin = ({ onSelect, baseCoinExcluded, defaultCoin }: IInputBaseCoinProps) => {
     const [baseCoins, setBaseCoins] = useState<string[]>([]) // Un état pour stocker les baseCoins
     const coins = useMemo(() => baseCoins.filter((coin) => !baseCoinExcluded || !baseCoinExcluded.includes(coin)), [baseCoins, baseCoinExcluded])
 
@@ -31,7 +32,7 @@ const InputBaseCoin = ({ onSelect, baseCoinExcluded }: IInputBaseCoinProps) => {
         <FormSelect onChange={handleSelect}>
             <option selected>Choississez votre coin</option>
             {coins.map((coin: string) => (
-                <option key={coin} value={coin} defaultValue={coin}>
+                <option key={coin} value={coin} defaultValue={coin} selected={coin === defaultCoin}>
                     {coin}
                 </option>
             ))}

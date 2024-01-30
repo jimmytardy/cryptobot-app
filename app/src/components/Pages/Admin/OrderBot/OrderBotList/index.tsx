@@ -3,7 +3,6 @@ import { Button, Col, Container, Row } from 'react-bootstrap'
 import { IOrderBot } from '../order-bot.interface'
 import axiosClient from '../../../../../axiosClient'
 import Loader from '../../../../utils/Loader'
-import './index.scss'
 import { PencilSquare } from 'react-bootstrap-icons'
 import { useNavigate } from 'react-router'
 
@@ -32,16 +31,16 @@ const OrderBotList = () => {
                 </Button>
             </Row>
             <Row className="list-header">
-                <Col xs={1}>Base Coin</Col>
-                <Col xs={1}>PE 1</Col>
-                <Col xs={1}>PE 2</Col>
+                <Col xs={3} md={1}>Base Coin</Col>
+                <Col xs={3} md={1}>PE 1</Col>
+                <Col xs={3} md={1}>PE 2</Col>
                 {[1, 2, 3, 4, 5, 6].map((tp, index) => (
-                    <Col xs={1} key={'TP-' + index}>
+                    <Col className='d-none d-md-block' xs={1} key={'TP-' + index}>
                         TP{tp}
                     </Col>
                 ))}
-                <Col xs={1}>SL</Col>
-                <Col xs={2} className="text-end">
+                <Col className='d-none d-md-block' xs={1}>SL</Col>
+                <Col xs={3} md={2} className="text-end">
                     Action
                 </Col>
             </Row>
@@ -49,23 +48,23 @@ const OrderBotList = () => {
                 <Col>
                     {orders.map((order) => (
                         <Row className="list-body-item" key={order._id}>
-                            <Col xs={1}>{order.baseCoin}</Col>
-                            <Col xs={1}>{order.PEs[0]}</Col>
-                            <Col xs={1}>{order.PEs[1]}</Col>
+                            <Col xs={3} md={1}>{order.baseCoin}</Col>
+                            <Col xs={3} md={1}>{order.PEs[0]}</Col>
+                            <Col xs={3} md={1}>{order.PEs[1]}</Col>
                             {order.TPs.map((tp, index) => (
-                                <Col xs={1} key={order._id + '-TP-' + index}>
+                                <Col className='d-none d-md-block' xs={1} key={order._id + '-TP-' + index}>
                                     {tp}
                                 </Col>
                             ))}
                             {Array(6 - order.TPs.length)
                                 .fill(0)
                                 .map((_, index) => (
-                                    <Col xs={1} key={order._id + '-TP-' + (order.TPs.length + index)}>
+                                    <Col className='d-none d-md-block' xs={1} key={order._id + '-TP-' + (order.TPs.length + index)}>
                                         -
                                     </Col>
                                 ))}
-                            <Col xs={1}>{order.SL}</Col>
-                            <Col className="text-end">
+                            <Col className='d-none d-md-block' xs={1}>{order.SL}</Col>
+                            <Col className="text-end" xs={3} md={1}>
                                 <PencilSquare cursor={'pointer'} onClick={() => handleEdit(order._id)} />
                             </Col>
                         </Row>

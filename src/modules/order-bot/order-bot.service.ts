@@ -96,6 +96,9 @@ export class OrderBotService {
             await newOrderBot.save()
             const users = await this.paymentService.getUsersSubscription(SubscriptionEnum.BOT);
             await this.placeOrderBot(orderBot, users)
+            return {
+                message: 'Ordre de bot crée avec succès',
+            }
         } catch (e) {
             this.logger.error('placeOrderBot', e)
             return {
@@ -209,8 +212,8 @@ export class OrderBotService {
             Object.keys(ordersGrouped).map(async (userId) => {
                 const orders = ordersGrouped[userId]
                 try {
-                    await this.bitgetService.closePosition(orders[0].symbol, orders[0].userId)
                     await this.bitgetService.disabledOrderLink(orders[0].linkOrderId, orders[0].userId)
+                    await this.bitgetService.closePosition(orders[0].symbol, orders[0].userId)
                 } catch (e) {
                     this.logger.error('deleteOrderBot', e, orderBot.toObject())
                 }

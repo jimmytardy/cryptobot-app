@@ -1,4 +1,4 @@
-import { ArrayMinSize, IsArray, IsNumber } from "class-validator"
+import { ArrayMinSize, IsArray, IsNumber, IsNumberString, IsString } from "class-validator"
 
 export class SetOrderBotDTO {
     @IsArray()
@@ -13,4 +13,15 @@ export class SetOrderBotDTO {
 
     @IsNumber()
     SL: number
+}
+
+export class NewOrderBotDTO extends SetOrderBotDTO {
+    @IsNumberString()
+    messageId: string
+
+    @IsString()
+    baseCoin: string;
+
+    @IsString()
+    side: 'long' | 'short'
 }

@@ -38,7 +38,7 @@ export class OrderBot {
     resumes?: Date[]
     
     @Prop({ type: Boolean })
-    deleted: boolean
+    deleted?: boolean
 }
 
 export const OrderBotSchema = SchemaFactory.createForClass(OrderBot);

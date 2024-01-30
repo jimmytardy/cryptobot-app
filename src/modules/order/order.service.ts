@@ -46,8 +46,6 @@ export class OrderService {
     }
 
     async disabledOrderLink(linkId: Types.ObjectId, userId: Types.ObjectId) {
-        console.log('cancelOrder 1')
-
         // disabled order
         await this.orderModel.updateMany(
             {

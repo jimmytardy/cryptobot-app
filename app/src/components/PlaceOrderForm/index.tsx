@@ -14,7 +14,7 @@ const PlaceOrderForm = ({ lockedFields }: IPlaceOrderFormProps) => {
     const { register, setValue, getValues } = useFormContext<IOrder>();
 
     return (
-        <Container className="place-order-render">
+        <Container className="place-order-render p-0">
             <Row className="mb-3">
                 <Col xs={3}>
                     <Form.Label htmlFor="baseCoin">Base Coin</Form.Label>
@@ -27,7 +27,7 @@ const PlaceOrderForm = ({ lockedFields }: IPlaceOrderFormProps) => {
                             readOnly
                         />
                     ) : (
-                        <InputBaseCoin onSelect={(baseCoin) => setValue('baseCoin', baseCoin)} />
+                        <InputBaseCoin onSelect={(baseCoin) => setValue('baseCoin', baseCoin)} defaultCoin={getValues('baseCoin')} />
                     )}
                 </Col>
                 <Col xs={3}>
@@ -40,6 +40,7 @@ const PlaceOrderForm = ({ lockedFields }: IPlaceOrderFormProps) => {
                                 required: true,
                             })}
                             value={getValues('side') || 'long'}
+                            defaultValue={getValues('side') || 'long'}
                         >
                             <option value="long">long</option>
                             <option value="short">short</option>
@@ -50,7 +51,7 @@ const PlaceOrderForm = ({ lockedFields }: IPlaceOrderFormProps) => {
             <ControllerArrayNumber<IOrder> field="PEs" max={2} />
             <ControllerArrayNumber<IOrder> field="TPs" max={6} />
             <Row className="mb-4">
-                <Col xs={4}>
+                <Col xs={4} md={2}>
                     <Form.Label htmlFor="SL">SL</Form.Label>
                     <Form.Control
                         {...register('SL', {

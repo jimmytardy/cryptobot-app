@@ -139,7 +139,7 @@ export class BitgetUtilsService {
                 }
             }
         }
-        throw new Error('No lever is compatible to respect the SL')
+        throw new Error('No lever is compatible to respect the SL, informations: ' + JSON.stringify({ PE, margin, SL, minLeverage, symbol: symbolRules.symbol, side }, null, 2));
     }
 
     caculateTPsToUse(tps: number[], size: number, TPSize: TPSizeType, symbolRules: FuturesSymbolRule, sideOrder: FuturesHoldSide): { TPPrice: number[]; TPSize: number[] } {
