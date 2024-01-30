@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import {
     CancelFuturesPlanTPSL,
     FuturesClient,
@@ -28,6 +28,7 @@ import { BitgetService } from '../bitget.service'
 
 @Injectable()
 export class BitgetActionService {
+    logger: Logger = new Logger('BitgetActionService', { timestamp: true })
     constructor(
         private bitgetUtilsService: BitgetUtilsService,
         private orderService: OrderService,
@@ -40,14 +41,14 @@ export class BitgetActionService {
 
     async setLeverage(client: FuturesClient, symbol: string, newLeverage: number): Promise<number> {
         await Promise.all([
-            client.setLeverage(symbol, 'USDT', String(newLeverage), 'long').catch((e) => console.error('setLeverage', e)),
-            client.setLeverage(symbol, 'USDT', String(newLeverage), 'short').catch((e) => console.error('setLeverage', e)),
+            client.setLeverage(symbol, 'USDT', String(newLeverage), 'long').catch((e) => this.logger.error('setLeverage', e)),
+            client.setLeverage(symbol, 'USDT', String(newLeverage), 'short').catch((e) => this.logger.error('setLeverage', e)),
         ])
         return newLeverage
     }
 
     async setMarginMode(client: FuturesClient, symbol: string) {
-        await client.setMarginMode(symbol, 'USDT', 'fixed').catch((e) => console.error('setMarginMode', e))
+        await client.setMarginMode(symbol, 'USDT', 'fixed').catch((e) => this.logger.error('setMarginMode', e))
     }
 
     async placeOrder(
@@ -112,7 +113,7 @@ export class BitgetActionService {
                     newOrder.sendToPlateform = true;
                     await this.updateOrderPE(client, newOrder, PEOriginPrice)
                 } catch (e) {
-                    console.error('placeOrder > manual place order', e)
+                    this.logger.error('placeOrder > manual place order', e)
                     throw e
                 } finally {
                     newOrder.PE = PEOriginPrice
@@ -121,7 +122,7 @@ export class BitgetActionService {
 
             return await newOrder.save()
         } catch (e) {
-            console.error('placeOrder', e)
+            this.logger.error('placeOrder', e)
             throw e
         }
     }
@@ -137,7 +138,7 @@ export class BitgetActionService {
             ...(orderType === 'limit' ? { price: String(order.PE) } : {})
         }
         const result = await client.submitOrder(newOrderParams).catch((e) => {
-            console.error('placeOrderBitget', e, newOrderParams)
+            this.logger.error('placeOrderBitget', e, newOrderParams)
             e.paramsSend = newOrderParams
             throw e
         })
@@ -149,9 +150,22 @@ export class BitgetActionService {
 
     async activeOrder(client: FuturesClient, orderId: Types.ObjectId, user: User, orderBitget: any) {
         try {
-            const order = await this.orderModel.findOneAndUpdate({ _id: orderId, inActivation: { $ne: true }, activated: false }, { $set: { inActivation: true } }, { new: true })
+            const quantity = parseFloat(orderBitget.fillSz || orderBitget.sz);
+            const PE = parseFloat(orderBitget.fillPx || orderBitget.px);
+            const leverage = parseFloat(orderBitget.lever);
+            const order = await this.orderModel.findOneAndUpdate({ 
+                _id: orderId, 
+                inActivation: { $ne: true }, 
+                activated: false 
+            }, { 
+                $set: { 
+                    inActivation: true, 
+                    quantity,
+                    PE,
+                    leverage,
+                } 
+            }, { new: true })
             if (!order || order.activated) return null
-            order.quantity = parseFloat(orderBitget.sz);
             const symbolRules = await this.bitgetUtilsService.getSymbolBy('symbol', order.symbol)
             if (!symbolRules) throw new Error('Symbol not found')
             // important for active TPs
@@ -161,7 +175,7 @@ export class BitgetActionService {
             order.inActivation = false
             await order.save()
         } catch (e) {
-            console.error('error activeOrder', e)
+            this.logger.error('error activeOrder', e)
             throw e
         }
     }
@@ -198,7 +212,7 @@ export class BitgetActionService {
                 userId: order.userId,
             }).save()
         } catch (e) {
-            console.error('activeSL', e)
+            this.logger.error('activeSL', e)
         }
     }
 
@@ -209,7 +223,7 @@ export class BitgetActionService {
             await this.cancelTPOfOrderActivate(client, order, takeProfit)
             await this.addTPOfOrderActivate(client, order, newTP, num, newSize)
         } catch (e) {
-            console.error('replaceTPOfOrderActivate', e)
+            this.logger.error('replaceTPOfOrderActivate', e)
         }
     }
 
@@ -224,10 +238,10 @@ export class BitgetActionService {
                 clientOid: takeProfit.clOrderId.toString(),
                 orderId: takeProfit.orderId,
             }
-            await client.cancelPlanOrderTPSL(params).catch(e => console.error('cancelTPOfOrderActivate > bitget', e));
+            await client.cancelPlanOrderTPSL(params).catch(e => this.logger.error('cancelTPOfOrderActivate > bitget', e));
             await this.takeProfitModel.deleteOne({ _id: takeProfit._id })
         } catch (e) {
-            console.error('cancelTPOfOrderActivate', e)
+            this.logger.error('cancelTPOfOrderActivate', e)
         }
     }
 
@@ -261,7 +275,7 @@ export class BitgetActionService {
                 userId: order.userId,
             }).save()
         } catch (e) {
-            console.error('addTPOfOrderActivate', e, num, params)
+            this.logger.error('addTPOfOrderActivate', e, num, params)
         }
     }
 
@@ -273,7 +287,7 @@ export class BitgetActionService {
             try {
                 await this.addTPOfOrderActivate(client, order, TP, i + 1, size)
             } catch (e) {
-                console.error(
+                this.logger.error(
                     'activeTPs',
                     i,
                     {
@@ -345,7 +359,7 @@ export class BitgetActionService {
             await stopLoss.save()
             return stopLoss.toObject() as StopLoss
         } catch (e) {
-            console.error('upgradeSL', e, order, strategy, numTP, stopLoss)
+            this.logger.error('upgradeSL', e, order, strategy, numTP, stopLoss)
             throw e
         }
     }
@@ -359,14 +373,14 @@ export class BitgetActionService {
                     } catch (e) {
                         if (e.body.code !== '40768') {
                             // order not exists
-                            console.error('cancelOrder > client', e)
+                            this.logger.error('cancelOrder > client', e)
                         }
                     }
                 }
             }
             await this.orderService.cancelOrder(order._id, userId)
         } catch (e) {
-            console.error('cancelOrder', e)
+            this.logger.error('cancelOrder', e)
         }
     }
 
@@ -429,7 +443,7 @@ export class BitgetActionService {
                 },
             )
         } catch (e) {
-            console.error('closePosition', e)
+            this.logger.error('closePosition', e)
         }
     }
 
@@ -475,8 +489,8 @@ export class BitgetActionService {
                 await order.save()
             }
         } catch (e) {
-            console.error('newPE', newPE)
-            console.error('updateOrderPE', e)
+            this.logger.error('newPE', newPE)
+            this.logger.error('updateOrderPE', e)
         }
     }
 
@@ -517,7 +531,7 @@ export class BitgetActionService {
                 }
             }
         } catch (e) {
-            console.error('updateTPOfOrderActivate', e, order.toObject(), newTP, takeProfit.toObject())
+            this.logger.error('updateTPOfOrderActivate', e, order.toObject(), newTP, takeProfit.toObject())
         }
     }
 
@@ -635,7 +649,7 @@ export class BitgetActionService {
                                 symbol: order.symbol,
                                 clientOid: stopLossBitget.clientOid,
                                 orderId: stopLossBitget.orderId
-                            }).catch(console.error)
+                            }).catch(this.logger.error)
                         }
                         await stopLoss.deleteOne();
                         return this.updateOrderSL(client, order, newSL);
@@ -647,7 +661,7 @@ export class BitgetActionService {
             await order.save()
             return true
         } catch (e) {
-            console.error('updateOrderSL', e)
+            this.logger.error('updateOrderSL', e)
             return false
         }
     }

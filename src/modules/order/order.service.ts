@@ -38,7 +38,7 @@ export class OrderService {
                 { orderParentId: order._id, terminated: { $ne: true }, userId },
                 { terminated: true, cancelled: true },
             )
-            await this.stopLossModel.updateMany(
+            await this.stopLossModel.updateMany( 
                 { orderParentId: order._id, terminated: { $ne: true }, userId },
                 { terminated: true, cancelled: true },
             )
@@ -46,6 +46,8 @@ export class OrderService {
     }
 
     async disabledOrderLink(linkId: Types.ObjectId, userId: Types.ObjectId) {
+        console.log('cancelOrder 1')
+
         // disabled order
         await this.orderModel.updateMany(
             {

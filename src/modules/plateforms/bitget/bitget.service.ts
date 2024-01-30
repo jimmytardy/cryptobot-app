@@ -237,7 +237,7 @@ export class BitgetService {
                 order,
             )
         } catch (e) {
-            this.logger.error('removeOrder', e)
+            this.logger.error('removeOrder', e) 
         }
     }
 

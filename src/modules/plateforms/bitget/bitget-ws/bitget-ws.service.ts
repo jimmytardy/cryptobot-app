@@ -14,6 +14,7 @@ export class BitgetWsService {
     client: {
         [key: string]: WebsocketClient
     }
+    logger: Logger = new Logger('BitgetWsService')
     constructor(
         @InjectModel(Order.name) private orderModel: Model<Order>,
         @InjectModel(StopLoss.name) private stopLossModel: Model<StopLoss>,
@@ -43,8 +44,8 @@ export class BitgetWsService {
                 debug: this.loggerTrace(logger, 'debug', userId),
                 error: this.loggerTrace(logger, 'error', userId),
                 info: this.loggerTrace(logger, 'log', userId),
-                notice: this.loggerTrace(logger, 'verbose', userId),
-                silly: this.loggerTrace(logger, 'verbose', userId),
+                notice: () => {return;} /* this.loggerTrace(logger, 'verbose', userId) */,
+                silly: () => {return;} /* this.loggerTrace(logger, 'verbose', userId) */,
                 warning: this.loggerTrace(logger, 'warn', userId),
             },
         )
@@ -200,10 +201,10 @@ export class BitgetWsService {
             // cancel other order that not actived
             await this.bitgetService.disabledOrderLink(order.linkOrderId, order.userId)
             if (takeProfit.num === order.TPs.length) {
-                await this.orderService.cancelOrder(order._id, order.userId)
+                await this.bitgetService.cancelOrder(order.toObject())
             }
         } catch (e) {
-            console.error('onTakeProfitTriggered', order, e)
+            this.logger.error('onTakeProfitTriggered', order, e)
         }
     }
 
