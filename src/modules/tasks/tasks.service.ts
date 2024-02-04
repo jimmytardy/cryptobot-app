@@ -1,14 +1,11 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common'
 import { Cron, CronExpression } from '@nestjs/schedule'
-import { PaymentsService } from '../payment/payments.service'
 import { InjectModel } from '@nestjs/mongoose'
 import { Order } from 'src/model/Order'
 import { Model, Types } from 'mongoose'
 import { BitgetUtilsService } from '../plateforms/bitget/bitget-utils/bitget-utils.service'
 import { BitgetService } from '../plateforms/bitget/bitget.service'
-import { FuturesClient, FuturesKlineInterval, FuturesSymbolRule } from 'bitget-api'
-import { BitgetActionService } from '../plateforms/bitget/bitget-action/bitget-action.service'
-import { User } from 'src/model/User'
+import { FuturesClient, FuturesKlineInterval } from 'bitget-api'
 import { UserService } from '../user/user.service'
 import { Symbol } from 'src/model/Symbol'
 import * as exactMath from 'exact-math'
@@ -24,7 +21,6 @@ export class TasksService implements OnApplicationBootstrap {
         @InjectModel(AppConfig.name) private appConfigModel: Model<AppConfig>,
         private userService: UserService,
         private bitgetUtilsService: BitgetUtilsService,
-        private bitgetActionService: BitgetActionService,
         private bitgetService: BitgetService,
     ) {}
 
@@ -120,10 +116,10 @@ export class TasksService implements OnApplicationBootstrap {
     @Cron(CronExpression.EVERY_DAY_AT_8AM)
     async updateSymbolRules() {
         const client = this.bitgetService.getFirstClient()
-        const symbols = await client.getSymbols(this.bitgetUtilsService.PRODUCT_TYPE)
+        const symbols = await client.getSymbols(BitgetService.PRODUCT_TYPE)
         if (!symbols.data) return
 
-        await this.symbolModel.deleteMany({}).exec()
+        await this.symbolModel.deleteMany({}).exec() 
         await this.updatePositionTierAndInsert(client, symbols.data as Symbol[], 0)
     }
 
@@ -131,7 +127,7 @@ export class TasksService implements OnApplicationBootstrap {
         try {
             if (index >= symbols.length) return
             const symbol = symbols[index]
-            const newPositionTier = await client.getPositionTier(symbol.symbol, 'umcbl')
+            const newPositionTier = await client.getPositionTier(symbol.symbol, BitgetService.PRODUCT_TYPE)
             symbol.positionTier = newPositionTier.data.map((tier: any) => ({
                 ...tier,
                 keepMarginRate: parseFloat(tier.keepMarginRate),

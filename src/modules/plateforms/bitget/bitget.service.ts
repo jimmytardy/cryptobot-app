@@ -3,10 +3,10 @@ import {
     Injectable,
     Logger,
     OnApplicationBootstrap,
+    OnModuleInit,
 } from '@nestjs/common'
 import { PlaceOrderDTO } from './bitget.dto'
-import { FuturesClient, FuturesOrderSide, RestClientV2 } from 'bitget-api'
-import { BitgetActionService } from './bitget-action/bitget-action.service'
+import { FuturesClient, FuturesOrderSide, FuturesProductType, FuturesProductTypeV2, RestClientV2 } from 'bitget-api'
 import { BitgetUtilsService } from './bitget-utils/bitget-utils.service'
 import { ProjectionType, Types } from 'mongoose'
 import { Order, OrderDocument } from 'src/model/Order'
@@ -16,10 +16,15 @@ import { IOrderStrategy } from 'src/interfaces/order-strategy.interface'
 import { UtilService } from 'src/util/util.service'
 import { AppConfigService } from 'src/modules/app-config/app-config.service'
 import { Symbol } from 'src/model/Symbol'
+import { BitgetFuturesService } from './bitget-futures/bitget-futures.service'
+import { ConfigService } from '@nestjs/config'
 
 @Injectable()
-export class BitgetService {
-    client: {
+export class BitgetService implements OnModuleInit {
+    static PRODUCT_TYPE: FuturesProductType = 'umcbl'
+    static PRODUCT_TYPEV2: FuturesProductTypeV2 = 'USDT-FUTURES'
+
+    static client: {
         [key: string]: FuturesClient
     }
     static clientV2: {
@@ -29,18 +34,26 @@ export class BitgetService {
 
     constructor(
         private bitgetUtilsService: BitgetUtilsService,
-        private bitgetActionService: BitgetActionService,
-        private appConfig: AppConfigService
+        private bitgetFuturesService: BitgetFuturesService,
+        private appConfig: AppConfigService,
+        private configService: ConfigService
     ) {
         this.logger = new Logger('BitgetService')
-        this.client = {}
+        BitgetService.client = {}
         BitgetService.clientV2 = {}
     }
 
+    onModuleInit() {
+        if ((this.configService.get('ENV') as string).toUpperCase() === 'DEV') {
+            BitgetService.PRODUCT_TYPE = 'sumcbl'
+            BitgetService.PRODUCT_TYPEV2 = 'SUSDT-FUTURES' 
+        }
+    } 
+
     addNewTrader(user: User) {
-        if (!this.client[user._id.toString()]) {
-            this.client[user._id.toString()] = new FuturesClient({
-                apiKey: user.bitget.api_key,
+        if (!BitgetService.client[user._id.toString()]) {
+            BitgetService.client[user._id.toString()] = new FuturesClient({
+                apiKey: user.bitget.api_key, 
                 apiSecret: user.bitget.api_secret_key,
                 apiPass: user.bitget.api_pass,
             })
@@ -55,32 +68,32 @@ export class BitgetService {
     }
 
     getFirstClient(): FuturesClient {
-        return this.client[Object.keys(this.client)[0]]
+        return BitgetService.client[Object.keys(BitgetService.client)[0]]
     }
 
     getClient(userId: Types.ObjectId): FuturesClient {
-        return this.client[userId.toString()]
+        return BitgetService.client[userId.toString()]
     }
 
     static getClientV2(userId: Types.ObjectId): RestClientV2 {
-        return this.clientV2[userId.toString()]
+        return BitgetService.clientV2[userId.toString()]
     }
 
     async getProfile(userId: Types.ObjectId) {
         return await this.bitgetUtilsService.getProfile(
-            this.client[userId.toString()],
+            BitgetService.client[userId.toString()],
         )
     }
 
     async getBaseCoins(userId: Types.ObjectId) {
         return await this.bitgetUtilsService.getBaseCoins(
-            this.client[userId.toString()],
+            BitgetService.client[userId.toString()],
         )
     }
 
     async getQuantityForOrder(user: User) {
         return await this.bitgetUtilsService.getQuantityForOrder(
-            this.client[user._id.toString()],
+            BitgetService.client[user._id.toString()],
             user
         )
     }
@@ -93,11 +106,11 @@ export class BitgetService {
         )
     }
 
-    async getSymbolBy(key: string, value: string | number, select?: ProjectionType<Symbol>): Promise<Symbol> {
+    async getSymbolBy(key: keyof Symbol, value: string | number, select?: ProjectionType<Symbol>): Promise<Symbol> {
         return await this.bitgetUtilsService.getSymbolBy(key, value, select)
     }
 
-    async getCurrentPrice(key: string, value: string | number) {
+    async getCurrentPrice(key: keyof Symbol, value: string | number) {
         const symbol = await this.bitgetUtilsService.getSymbolBy(key, value)
         return await this.bitgetUtilsService.getCurrentPrice(
             this.getFirstClient(),
@@ -144,15 +157,15 @@ export class BitgetService {
             errors: [],
             success: [],
         }
-        await this.bitgetActionService.setMarginMode(client, symbolRules.symbol);
-        await this.bitgetActionService.setLeverage(client, symbolRules.symbol, leverage);
+        await this.bitgetFuturesService.setMarginMode(client, symbolRules.symbol);
+        await this.bitgetFuturesService.setLeverage(client, symbolRules.symbol, leverage, side);
         await Promise.all(
             PEs.map(async (pe) => {
                 const PECalculate = this.bitgetUtilsService.fixPriceByRules(pe, symbolRules);
                 
                 try {
                     results.success.push(
-                        await this.bitgetActionService.placeOrder(
+                        await this.bitgetFuturesService.placeOrder(
                             client,
                             user,
                             symbolRules,
@@ -188,8 +201,8 @@ export class BitgetService {
 
     async activeOrder(orderId: Types.ObjectId, user: User, orderEvent: any) {
         try {
-            return await this.bitgetActionService.activeOrder(
-                this.client[user._id.toString()],
+            return await this.bitgetFuturesService.activeOrder(
+                BitgetService.client[user._id.toString()],
                 orderId,
                 user,
                 orderEvent
@@ -205,8 +218,8 @@ export class BitgetService {
         numTP: number,
     ): Promise<StopLoss> {
         try {
-            return await this.bitgetActionService.upgradeSL(
-                this.client[order.userId.toString()],
+            return await this.bitgetFuturesService.upgradeStopLoss(
+                BitgetService.client[order.userId.toString()],
                 order,
                 strategy,
                 numTP,
@@ -219,7 +232,7 @@ export class BitgetService {
     async closePosition(symbol: string, userId: Types.ObjectId) {
         try {
             const client = BitgetService.getClientV2(userId);
-            return await this.bitgetActionService.closePosition(
+            return await this.bitgetFuturesService.closePosition(
                 client,
                 userId,
                 symbol,
@@ -231,9 +244,8 @@ export class BitgetService {
 
     async cancelOrder(order: Order) {
         try {
-            return await this.bitgetActionService.cancelOrder(
-                this.client[order.userId.toString()],
-                order.userId,
+            return await this.bitgetFuturesService.cancelOrder(
+                BitgetService.client[order.userId.toString()],
                 order,
             )
         } catch (e) {
@@ -243,8 +255,8 @@ export class BitgetService {
 
     async disabledOrderLink(linkId: Types.ObjectId, userId: Types.ObjectId) {
         try {
-            await this.bitgetActionService.disabledOrderLink(
-                this.client[userId.toString()],
+            await this.bitgetFuturesService.disabledOrderLink(
+                BitgetService.client[userId.toString()],
                 linkId,
                 userId,
             )
@@ -255,7 +267,7 @@ export class BitgetService {
 
     async updateOrderPE(order: OrderDocument, newPE: number): Promise<boolean> {
         try {
-            return await this.bitgetActionService.updateOrderPE(
+            return await this.bitgetFuturesService.updatePE(
                 this.getClient(order.userId),
                 order,
                 newPE,
@@ -267,11 +279,11 @@ export class BitgetService {
 
     async updateTPsOfOrder(order: OrderDocument, newTPs: number[], user?: User): Promise<boolean> {
         try {
-            return await this.bitgetActionService.updateTPsOfOrder(
+            return await this.bitgetFuturesService.updateTakeProfits(
                 this.getClient(order.userId),
                 order,
                 newTPs,
-                user
+                user.preferences.order.TPSize
             )
         } catch (e) {
             this.logger.error('updateTPsOfOrder', e)
@@ -280,7 +292,7 @@ export class BitgetService {
     
     async updateOrderSL(order: OrderDocument, newSL: number): Promise<boolean> {
         try {
-            return await this.bitgetActionService.updateOrderSL(
+            return await this.bitgetFuturesService.updateStopLoss(
                 this.getClient(order.userId),
                 order,
                 newSL,

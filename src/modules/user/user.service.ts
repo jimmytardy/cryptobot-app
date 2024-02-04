@@ -15,6 +15,7 @@ import { OrderService } from '../order/order.service'
 import { TakeProfit } from 'src/model/TakeProfit'
 import { Order } from 'src/model/Order'
 import { ISubscriptionUser } from '../payment/payments.interface'
+import { BitgetService } from '../plateforms/bitget/bitget.service'
 
 @Injectable()
 export class UserService implements OnApplicationBootstrap {
@@ -60,7 +61,7 @@ export class UserService implements OnApplicationBootstrap {
                 apiPass: user.bitget.api_pass,
                 apiSecret: user.bitget.api_secret_key,
             })
-            await client.getAccounts('umcbl')
+            await client.getAccounts(BitgetService.PRODUCT_TYPE)
         } catch (e) {
             throw new Error(
                 'Les informations de la clé API ne sont pas correctes',

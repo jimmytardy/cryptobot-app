@@ -5,10 +5,10 @@ import { MongooseModule } from '@nestjs/mongoose'
 import { Order, OrderSchema } from 'src/model/Order'
 import { BitgetModule } from '../plateforms/bitget/bitget.module'
 import { BitgetUtilsModule } from '../plateforms/bitget/bitget-utils/bitget-utils.module'
-import { BitgetActionModule } from '../plateforms/bitget/bitget-action/bitget-action.module'
 import { UserModule } from '../user/user.module'
 import { SymbolSchema } from 'src/model/Symbol'
 import { AppConfig, AppConfigSchema } from 'src/model/AppConfig'
+import { BitgetFuturesModule } from '../plateforms/bitget/bitget-futures/bitget-futures.module'
 
 @Module({
     imports: [
@@ -20,7 +20,6 @@ import { AppConfig, AppConfigSchema } from 'src/model/AppConfig'
         ]),
         UserModule,
         BitgetModule,
-        BitgetActionModule,
         BitgetUtilsModule,
     ],
     providers: [TasksService],

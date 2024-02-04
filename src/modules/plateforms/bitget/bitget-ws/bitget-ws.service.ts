@@ -78,7 +78,7 @@ export class BitgetWsService {
             const clOrderId = new Types.ObjectId(orderAlgoEvent.cOid)
 
             const takeProfit = await this.takeProfitModel.findOne({
-                clOrderId,
+                clOrderId, 
                 terminated: { $ne: true },
                 userId: user._id,
             })
@@ -131,7 +131,7 @@ export class BitgetWsService {
                     terminated: { $ne: true },
                 })
                 if (takesProfitsNotTerminated === 0) {
-                    await this.orderService.cancelOrder(takeProfit.orderParentId, takeProfit.userId, true)
+                    await this.orderService.cancelOrder(takeProfit.orderParentId)
                 }
                 break
             case 'not_trigger':
@@ -177,7 +177,7 @@ export class BitgetWsService {
                     break
                 }
             case 'cancelled':
-                await this.orderService.cancelOrder(order._id, user._id, true)
+                await this.orderService.cancelOrder(order._id)
                 break
             default:
                 console.info('onOrderEvent', orderEvent, 'not implemented')
@@ -216,6 +216,6 @@ export class BitgetWsService {
             _id: stopLoss.orderParentId,
             userId: stopLoss.userId,
         })
-        await this.orderService.cancelOrder(order._id, stopLoss.userId, true)
+        await this.orderService.cancelOrder(order._id)
     }
 }

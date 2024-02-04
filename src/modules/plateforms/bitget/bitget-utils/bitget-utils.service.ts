@@ -1,31 +1,28 @@
 import { Injectable } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
 import { InjectModel } from '@nestjs/mongoose'
-import { FuturesClient, FuturesHoldSide, FuturesProductType, FuturesSymbolRule } from 'bitget-api'
+import { FuturesClient, FuturesHoldSide, FuturesSymbolRule } from 'bitget-api'
 import { Order } from 'src/model/Order'
 import { TPSizeType, User } from 'src/model/User'
 import * as exactMath from 'exact-math'
 import { UtilService } from 'src/util/util.service'
 import { Model, ProjectionType } from 'mongoose'
 import { Symbol, SymbolPositionTier } from 'src/model/Symbol'
+import { BitgetService } from '../bitget.service'
 
 @Injectable()
 export class BitgetUtilsService {
     DEFAULT_PERCENTAGE_ORDER = 4
-    PRODUCT_TYPE: FuturesProductType = 'umcbl'
-    constructor(configService: ConfigService, @InjectModel(Symbol.name) private symbolModel: Model<Symbol>) {
-        if (configService.get('ENV') === 'dev') {
-            this.PRODUCT_TYPE = 'sumcbl'
-        }
+    constructor(@InjectModel(Symbol.name) private symbolModel: Model<Symbol>) {
+        
     }
 
-    async getLeverageLimit(client: FuturesClient, key: string, value: number | string): Promise<{ maxLeverage: number, minLeverage: number}> {
+    async getLeverageLimit(client: FuturesClient, key: keyof Symbol, value: number | string): Promise<{ maxLeverage: number, minLeverage: number}> {
         const symbolRules = await this.getSymbolBy(key, value);
         return (await client.getLeverageMinMax(symbolRules.symbol)).data;
     }
 
     async getAccount(client: FuturesClient): Promise<any> {
-        const account = await client.getAccounts(this.PRODUCT_TYPE)
+        const account = await client.getAccounts(BitgetService.PRODUCT_TYPE)
         // const balances = allBalances.filter((bal) => Number(bal.available) != 0);
         return account.data[0]
     }
@@ -49,12 +46,12 @@ export class BitgetUtilsService {
     }
 
     async getBaseCoins(client: FuturesClient): Promise<string[]> {
-        const result = await client.getSymbols(this.PRODUCT_TYPE)
+        const result = await client.getSymbols(BitgetService.PRODUCT_TYPE)
         const coins = result.data.map((currentCoin) => currentCoin.baseCoin)
         return coins
     }
 
-    async getSymbolBy(key: string, value: string | number, select?: ProjectionType<Symbol>): Promise<Symbol> {
+    async getSymbolBy(key: keyof Symbol, value: string | number, select?: ProjectionType<Symbol>): Promise<Symbol> {
         return await this.symbolModel.findOne({ [key]: value }, select).lean().exec();
     }
 
@@ -196,5 +193,9 @@ export class BitgetUtilsService {
                 order.PE > currentPrice + currentPrice * sellLimitPriceRatio &&
                 order.SL < currentPrice)
         )
+    }
+
+    getMarginFromPosition(PE: number, size: number, leverage: number) {
+        return exactMath.round(exactMath.mul(size, PE) / leverage, -3)
     }
 }

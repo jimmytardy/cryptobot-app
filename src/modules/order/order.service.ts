@@ -1,12 +1,15 @@
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
-import { FilterQuery, Model, Types } from 'mongoose'
+import { FilterQuery, Model, ProjectionType, QueryOptions, Types } from 'mongoose'
 import { Order } from 'src/model/Order'
 import { StopLoss } from 'src/model/StopLoss'
 import { TakeProfit } from 'src/model/TakeProfit'
 import { User } from 'src/model/User'
 import { UtilService } from 'src/util/util.service'
 import _ from 'underscore'
+import { TakeProfitService } from './take-profit/take-profit.service'
+import * as exactMath from 'exact-math';
+import { StopLossService } from './stop-loss/stop-loss.service'
 
 export interface IOrderPopulated extends Omit<Omit<Order, 'SL'>, 'TPs'> {
     SL: StopLoss
@@ -15,33 +18,110 @@ export interface IOrderPopulated extends Omit<Omit<Order, 'SL'>, 'TPs'> {
 
 @Injectable()
 export class OrderService {
+    logger: Logger = new Logger('OrderService');
+
     constructor(
         @InjectModel(Order.name) private readonly orderModel: Model<Order>,
-        @InjectModel(TakeProfit.name)
-        private readonly takeProfitModel: Model<TakeProfit>,
-        @InjectModel(StopLoss.name)
-        private readonly stopLossModel: Model<StopLoss>,
+        private takeProfitService: TakeProfitService,
+        private stopLossService: StopLossService,
     ) {}
 
+    async findOne(filter: FilterQuery<Order>, select?: ProjectionType<Order>, options?: QueryOptions<Order>): Promise<Order> {
+        this.logger.debug(`findOne: filter=${JSON.stringify(filter)}, select=${JSON.stringify(select)}, options=${JSON.stringify(options)}`);
+        return await this.orderModel.findOne(filter, select, options)
+    }
+
+    async findAll(filter: FilterQuery<Order>, select?: ProjectionType<Order>, options?: QueryOptions<Order>): Promise<Order[]> {
+        this.logger.debug(`findAll: filter=${JSON.stringify(filter)}, select=${JSON.stringify(select)}, options=${JSON.stringify(options)}`);
+        return await this.orderModel.find(filter, select, options)
+    }
+
+    async updateOne(order: Partial<Order> & { _id: Types.ObjectId }, options?: QueryOptions<Order>): Promise<Order> {
+        this.logger.debug(`updateOne: order=${JSON.stringify(order)}, options=${JSON.stringify(options)}`);
+        return await this.orderModel.findByIdAndUpdate(order._id, { $set: order }, options)
+    }
+
+    async closeAllOrderOnSymbol(userId: Types.ObjectId, symbol: string) {
+        const orderIds = await this.orderModel.distinct('_id', { userId, symbol, terminated: false });
+
+        await this.orderModel.updateMany(
+            { _id: { $in: orderIds } },
+            {
+                terminated: true,
+                cancelled: true,
+            }
+        )
+
+        await this.takeProfitService.cancel({ orderParentId: { $in: orderIds } });
+        await this.stopLossService.cancel({ orderParentId: { $in: orderIds } });
+    }
+
+    async getOrderForActivation(orderId: Types.ObjectId, additionnalUpdated: Omit<Partial<Order>, 'inActivation'> = {}) {
+        this.logger.debug(`getOrderForActivation: orderId=${orderId}, additionnalUpdated=${JSON.stringify(additionnalUpdated)}`);
+        const order = await this.orderModel.findOneAndUpdate({ 
+            _id: orderId, 
+            inActivation: { $ne: true }, 
+            activated: false 
+        }, { 
+            $set: { 
+                inActivation: true, 
+                ...additionnalUpdated
+            } 
+        }, { new: true })
+        return order;
+    }
+
+    async getStepsTriggers(order: Order): Promise<number[]> {
+        let stepsTriggers: number[] = [order.PE]
+        const orderLinked = await this.findOne(
+            {
+                linkOrderId: order.linkOrderId,
+                _id: { $ne: order._id },
+                userId: order.userId,
+            },
+            'PE',
+        )
+        if (orderLinked) {
+            stepsTriggers.push(orderLinked.PE)
+        } else {
+            stepsTriggers.push(order.PE)
+        }
+        // Array of PE + TPs for triggerPrice
+        return UtilService.sortBySide(stepsTriggers.concat(order.TPs), order.side)
+    }
+
+    async getSLTriggerFromStep(order: Order, step: number): Promise<number> {
+        if (step === -1) {
+            return order.SL
+        } else {
+            const stepsTriggers = await this.getStepsTriggers(order);
+            if (stepsTriggers.length <= step) throw new Error('Step not found');
+            return stepsTriggers[step]
+        }
+    }
+
+    async getTakeProfitTerminated(orderId: Types.ObjectId | string, select?: ProjectionType<TakeProfit>, options?: QueryOptions<TakeProfit>): Promise<TakeProfit[]> {
+        return await this.takeProfitService.findAll({ orderParentId: orderId, terminated: true }, select, options);
+    }
+
+    async getQuantityAvailable(orderId: Types.ObjectId | string, order: Order = null): Promise<number> {
+        if (!order) order = await this.orderModel.findById(orderId, 'quantity').lean();
+        if (!order) throw new Error('Order not found');
+        const TPQuantityClose = await this.getTakeProfitTerminated(order._id, 'quantity', { lean: true });
+        return exactMath.sub(order.quantity, TPQuantityClose.reduce((acc, currentTP) => acc + currentTP.quantity, 0));
+    }
+
     async cancelOrder(
-        orderId: string | Types.ObjectId,
-        userId: Types.ObjectId,
-        cancelled: boolean = false
+        orderId: string | Types.ObjectId
     ) {
         // disabled order
         const order = await this.orderModel.findOneAndUpdate(
-            { _id: orderId, userId },
-            { terminated: true, cancelled },
+            { _id: orderId },
+            { terminated: true, cancelled: true },
             )
         if (order) {
-            await this.takeProfitModel.updateMany(
-                { orderParentId: order._id, terminated: { $ne: true }, userId },
-                { terminated: true, cancelled: true },
-            )
-            await this.stopLossModel.updateMany( 
-                { orderParentId: order._id, terminated: { $ne: true }, userId },
-                { terminated: true, cancelled: true },
-            )
+            await this.takeProfitService.cancel({ orderParentId: order._id });
+            await this.stopLossService.cancel({ orderParentId: order._id });
         }
     }
 
@@ -111,7 +191,7 @@ export class OrderService {
         }
     }
 
-    checkNewOrder(order: Order) {
+    validateOrder(order: Order) {
         if (order.activated) {
             throw new Error("L'ordre ne doit pas être activé à sa création")
         }

@@ -9,8 +9,9 @@ import { TelegramModule } from './telegram/telegram.module';
 import { OrderBotService } from './order-bot/order-bot.service';
 import { OrderBotModule } from './order-bot/order-bot.module';
 import { AppConfigModule } from './app-config/app-config.module';
+import { ErrorTraceModule } from './error-trace/error-trace.module';
 
 @Module({
-  imports: [OrderModule, PlateformsModule, AuthModule, UserModule, PaymentsModule, TasksModule, TelegramModule, OrderBotModule, AppConfigModule]
+  imports: [OrderModule, PlateformsModule, AuthModule, UserModule, PaymentsModule, TasksModule, TelegramModule, OrderBotModule, AppConfigModule, ErrorTraceModule]
 })
 export class ModulesModule {}

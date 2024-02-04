@@ -2,6 +2,8 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { FuturesHoldSide } from 'bitget-api';
 import { SchemaTypes, Types } from 'mongoose';
 import { HydratedDocument } from 'mongoose';
+import { IOrderStrategy } from 'src/interfaces/order-strategy.interface';
+import { TPSizeType } from './User';
 
 export type OrderDocument = HydratedDocument<Order>;
 
@@ -38,7 +40,7 @@ export class Order {
     sendToPlateform: boolean
 
     @Prop()
-    orderId: string
+    orderId?: string
 
     @Prop({ type: SchemaTypes.ObjectId })
     linkOrderId: Types.ObjectId

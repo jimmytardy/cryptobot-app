@@ -13,7 +13,7 @@ export class StopLoss {
     _id: Types.ObjectId
 
     @Prop({ required: true })
-    price: number
+    price?: number
 
     @Prop({ required: true })
     orderId: string

@@ -1,15 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BitgetActionService } from './bitget-action.service';
+import { ErrorTraceService } from './error-trace.service';
 
-describe('BitgetActionService', () => {
-  let service: BitgetActionService;
+describe('ErrorTraceService', () => {
+  let service: ErrorTraceService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [BitgetActionService],
+      providers: [ErrorTraceService],
     }).compile();
 
-    service = module.get<BitgetActionService>(BitgetActionService);
+    service = module.get<ErrorTraceService>(ErrorTraceService);
   });
 
   it('should be defined', () => {
