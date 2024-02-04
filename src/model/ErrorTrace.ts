@@ -19,7 +19,7 @@ export enum ErrorTraceSeverity {
 export class ErrorTrace {
     _id: Types.ObjectId
 
-    @Prop({ required: true, type: SchemaTypes.ObjectId })
+    @Prop({ required: true, type: SchemaTypes.ObjectId, ref: 'User' })
     userId: Types.ObjectId
 
     @Prop({ enum: ErrorTraceSeverity, default: ErrorTraceSeverity.ERROR })

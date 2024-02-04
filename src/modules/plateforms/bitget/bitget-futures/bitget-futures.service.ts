@@ -40,11 +40,15 @@ export class BitgetFuturesService {
     ) {}
 
     async setLeverage(client: FuturesClient, symbol: string, newLeverage: number, side: FuturesHoldSide): Promise<void> {
-        await client.setLeverage(symbol, 'USDT', String(newLeverage), side).catch((e) => this.logger.error('setLeverage => ' + JSON.stringify(e)))
+        await client
+            .setLeverage(symbol, BitgetService.MARGIN_MODE, String(newLeverage), side)
+            .catch((e) => this.errorTraceService.createErrorTrace('setLeverage', null, ErrorTraceSeverity.ERROR, { symbol, newLeverage, side, error: e }))
     }
 
     async setMarginMode(client: FuturesClient, symbol: string) {
-        await client.setMarginMode(symbol, 'USDT', 'fixed').catch((e) => this.logger.error('setLeverage => ' + JSON.stringify(e)))
+        await client
+            .setMarginMode(symbol, BitgetService.MARGIN_MODE, 'fixed')
+            .catch((e) => this.errorTraceService.createErrorTrace('setMarginMode', null, ErrorTraceSeverity.ERROR, { symbol, error: e }))
     }
 
     async placeOrder(
@@ -59,7 +63,7 @@ export class BitgetFuturesService {
         leverage: number,
         currentPrice: number,
         linkOrderId?: Types.ObjectId,
-        marginCoin = 'USDT',
+        marginCoin = BitgetService.MARGIN_MODE,
     ) {
         try {
             const margin = this.bitgetUtilsService.getMarginFromPosition(pe, size, leverage)
@@ -75,6 +79,7 @@ export class BitgetFuturesService {
             if (TPsCalculate.length === 0) throw new Error(`La quantité est trop petite pour la taille des TPs`)
             const clOrderId = new Types.ObjectId()
             let newOrder: Order = {
+                _id: new Types.ObjectId(),
                 clOrderId,
                 PE: pe,
                 TPs: TPsCalculate,
@@ -86,12 +91,14 @@ export class BitgetFuturesService {
                 marginCoin,
                 usdt: margin,
                 userId: user._id,
+                sendToPlateform: false,
+                activated: false,
+                terminated: false,
                 leverage,
-            } as Order;
-
+            } as Order
             this.orderService.validateOrder(newOrder)
 
-            newOrder.sendToPlateform = false;
+            newOrder.sendToPlateform = false
             const PEOriginPrice = newOrder.PE
             if ((sideOrder === 'long' && newOrder.PE > currentPrice) || (sideOrder === 'short' && newOrder.PE < currentPrice)) {
                 newOrder.PE = currentPrice
@@ -158,7 +165,7 @@ export class BitgetFuturesService {
             this.errorTraceService.createErrorTrace('placeOrderBitget', order.userId, ErrorTraceSeverity.IMMEDIATE, {
                 order,
                 error: e,
-                params: newOrderParams
+                params: newOrderParams,
             })
         }
     }
@@ -612,14 +619,14 @@ export class BitgetFuturesService {
         try {
             const symbolV2 = this.bitgetUtilsService.convertSymbolToV2(symbol)
             const position = await client.getFuturesPosition({
-                productType: 'USDT-FUTURES',
+                productType: BitgetService.PRODUCT_TYPEV2,
                 symbol: symbolV2,
-                marginCoin: 'USDT',
+                marginCoin: BitgetService.MARGIN_MODE,
             })
             if (position.data && position.data.length > 0) {
                 await client.futuresFlashClosePositions({
                     symbol: symbolV2,
-                    productType: 'USDT-FUTURES',
+                    productType: BitgetService.PRODUCT_TYPEV2,
                 })
             }
             await this.orderService.closeAllOrderOnSymbol(userId, symbol)

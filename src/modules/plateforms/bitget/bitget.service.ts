@@ -23,7 +23,7 @@ import { ConfigService } from '@nestjs/config'
 export class BitgetService implements OnModuleInit {
     static PRODUCT_TYPE: FuturesProductType = 'umcbl'
     static PRODUCT_TYPEV2: FuturesProductTypeV2 = 'USDT-FUTURES'
-
+    static MARGIN_MODE = 'USDT';
     static client: {
         [key: string]: FuturesClient
     }
@@ -46,7 +46,8 @@ export class BitgetService implements OnModuleInit {
     onModuleInit() {
         if ((this.configService.get('ENV') as string).toUpperCase() === 'DEV') {
             BitgetService.PRODUCT_TYPE = 'sumcbl'
-            BitgetService.PRODUCT_TYPEV2 = 'SUSDT-FUTURES' 
+            BitgetService.PRODUCT_TYPEV2 = 'SUSDT-FUTURES'
+            BitgetService.MARGIN_MODE = 'SUSDT'
         }
     } 
 

@@ -17,6 +17,7 @@ import OrderBotRouter from './Admin/OrderBot/index.router'
 import AppConfig from './Admin/AppConfig'
 import Tutorial from '../Tutorial'
 import Users from './Admin/Users'
+import ErrorTraceRouter from './Admin/ErrorTrace/index.router'
 
 export interface ICryptobotRouterProps {
     routes: IRoute[]
@@ -76,6 +77,11 @@ const Pages = () => {
             Component: Users,
             path: 'users',
             title: 'Utilisateurs',
+        },
+        {
+            title: 'Erreurs',
+            path: 'error-trace/*',
+            Component: ErrorTraceRouter,
         },
     ]
 
