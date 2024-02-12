@@ -62,56 +62,56 @@ export class TasksService implements OnApplicationBootstrap {
     /**
      * Supprime les ordres qui ne sont pas activés mais qui ont déjà taper un TP
      */
-    @Cron(CronExpression.EVERY_10_MINUTES)
-    async cleanOrderNotTriggeredWhichTP() {
-        try {
-            const ordersToSend = await this.orderModel
-                .find({
-                    terminated: false,
-                    activated: false,
-                })
-                .lean()
-                .exec()
+    // @Cron(CronExpression.EVERY_10_MINUTES)
+    // async cleanOrderNotTriggeredWhichTP() {
+    //     try {
+    //         const ordersToSend = await this.orderModel
+    //             .find({
+    //                 terminated: false,
+    //                 activated: false,
+    //             })
+    //             .lean()
+    //             .exec()
 
-            const symbolData = {}
+    //         const symbolData = {}
 
-            const querys = []
-            const timestampNow = Date.now()
-            const candlesToFetch = 1
-            const nbMin = 15
-            const msPerCandle = 60 * 1000 * nbMin // 60 seconds x 1000 X nbMin
-            const msFor1kCandles = candlesToFetch * msPerCandle
-            const startTime = timestampNow - msFor1kCandles
-            for (const order of ordersToSend) {
-                if (!symbolData[order.symbol]) {
-                    const client = this.bitgetService.getFirstClient()
-                    const candles = await client.getCandles(
-                        order.symbol,
-                        (nbMin + 'm') as FuturesKlineInterval,
-                        startTime.toString(),
-                        timestampNow.toString(),
-                        String(candlesToFetch),
-                    )
-                    if (candles && (candles.length <= 0 || candles[0].length < 4)) continue
-                    symbolData[order.symbol] = {
-                        max: parseFloat(candles[0][2]), // Highest price
-                        min: parseFloat(candles[0][3]), // Lowest price
-                    }
-                }
-                const createdAt = new Date(order.createdAt).getTime()
-                // if order is older than nbMin minutes, continue
-                if ((createdAt - timestampNow) / 1000 / 60 > nbMin) continue
-                if ((order.side === 'long' && symbolData[order.symbol].max >= order.TPs[0]) || (order.side === 'short' && symbolData[order.symbol].min <= order.TPs[0])) {
-                    querys.push(this.orderModel.updateOne({ _id: order._id }, { $set: { terminated: true } }))
-                }
-            }
-            await Promise.all(querys)
-        } catch (e) {
-            this.logger.error('disableOrderNotSendWhichTP', e)
-            console.error('e', e.stack)
-            console.trace()
-        }
-    }
+    //         const querys = []
+    //         const timestampNow = Date.now()
+    //         const candlesToFetch = 1
+    //         const nbMin = 15
+    //         const msPerCandle = 60 * 1000 * nbMin // 60 seconds x 1000 X nbMin
+    //         const msFor1kCandles = candlesToFetch * msPerCandle
+    //         const startTime = timestampNow - msFor1kCandles
+    //         for (const order of ordersToSend) {
+    //             if (!symbolData[order.symbol]) {
+    //                 const client = this.bitgetService.getFirstClient()
+    //                 const candles = await client.getCandles(
+    //                     order.symbol,
+    //                     (nbMin + 'm') as FuturesKlineInterval,
+    //                     startTime.toString(),
+    //                     timestampNow.toString(),
+    //                     String(candlesToFetch),
+    //                 )
+    //                 if (candles && (candles.length <= 0 || candles[0].length < 4)) continue
+    //                 symbolData[order.symbol] = {
+    //                     max: parseFloat(candles[0][2]), // Highest price
+    //                     min: parseFloat(candles[0][3]), // Lowest price
+    //                 }
+    //             }
+    //             const createdAt = new Date(order.createdAt).getTime()
+    //             // if order is older than nbMin minutes, continue
+    //             if ((createdAt - timestampNow) / 1000 / 60 > nbMin) continue
+    //             if ((order.side === 'long' && symbolData[order.symbol].max >= order.TPs[0]) || (order.side === 'short' && symbolData[order.symbol].min <= order.TPs[0])) {
+    //                 querys.push(this.orderModel.updateOne({ _id: order._id }, { $set: { terminated: true } }))
+    //             }
+    //         }
+    //         await Promise.all(querys)
+    //     } catch (e) {
+    //         this.logger.error('disableOrderNotSendWhichTP', e)
+    //         console.error('e', e.stack)
+    //         console.trace()
+    //     }
+    // }
 
     @Cron(CronExpression.EVERY_DAY_AT_8AM)
     async updateSymbolRules() {

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
-import { IArrayModification } from './util.interface'
 import { FuturesHoldSide } from 'bitget-api';
+import { IArrayModification } from './util.interface';
 
 @Injectable()
 export class UtilService {

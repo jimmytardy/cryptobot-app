@@ -18,6 +18,7 @@ import { AppConfigService } from 'src/modules/app-config/app-config.service'
 import { Symbol } from 'src/model/Symbol'
 import { BitgetFuturesService } from './bitget-futures/bitget-futures.service'
 import { ConfigService } from '@nestjs/config'
+import { IOrderEventData } from './bitget-ws/bitget-ws.interface'
 
 @Injectable()
 export class BitgetService implements OnModuleInit {
@@ -200,7 +201,7 @@ export class BitgetService implements OnModuleInit {
         return results
     }
 
-    async activeOrder(orderId: Types.ObjectId, user: User, orderEvent: any) {
+    async activeOrder(orderId: Types.ObjectId, user: User, orderEvent: IOrderEventData) {
         try {
             return await this.bitgetFuturesService.activeOrder(
                 BitgetService.client[user._id.toString()],
@@ -220,7 +221,7 @@ export class BitgetService implements OnModuleInit {
     ): Promise<StopLoss> {
         try {
             return await this.bitgetFuturesService.upgradeStopLoss(
-                BitgetService.client[order.userId.toString()],
+                BitgetService.clientV2[order.userId.toString()],
                 order,
                 strategy,
                 numTP,
@@ -287,7 +288,7 @@ export class BitgetService implements OnModuleInit {
                 user.preferences.order.TPSize
             )
         } catch (e) {
-            this.logger.error('updateTPsOfOrder', e)
+            this.logger.error('updateTPsOfOrder:' + e)
         }
     }
     
@@ -300,6 +301,18 @@ export class BitgetService implements OnModuleInit {
             )
         } catch (e) {
             this.logger.error('updateOrderSL', e)
+        }
+    }
+
+    async synchronizeAllSL(userId: Types.ObjectId, symbol: string) {
+        try {
+            return await this.bitgetFuturesService.synchronizeAllSL(
+                BitgetService.clientV2[userId.toString()],
+                userId,
+                symbol,
+            )
+        } catch (e) {
+            this.logger.error('recreateAllSL', e)
         }
     }
 }

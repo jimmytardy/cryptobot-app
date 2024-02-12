@@ -173,6 +173,9 @@ export class OrderBotService {
         await Promise.all(
             orders.map(async (order) => {
                 try {
+                    if (!userMemo[order.userId.toString()]) {
+                        userMemo[order.userId.toString()] = await this.userModel.findById(order.userId).exec()
+                    }
                     const PECurrentModif = PEModif.find((modif) => modif.oldNumber === order.PE)
                     // update or remove
                     if (PECurrentModif && PECurrentModif.action === 'update') {

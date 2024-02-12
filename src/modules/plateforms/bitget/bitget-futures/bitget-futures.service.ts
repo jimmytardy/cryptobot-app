@@ -27,6 +27,7 @@ import { BitgetService } from '../bitget.service'
 import { ErrorTraceService } from 'src/modules/error-trace/error-trace.service'
 import { ErrorTraceSeverity } from 'src/model/ErrorTrace'
 import { Symbol } from 'src/model/Symbol'
+import { IOrderEventData } from '../bitget-ws/bitget-ws.interface'
 
 @Injectable()
 export class BitgetFuturesService {
@@ -170,11 +171,11 @@ export class BitgetFuturesService {
         }
     }
 
-    async activeOrder(client: FuturesClient, orderId: Types.ObjectId, user: User, orderBitget: any) {
+    async activeOrder(client: FuturesClient, orderId: Types.ObjectId, user: User, orderBitget: IOrderEventData) {
         try {
-            const quantity = parseFloat(orderBitget.fillSz || orderBitget.sz)
-            const PE = parseFloat(orderBitget.fillPx || orderBitget.px)
-            const leverage = parseFloat(orderBitget.lever)
+            const quantity = parseFloat(orderBitget.size)
+            const PE = parseFloat(orderBitget.fillPrice || orderBitget.priceAvg)
+            const leverage = parseFloat(orderBitget.leverage)
             const order = await this.orderService.getOrderForActivation(orderId, { PE, quantity, leverage })
             if (!order || order.activated) return null
             const symbolRules = await this.bitgetUtilsService.getSymbolBy('symbol', order.symbol)
@@ -320,7 +321,7 @@ export class BitgetFuturesService {
         }
     }
 
-    async upgradeStopLoss(client: FuturesClient, order: Order, strategy: IOrderStrategy, numTP: number): Promise<StopLoss> {
+    async upgradeStopLoss(clientV2: RestClientV2, order: Order, strategy: IOrderStrategy, numTP: number): Promise<StopLoss> {
         const stopLoss = await this.stopLossService.findOne(
             {
                 orderParentId: order._id,
@@ -335,22 +336,25 @@ export class BitgetFuturesService {
             }
 
             let newStep = this.stopLossService.getNewStep(numTP, strategy)
-            const triggerPrice = await this.orderService.getSLTriggerFromStep(order, newStep)
-
-            if (triggerPrice !== stopLoss.triggerPrice) {
-                const params: ModifyFuturesPlanStopOrder = {
-                    marginCoin: order.marginCoin,
-                    orderId: stopLoss.orderId,
-                    planType: 'loss_plan',
-                    symbol: order.symbol,
-                    triggerPrice: triggerPrice.toString(),
-                }
-                const result = await client.modifyStopOrder(params)
-                stopLoss.orderId = result.data.orderId
-                stopLoss.historyTrigger = [...stopLoss.historyTrigger, stopLoss.triggerPrice]
-                stopLoss.triggerPrice = triggerPrice
+            const triggerPrice = await this.orderService.getSLTriggerFromStep(order, newStep);
+            stopLoss.quantity = await this.orderService.getQuantityAvailable(order._id, order);
+            stopLoss.step = newStep;
+            const params = {
+                orderId: stopLoss.orderId,
+                clientOid: stopLoss.clOrderId.toString(),
+                marginCoin: stopLoss.marginCoin,
+                productType: BitgetService.PRODUCT_TYPEV2,
+                symbol: this.bitgetUtilsService.convertSymbolToV2(stopLoss.symbol),
+                planType: 'loss_plan',
+                triggerPrice: stopLoss.triggerPrice.toString(),
+                triggerType: 'fill_price',
+                executePrice: stopLoss.triggerPrice.toString(),
+                size: stopLoss.quantity.toString(),
             }
-            stopLoss.step = newStep
+            const { data } = await clientV2.futuresModifyTPSLPOrder(params);
+            stopLoss.orderId = data.orderId
+            stopLoss.historyTrigger = [...stopLoss.historyTrigger, stopLoss.triggerPrice]
+            stopLoss.triggerPrice = triggerPrice
             return await this.stopLossService.updateOne(stopLoss, { new: true })
         } catch (e) {
             this.errorTraceService.createErrorTrace('upgradeSL', order.userId, ErrorTraceSeverity.IMMEDIATE, {
@@ -632,6 +636,71 @@ export class BitgetFuturesService {
             await this.orderService.closeAllOrderOnSymbol(userId, symbol)
         } catch (e) {
             this.errorTraceService.createErrorTrace('closePosition', userId, ErrorTraceSeverity.ERROR, {
+                userId,
+                symbol,
+                error: e,
+            })
+        }
+    }
+
+    async synchronizeAllSL(clientV2: RestClientV2, userId: Types.ObjectId, symbol: string) {
+        try {
+            const stopLossList = await this.stopLossService.findAll({
+                userId,
+                symbol,
+                terminated: false,
+            });
+            const symbolRules = await this.bitgetUtilsService.getSymbolBy('symbol', symbol)
+            const sizeAvailableMemo: { [key: string]: number } = {}
+            const stopLossListToUpdate: StopLoss[] = []
+            // update all SL to minimum
+            for (const stopLoss of stopLossList) {
+                const order = await this.orderService.findOne({ _id: stopLoss.orderParentId })
+                const quantity = await this.orderService.getQuantityAvailable(stopLoss.orderParentId, order)
+                if (stopLoss.quantity !== quantity && quantity !== Number(symbolRules.minTradeNum)) {
+                    sizeAvailableMemo[stopLoss._id.toString()] = quantity;
+                    const params = {
+                        orderId: stopLoss.orderId,
+                        clientOid: stopLoss.clOrderId.toString(),
+                        marginCoin: stopLoss.marginCoin,
+                        productType: BitgetService.PRODUCT_TYPEV2,
+                        symbol: this.bitgetUtilsService.convertSymbolToV2(stopLoss.symbol),
+                        planType: 'loss_plan',
+                        triggerPrice: stopLoss.triggerPrice.toString(),
+                        triggerType: 'fill_market',
+                        executePrice: stopLoss.triggerPrice.toString(),
+                        size: symbolRules.minTradeNum
+                    }
+                    await clientV2.futuresModifyTPSLPOrder(params).catch((e) => {
+                        this.errorTraceService.createErrorTrace('recreateAllSL > update to minimum', userId, ErrorTraceSeverity.IMMEDIATE, {
+                            userId,
+                            symbol,
+                            stopLoss,
+                            error: e,
+                        })
+                    });
+                    stopLossListToUpdate.push(stopLoss);
+                }
+            }
+            console.log('stopLossListToUpdate', stopLossListToUpdate)
+            // update all SL to size
+            for (const stopLoss of stopLossListToUpdate) {
+                const params = {
+                    orderId: stopLoss.orderId,
+                    clientOid: stopLoss.clOrderId.toString(),
+                    marginCoin: stopLoss.marginCoin,
+                    productType: BitgetService.PRODUCT_TYPEV2,
+                    symbol: this.bitgetUtilsService.convertSymbolToV2(stopLoss.symbol),
+                    planType: 'loss_plan',
+                    triggerPrice: stopLoss.triggerPrice.toString(),
+                    triggerType: 'fill_price',
+                    executePrice: stopLoss.triggerPrice.toString(),
+                    size: sizeAvailableMemo[stopLoss._id.toString()]
+                }
+                await clientV2.futuresModifyTPSLPOrder(params);
+            }
+        } catch (e) {
+            this.errorTraceService.createErrorTrace('recreateAllSL', userId, ErrorTraceSeverity.IMMEDIATE, {
                 userId,
                 symbol,
                 error: e,

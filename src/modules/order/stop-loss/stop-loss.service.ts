@@ -22,6 +22,8 @@ export class StopLossService {
             symbol: order.symbol,
             side: order.side,
             userId: order.userId,
+            marginCoin: order.marginCoin,
+            quantity: order.quantity,
         }).save()
     }
     
@@ -33,6 +35,11 @@ export class StopLossService {
     async findOne(filter: FilterQuery<StopLoss>, select?: ProjectionType<StopLoss>, options?: QueryOptions<StopLoss>): Promise<StopLoss> {
         this.logger.debug(`findOne: filter=${JSON.stringify(filter)}, select=${JSON.stringify(select)}, options=${JSON.stringify(options)}`);
         return await this.stopLossModel.findOne(filter, select, options)
+    }
+
+    async findAll(filter: FilterQuery<StopLoss>, select?: ProjectionType<StopLoss>, options?: QueryOptions<StopLoss>): Promise<StopLoss[]> {
+        this.logger.debug(`findAll: filter=${JSON.stringify(filter)}, select=${JSON.stringify(select)}, options=${JSON.stringify(options)}`);
+        return await this.stopLossModel.find(filter, select, options)
     }
 
     async deleteOne(stopLossId:  Types.ObjectId): Promise<StopLoss> {

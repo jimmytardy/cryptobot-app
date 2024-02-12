@@ -1,4 +1,4 @@
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common'
+import { Inject, Injectable, OnApplicationBootstrap, forwardRef } from '@nestjs/common'
 import { BitgetService } from './bitget/bitget.service'
 import { UserService } from '../user/user.service'
 import { User } from 'src/model/User'
@@ -9,7 +9,7 @@ import { Types } from 'mongoose'
 export class PlateformsService {
     constructor(
         private bitgetService: BitgetService,
-        private bitgetWsService: BitgetWsService,
+        @Inject(forwardRef(() => BitgetWsService)) private bitgetWsService: BitgetWsService,
     ) {}
 
     async initializeTraders(users: User[]) {

@@ -17,6 +17,8 @@ export const createMockStopLoss = (stopLoss: Partial<StopLoss> = {}): StopLoss =
         updated: false,
         userId: new Types.ObjectId(),
         side: 'long',
+        marginCoin: 'USDT',
+        quantity: 0.1,
         ...stopLoss
     }
 }

@@ -39,6 +39,9 @@ export class StopLoss {
     @Prop()
     symbol: string
 
+    @Prop()
+    marginCoin: string
+
     @Prop({ default: false })
     terminated: boolean
 
@@ -53,6 +56,9 @@ export class StopLoss {
 
     @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
     userId: Types.ObjectId
+
+    @Prop({ type: Number })
+    quantity: number
 }
 
 export const StopLossSchema = SchemaFactory.createForClass(StopLoss)

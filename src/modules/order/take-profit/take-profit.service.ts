@@ -9,9 +9,14 @@ export class TakeProfitService {
     logger: Logger = new Logger('TakeProfitService')
     constructor(@InjectModel(TakeProfit.name) private takeProfitModel: Model<TakeProfit>) {}
 
-    async findAll(filter: FilterQuery<TakeProfit>, select: ProjectionType<TakeProfit>, options: QueryOptions<TakeProfit>): Promise<TakeProfit[]> {
-        this.logger.debug(`getTakeProfits: filter=${JSON.stringify(filter)}, select=${JSON.stringify(select)}, options=${JSON.stringify(options)}`)
+    async findAll(filter: FilterQuery<TakeProfit>, select?: ProjectionType<TakeProfit>, options?: QueryOptions<TakeProfit>): Promise<TakeProfit[]> {
+        this.logger.debug(`findAll: filter=${JSON.stringify(filter)}, select=${JSON.stringify(select)}, options=${JSON.stringify(options)}`)
         return await this.takeProfitModel.find(filter, select, options)
+    }
+
+    async findOne(filter: FilterQuery<TakeProfit>, select?: ProjectionType<TakeProfit>, options?: QueryOptions<TakeProfit>): Promise<TakeProfit> {
+        this.logger.debug(`findOne: filter=${JSON.stringify(filter)}, select=${JSON.stringify(select)}, options=${JSON.stringify(options)}`)
+        return await this.takeProfitModel.findOne(filter, select, options)
     }
 
     async updateOne(takeProfit: Partial<TakeProfit> & { _id: Types.ObjectId }, options?: QueryOptions<TakeProfit>): Promise<TakeProfit> {
