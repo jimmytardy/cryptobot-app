@@ -49,7 +49,7 @@ export interface IOrderAlgoEventData {
     tradeSide: string
     posSide: string
     marginCoin: string
-    status: 'executed' | 'cancelled' | 'executing' | 'live'
+    status: 'executed' | 'cancelled' | 'executing' | 'live' | 'fail_execute'
     posMode: string
     enterPointSource: string
     stopSurplusTriggerType: string

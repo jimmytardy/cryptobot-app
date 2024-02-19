@@ -1,14 +1,11 @@
 import { Injectable } from '@nestjs/common'
-import { FuturesHoldSide } from 'bitget-api';
-import { IArrayModification } from './util.interface';
+import { FuturesHoldSide } from 'bitget-api'
+import { IArrayModification } from './util.interface'
 
 @Injectable()
 export class UtilService {
-    static compareArraysNumber(
-        oldArray: number[],
-        newArray: number[],
-    ): IArrayModification[] {
-        const modifications: IArrayModification[] = [];
+    static compareArraysNumber(oldArray: number[], newArray: number[]): IArrayModification[] {
+        const modifications: IArrayModification[] = []
         if (oldArray.length < newArray.length) {
             for (let i = oldArray.length; i < newArray.length; i++) {
                 modifications.push({
@@ -35,7 +32,7 @@ export class UtilService {
                     oldNumber: oldArray[i],
                     newNumber: newArray[i],
                     action: 'update',
-                });
+                })
             }
         }
 
@@ -58,5 +55,9 @@ export class UtilService {
         } else {
             return (PE - triggerPrice) * size
         }
+    }
+
+    static async sleep(ms: number) {
+        return await new Promise((r) => setTimeout(r, ms))
     }
 }

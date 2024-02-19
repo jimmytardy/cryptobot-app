@@ -17,6 +17,7 @@ import { BitgetFuturesModule } from './bitget-futures/bitget-futures.module';
         BitgetWsModule,
         OrderModule,
         PaymentsModule,
+        OrderModule,
         MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
         BitgetFuturesModule,
     ],

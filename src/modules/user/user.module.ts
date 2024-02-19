@@ -5,10 +5,9 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from 'src/model/User';
 import { PlateformsModule } from '../plateforms/plateforms.module';
 import { OrderModule } from '../order/order.module';
-import { PaymentsModule } from '../payment/payments.module';
 
 @Module({
-  imports: [OrderModule, PaymentsModule, MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]), forwardRef(() => PlateformsModule)],
+  imports: [OrderModule, MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]), forwardRef(() => PlateformsModule)],
   providers: [UserService],
   controllers: [UserController],
   exports: [UserService]

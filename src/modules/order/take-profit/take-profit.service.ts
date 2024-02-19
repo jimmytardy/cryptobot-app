@@ -34,7 +34,7 @@ export class TakeProfitService {
         return await this.takeProfitModel.updateMany({ ...filter, terminated: false }, { $set: { terminated: true, cancelled: true } })
     }
 
-    async createFromOrder(order: Order, triggerPrice: number, num: number, quantity: number, clOrderId: any, orderId: any): Promise<TakeProfit> {
+    async createFromOrder(order: Order, triggerPrice: number, quantity: number, num: number, clOrderId: any, orderId: any): Promise<TakeProfit> {
         return await new this.takeProfitModel({
             triggerPrice,
             clOrderId,

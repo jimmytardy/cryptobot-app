@@ -1,12 +1,8 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common'
+import { Inject, Injectable, Logger, OnApplicationBootstrap, forwardRef } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
-import { FilterQuery, Model, ProjectionType, Types } from 'mongoose'
+import { FilterQuery, Model, ProjectionType, QueryOptions, Types } from 'mongoose'
 import { IUserPreferencesOrder, User } from 'src/model/User'
-import {
-    CreateUserDTO,
-    ProfileUpdateDTO,
-    UpdatePreferencesDTO,
-} from './user.dto'
+import { CreateUserDTO, ProfileUpdateDTO, UpdatePreferencesDTO } from './user.dto'
 import { genSalt, hash } from 'bcrypt'
 import { PlateformsService } from '../plateforms/plateforms.service'
 import { FuturesClient } from 'bitget-api'
@@ -16,36 +12,39 @@ import { TakeProfit } from 'src/model/TakeProfit'
 import { Order } from 'src/model/Order'
 import { ISubscriptionUser } from '../payment/payments.interface'
 import { BitgetService } from '../plateforms/bitget/bitget.service'
+import _ from 'underscore'
+import { SubscriptionEnum } from 'src/model/Subscription'
 
 @Injectable()
 export class UserService implements OnApplicationBootstrap {
-    logger: Logger
+    logger: Logger = new Logger('UserService')
     constructor(
         @InjectModel(User.name) private userModel: Model<User>,
-        private plateformsService: PlateformsService,
-        private paymentService: PaymentsService,
+        @Inject(forwardRef(() => PlateformsService)) private plateformsService: PlateformsService,
         private orderService: OrderService
-    ) {
-        this.logger = new Logger('UserService')
-    }
+    ) {}
 
     async onApplicationBootstrap() {
         const users = await this.getListOfTraders()
         await this.plateformsService.initializeTraders(users)
     }
 
-    async findByEmail(
-        email: string,
-        select?: ProjectionType<User>,
-    ): Promise<User | undefined> {
+    async findByEmail(email: string, select?: ProjectionType<User>): Promise<User | undefined> {
         return await this.userModel.findOne({ email }, select).lean()
     }
 
-    async findById(
-        id: string | Types.ObjectId,
-        select?: ProjectionType<User>,
-    ): Promise<User | undefined> {
+    async findById(id: string | Types.ObjectId, select?: ProjectionType<User>): Promise<User | undefined> {
         return await this.userModel.findById(id, select).lean()
+    }
+
+    async findAll(filter?: FilterQuery<User>, select?: ProjectionType<TakeProfit>, options?: QueryOptions<User>): Promise<User[]> {
+        this.logger.debug(`findAll: filter=${JSON.stringify(filter)}, select=${JSON.stringify(select)}, options=${JSON.stringify(options)}`)
+        return await this.userModel.find(filter, select, options)
+    }
+
+    async updateOne(order: Partial<User> & { _id: Types.ObjectId }, options?: QueryOptions<User>): Promise<User> {
+        this.logger.debug(`updateOne: order=${JSON.stringify(order)}, options=${JSON.stringify(options)}`)
+        return await this.userModel.findByIdAndUpdate(order._id, { $set: order }, options)
     }
 
     async create(user: CreateUserDTO) {
@@ -63,9 +62,7 @@ export class UserService implements OnApplicationBootstrap {
             })
             await client.getAccounts(BitgetService.PRODUCT_TYPE)
         } catch (e) {
-            throw new Error(
-                'Les informations de la clé API ne sont pas correctes',
-            )
+            throw new Error('Les informations de la clé API ne sont pas correctes')
         }
 
         const newUser = await new this.userModel({
@@ -76,24 +73,22 @@ export class UserService implements OnApplicationBootstrap {
         return newUser
     }
 
+    async getUsersWithSubscription(subscription: SubscriptionEnum ,filter: FilterQuery<User> = {}, select?: ProjectionType<User>): Promise<User[]> {
+        return await this.userModel.find({ ...filter, 'subscription.rights': subscription, 'subscription.active': true }, select).lean()
+
+    }
+
     async getListOfTraders(): Promise<User[]> {
-        return await this.userModel.find()
+        return await this.userModel.find({ 'subscription.active': true }).lean()
     }
 
     async getPreferences(userId: Types.ObjectId) {
-        return (await this.userModel.findById(userId, 'preferences').lean())
-            .preferences
+        return (await this.userModel.findById(userId, 'preferences').lean()).preferences
     }
 
-    async setPreferences(
-        userId: Types.ObjectId,
-        updatePreferencesDTO: UpdatePreferencesDTO,
-    ) {
+    async setPreferences(userId: Types.ObjectId, updatePreferencesDTO: UpdatePreferencesDTO) {
         try {
-            await this.userModel.updateOne(
-                { _id: userId },
-                { $set: { preferences: updatePreferencesDTO } },
-            )
+            await this.userModel.updateOne({ _id: userId }, { $set: { preferences: updatePreferencesDTO } })
             return { success: true }
         } catch (e) {
             this.logger.error(e)
@@ -112,20 +107,10 @@ export class UserService implements OnApplicationBootstrap {
     }
 
     async getProfile(user: User) {
-        const { bitget, preferences, ...userInfo } = user
+        const { bitget, preferences, stripeCustomerId, password, ...userInfo } = user
         return {
             ...userInfo,
-            subscription: await this.getSubscriptions(user),
         }
-    }
-
-    async getSubscriptions(user: User): Promise<ISubscriptionUser> {
-        const { stripeCustomerId } = await this.findById(
-            user._id,
-            '+stripeCustomerId',
-        )
-        if (!stripeCustomerId) return {} as ISubscriptionUser;
-        return await this.paymentService.getSubscriptions(stripeCustomerId)
     }
 
     async getOrdersStats(userId: Types.ObjectId, dateFrom: Date, dateTo: Date) {
@@ -134,7 +119,7 @@ export class UserService implements OnApplicationBootstrap {
             ...(dateFrom ? { createdAt: { $gte: dateFrom } } : {}),
             ...(dateTo ? { createdAt: { $lte: dateTo } } : {}),
         }
-        const orders = await this.orderService.getOrders(filterQuery);
+        const orders = await this.orderService.getOrders(filterQuery)
         const results = {
             nbTerminated: 0,
             nbInProgress: 0,
@@ -149,44 +134,35 @@ export class UserService implements OnApplicationBootstrap {
                 '2': 0,
                 '3': 0,
                 '4': 0,
-                '5': 0
+                '5': 0,
             },
         }
 
         for (const order of orders) {
             if (!order.sendToPlateform) {
-                results.nbWaitToSendPlateform++;
-                continue;
+                results.nbWaitToSendPlateform++
+                continue
             }
-            if (order.terminated) results.nbTerminated++;
-            else results.nbInProgress++;
-            if (!order.activated) continue;
+            if (order.terminated) results.nbTerminated++
+            else results.nbInProgress++
+            if (!order.activated) continue
             if (order.TPs) {
-                const TPs = order.TPs.sort((a: TakeProfit, b: TakeProfit) => a.triggerPrice - b.triggerPrice);
-                if (order.side === 'short') TPs.reverse();
-                
+                const TPs = order.TPs.sort((a: TakeProfit, b: TakeProfit) => a.triggerPrice - b.triggerPrice)
+                if (order.side === 'short') TPs.reverse()
+
                 for (let i = 0; i < TPs.length; i++) {
                     if (TPs[i].activated) {
-                        results.nbTotalTP++;
-                        results.nbTP[i]++;
+                        results.nbTotalTP++
+                        results.nbTP[i]++
                     }
                 }
             }
-            
+
             if (order.SL?.terminated) {
-                results.nbSL[order.SL.step]++;
-                results.nbTotalSL++;
+                results.nbSL[order.SL.step]++
+                results.nbTotalSL++
             }
         }
-        return results;
-    }
-
-    async getFullUsersForAdmin() {
-        const users: (User & { subscription: ISubscriptionUser })[] = await this.userModel.find().lean();
-
-        for (const user of users) {
-            user.subscription = await this.getSubscriptions(user);
-        }
-        return users;
+        return results
     }
 }

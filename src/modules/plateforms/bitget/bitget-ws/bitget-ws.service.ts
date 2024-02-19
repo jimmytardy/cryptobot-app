@@ -12,6 +12,8 @@ import { IOrderAlgoEventData, IOrderEventData } from './bitget-ws.interface'
 import { StopLossService } from 'src/modules/order/stop-loss/stop-loss.service'
 import { TakeProfitService } from 'src/modules/order/take-profit/take-profit.service'
 import { UserService } from 'src/modules/user/user.service'
+import { UtilService } from 'src/util/util.service'
+import { PositionService } from 'src/modules/position/position.service'
 
 @Injectable()
 export class BitgetWsService {
@@ -24,6 +26,7 @@ export class BitgetWsService {
         private bitgetService: BitgetService,
         private stopLossService: StopLossService,
         private takeProfitService: TakeProfitService,
+        private positionService: PositionService,
         private userService: UserService,
     ) {
         this.client = {}
@@ -36,26 +39,44 @@ export class BitgetWsService {
     addNewTrader(user: User) {
         const userId = user._id.toString()
         const logger: Logger = new Logger('BitgetWS-' + user._id)
-        this.client[userId] = new WebsocketClientV2(
-            {
-                apiKey: user.bitget.api_key,
-                apiPass: user.bitget.api_pass,
-                apiSecret: user.bitget.api_secret_key,
-            },
-            {
-                debug: this.loggerTrace(logger, 'debug', userId),
-                error: this.loggerTrace(logger, 'error', userId),
-                info: this.loggerTrace(logger, 'log', userId),
-                notice: () => {
-                    return
-                } /* this.loggerTrace(logger, 'verbose', userId) */,
-                silly: () => {
-                    return
-                } /* this.loggerTrace(logger, 'verbose', userId) */,
-                warning: this.loggerTrace(logger, 'warn', userId),
-            },
-        )
-        this.activateWebSocket(user)
+        if (!this.client[userId]) {
+            this.client[userId] = new WebsocketClientV2(
+                {
+                    apiKey: user.bitget.api_key,
+                    apiPass: user.bitget.api_pass,
+                    apiSecret: user.bitget.api_secret_key,
+                },
+                {
+                    debug: this.loggerTrace(logger, 'debug', userId),
+                    error: this.loggerTrace(logger, 'error', userId),
+                    info: this.loggerTrace(logger, 'log', userId),
+                    notice: () => {
+                        return
+                    } /* this.loggerTrace(logger, 'verbose', userId) */,
+                    silly: () => {
+                        return
+                    } /* this.loggerTrace(logger, 'verbose', userId) */,
+                    warning: this.loggerTrace(logger, 'warn', userId),
+                },
+            )
+            this.activateWebSocket(user)
+        }
+    }
+
+    removeTrader(user: User) {
+        const userId = user._id.toString()
+        if (this.client[userId]) {
+            this.desactivateWebSocket(user)
+            delete this.client[userId]
+        }
+    }
+
+    desactivateWebSocket(user: User) {
+        const userIdStr = user._id.toString()
+        if (this.client[userIdStr]) {
+            this.client[userIdStr].unsubscribeTopic(BitgetService.PRODUCT_TYPEV2, 'orders')
+            this.client[userIdStr].unsubscribeTopic(BitgetService.PRODUCT_TYPEV2, 'orders-algo')
+        }
     }
 
     activateWebSocket(user: User) {
@@ -82,6 +103,10 @@ export class BitgetWsService {
         // console.log('onUpdatedOrderAlgo', data[0].planType, data[0].status, data[0].clientOid)
         for (const orderAlgoEvent of data) {
             if (!Types.ObjectId.isValid(orderAlgoEvent.clientOid)) return
+            const position = await this.positionService.findOneAndCreate({
+                userId: user._id,
+                symbol: orderAlgoEvent.instId,
+            })
             const clOrderId = new Types.ObjectId(orderAlgoEvent.clientOid)
 
             const takeProfit = await this.takeProfitService.findOne({
@@ -89,7 +114,7 @@ export class BitgetWsService {
                 terminated: { $ne: true },
                 userId: user._id,
             })
-            if (takeProfit) {
+            if (takeProfit && position.synchroExchange.TP) {
                 return await this.onUpdatedOrderAlgoTP(orderAlgoEvent, takeProfit)
             }
             const stopLoss = await this.stopLossService.findOne({
@@ -98,27 +123,34 @@ export class BitgetWsService {
                 userId: user._id,
             })
 
-            if (stopLoss) {
+            if (stopLoss && position.synchroExchange.SL) {
                 return await this.onUpdatedOrderAlgoSL(orderAlgoEvent, stopLoss)
             }
         }
     }
 
     private async onUpdatedOrderAlgoSL(orderAlgoEvent: IOrderAlgoEventData, stopLoss: StopLoss) {
-        console.log('SL', orderAlgoEvent.status, orderAlgoEvent.enterPointSource, orderAlgoEvent.size, orderAlgoEvent.triggerPrice, stopLoss._id, stopLoss.triggerPrice, stopLoss.quantity)
         switch (orderAlgoEvent.status) {
             case 'cancelled':
-                await this.stopLossService.cancel(stopLoss._id)
+                await this.stopLossService.cancel({ _id: stopLoss._id })
+                const quantityAvailable = await this.orderService.getQuantityAvailable(stopLoss.orderParentId)
+                if (quantityAvailable === 0) {
+                    await this.orderService.cancelOrder(stopLoss.orderParentId)
+                } else {
+                    await this.bitgetService.synchronizeAllSL(stopLoss.userId, stopLoss.symbol)
+                }
                 break
             case 'live':
-                stopLoss.quantity = Number(orderAlgoEvent.size)
-                stopLoss.triggerPrice = Number(orderAlgoEvent.triggerPrice)
-                await this.stopLossService.updateOne(stopLoss) 
+                const newSize = Number(orderAlgoEvent.size)
+                const newTriggerPrice = Number(orderAlgoEvent.triggerPrice)
                 // check if a good SL
-                const quantityAvailable = await this.orderService.getQuantityAvailable(stopLoss.orderParentId)
-                if (quantityAvailable === stopLoss.quantity) {
+                if (newSize !== stopLoss.quantity || newTriggerPrice !== stopLoss.triggerPrice) {
+                    stopLoss.quantity = Number(orderAlgoEvent.size)
+                    stopLoss.triggerPrice = Number(orderAlgoEvent.triggerPrice)
+                    await this.stopLossService.updateOne(stopLoss)
+                    const quantityAvailable = await this.orderService.getQuantityAvailable(stopLoss.orderParentId)
                     // if we are multiple Order, reorganise all SL
-                    await this.bitgetService.synchronizeAllSL(stopLoss.userId, stopLoss.symbol)
+                    if (quantityAvailable !== newSize) await this.bitgetService.synchronizeAllSL(stopLoss.userId, stopLoss.symbol)
                 }
                 break
             case 'executed':
@@ -126,13 +158,14 @@ export class BitgetWsService {
                 break
             case 'executing':
                 break
+            case 'fail_execute':
+                await this.bitgetService.synchronizeAllSL(stopLoss.userId, stopLoss.symbol)
             default:
                 console.info('onUpdatedOrderAlgoSL', orderAlgoEvent.status, 'not implemented')
         }
     }
 
     private async onUpdatedOrderAlgoTP(orderAlgoEvent: IOrderAlgoEventData, takeProfit: TakeProfit) {
-        console.log('TP', orderAlgoEvent.status)
         switch (orderAlgoEvent.status) {
             case 'cancelled':
                 takeProfit.terminated = true
@@ -151,7 +184,7 @@ export class BitgetWsService {
             case 'executing':
                 break
             case 'executed':
-                await this.onTakeProfitTriggered(takeProfit, orderAlgoEvent)
+                await this.onTakeProfitTriggered(takeProfit, orderAlgoEvent);
                 break
             default:
                 console.info('onUpdatedOrderAlgoTP', orderAlgoEvent.status, 'not implemented')
@@ -163,12 +196,16 @@ export class BitgetWsService {
             if (orderEvent.status === 'live') return
             if (!Types.ObjectId.isValid(orderEvent.clientOid)) return
             const clOrderId = new Types.ObjectId(orderEvent.clientOid)
+            const position = await this.positionService.findOneAndCreate({
+                userId: user._id,
+                symbol: orderEvent.instId,
+            })
             const order = await this.orderService.findOne({
                 clOrderId,
                 terminated: { $ne: true },
                 userId: user._id,
             })
-            if (order) return this.onOrderEvent(orderEvent, user, order)
+            if (order && position.synchroExchange.order) return this.onOrderEvent(orderEvent, user, order)
         }
     }
 
@@ -198,19 +235,17 @@ export class BitgetWsService {
         takeProfit.activated = true
         await this.takeProfitService.updateOne(takeProfit)
         const order = await this.orderService.findOne({ _id: takeProfit.orderParentId })
+        const quantityAvailable = await this.orderService.getQuantityAvailable(takeProfit.orderParentId, order)
         // close order if has take all TPs
         try {
-            const user = await this.userService.findById(order.userId, 'preferences.order.strategy')
-            // upgrade stop loss
-            await this.bitgetService.upgradeSL(
-                order,
-                user.preferences.order.strategy,
-                order.TPs.findIndex((tp: number) => tp === takeProfit.triggerPrice),
-            )
-            // cancel other order that not actived
-            await this.bitgetService.disabledOrderLink(order.linkOrderId, order.userId)
-            if (takeProfit.num === order.TPs.length) {
+            const TPNotTrigger = await this.orderService.getTakeProfitNotTriggered(order._id)
+            if (quantityAvailable === 0 || TPNotTrigger.length === 0) {
                 await this.bitgetService.cancelOrder(order)
+            } else {
+                // cancel other order that not actived
+                await this.bitgetService.disabledOrderLink(order.linkOrderId, order.userId)
+                // upgrade stop loss
+                await this.bitgetService.upgradeSL(order, takeProfit.num)
             }
         } catch (e) {
             this.logger.error('onTakeProfitTriggered', order, e)
@@ -221,6 +256,7 @@ export class BitgetWsService {
         stopLoss.terminated = true
         stopLoss.activated = true
         await this.stopLossService.updateOne(stopLoss)
+        await this.bitgetService.cancelTakeProfitsFromOrder(stopLoss.orderParentId, stopLoss.userId, null, false, true)
         await this.orderService.cancelOrder(stopLoss.orderParentId)
     }
 }

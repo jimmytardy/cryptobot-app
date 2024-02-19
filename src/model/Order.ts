@@ -69,6 +69,15 @@ export class Order {
     @Prop()
     leverage?: number
 
+    @Prop({ type: SchemaTypes.Mixed })
+    strategy?: IOrderStrategy
+
+    @Prop({ type: Array })
+    PEsTriggered?: number[]
+
+    @Prop({ type: Array })
+    clientOids?: Types.ObjectId[]
+
     createdAt: Date;
     updatedAt: Date;
 }

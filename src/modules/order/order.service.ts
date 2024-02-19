@@ -41,6 +41,11 @@ export class OrderService {
         return await this.orderModel.findByIdAndUpdate(order._id, { $set: order }, options)
     }
 
+    async deleteOne(orderId: Types.ObjectId, options?: QueryOptions<Order>): Promise<Order> {
+        this.logger.debug(`deleteOne: orderId=${JSON.stringify(orderId)}, options=${JSON.stringify(options)}`);
+        return await this.orderModel.findByIdAndDelete(orderId, options)
+    }
+
     async closeAllOrderOnSymbol(userId: Types.ObjectId, symbol: string) {
         const orderIds = await this.orderModel.distinct('_id', { userId, symbol, terminated: false });
 
@@ -72,22 +77,32 @@ export class OrderService {
     }
 
     async getStepsTriggers(order: Order): Promise<number[]> {
-        let stepsTriggers: number[] = [order.PE]
-        const orderLinked = await this.findOne(
-            {
-                linkOrderId: order.linkOrderId,
-                _id: { $ne: order._id },
-                userId: order.userId,
-            },
-            'PE',
-        )
-        if (orderLinked) {
-            stepsTriggers.push(orderLinked.PE)
-        } else {
-            stepsTriggers.push(order.PE)
+        let stepsTriggers: number[] = order.PEsTriggered || [];
+        if (stepsTriggers.length === 0) stepsTriggers.push(order.PE);
+        if (stepsTriggers.length < 2) {
+            const orderLinked = await this.findOne(
+                {
+                    linkOrderId: order.linkOrderId,
+                    _id: { $ne: order._id },
+                    userId: order.userId,
+                },
+                'PE',
+            )
+            if (orderLinked) {
+                stepsTriggers.push(orderLinked.PE)
+            } else {
+                stepsTriggers.push(order.PE)
+            }
         }
         // Array of PE + TPs for triggerPrice
         return UtilService.sortBySide(stepsTriggers.concat(order.TPs), order.side)
+    }
+
+    async getSLTriggerCurrentFromOrder(order: Order): Promise<number> {
+        const takeProfitLastTrigger = await this.takeProfitService.findOne({ orderParentId: order._id, cancelled: false, terminated: true }, undefined, { sort: { num: -1 } })
+        if (!takeProfitLastTrigger) return order.SL;
+        const step = this.stopLossService.getNewStep(takeProfitLastTrigger.num, order.strategy)
+        return await this.getSLTriggerFromStep(order, step);
     }
 
     async getSLTriggerFromStep(order: Order, step: number): Promise<number> {
@@ -100,14 +115,18 @@ export class OrderService {
         }
     }
 
-    async getTakeProfitTerminated(orderId: Types.ObjectId | string, select?: ProjectionType<TakeProfit>, options?: QueryOptions<TakeProfit>): Promise<TakeProfit[]> {
-        return await this.takeProfitService.findAll({ orderParentId: orderId, terminated: true }, select, options);
+    async getTakeProfitTriggered(orderId: Types.ObjectId | string, select?: ProjectionType<TakeProfit>, options?: QueryOptions<TakeProfit>): Promise<TakeProfit[]> {
+        return await this.takeProfitService.findAll({ orderParentId: orderId, terminated: true, cancelled: false, activated: true }, select, options);
+    }
+
+    async getTakeProfitNotTriggered(orderId: Types.ObjectId | string, select?: ProjectionType<TakeProfit>, options?: QueryOptions<TakeProfit>): Promise<TakeProfit[]> {
+        return await this.takeProfitService.findAll({ orderParentId: orderId, terminated: false, cancelled: false, activated: false }, select, options);
     }
 
     async getQuantityAvailable(orderId: Types.ObjectId | string, order: Order = null): Promise<number> {
         if (!order) order = await this.orderModel.findById(orderId, 'quantity').lean();
         if (!order) throw new Error('Order not found');
-        const TPQuantityClose = await this.getTakeProfitTerminated(order._id, 'quantity', { lean: true });
+        const TPQuantityClose = await this.getTakeProfitTriggered(order._id, 'quantity', { lean: true });
         return exactMath.sub(order.quantity, TPQuantityClose.reduce((acc, currentTP) => acc + currentTP.quantity, 0));
     }
 

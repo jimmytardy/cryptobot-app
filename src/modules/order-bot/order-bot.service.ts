@@ -10,6 +10,8 @@ import { Order } from 'src/model/Order'
 import { UtilService } from 'src/util/util.service'
 import { User } from 'src/model/User'
 import * as _ from 'underscore'
+import { OrderService } from '../order/order.service'
+import { UserService } from '../user/user.service'
 
 @Injectable()
 export class OrderBotService {
@@ -18,8 +20,10 @@ export class OrderBotService {
         @InjectModel(OrderBot.name) private orderBotModel: Model<OrderBot>,
         @InjectModel(Order.name) private orderModel: Model<Order>,
         @InjectModel(User.name) private userModel: Model<User>,
+        private userService: UserService,
         private paymentService: PaymentsService,
         private bitgetService: BitgetService,
+        private orderService: OrderService,
     ) {}
 
     orderBotFromText(message: string): OrderBot | null {
@@ -75,7 +79,7 @@ export class OrderBotService {
         const userIdsAlreadyPlaced = Object.keys(orderAlreadyPlacedGrouped)
             .filter((userId) => orderAlreadyPlacedGrouped[userId].length >= 1)
             .map((userId) => new Types.ObjectId(userId))
-        const users = await this.paymentService.getUsersSubscription(SubscriptionEnum.BOT, { _id: { $nin: userIdsAlreadyPlaced } })
+        const users = await this.userService.getUsersWithSubscription(SubscriptionEnum.BOT, { _id: { $nin: userIdsAlreadyPlaced } })
         await this.placeOrderBot(orderBot, users)
     }
 
@@ -94,7 +98,7 @@ export class OrderBotService {
 
             const newOrderBot = new this.orderBotModel(orderBot)
             await newOrderBot.save()
-            const users = await this.paymentService.getUsersSubscription(SubscriptionEnum.BOT);
+            const users = await this.userService.getUsersWithSubscription(SubscriptionEnum.BOT)
             await this.placeOrderBot(orderBot, users)
             return {
                 message: 'Ordre de bot crée avec succès',
@@ -111,15 +115,18 @@ export class OrderBotService {
         try {
             const userFiltered = users.filter((user) => !user.preferences.order.baseCoinAuthorized || user.preferences.order.baseCoinAuthorized.includes(orderBot.baseCoin))
             const price = await this.bitgetService.getCurrentPrice('baseCoin', orderBot.baseCoin)
+            const symbolRules = await this.bitgetService.getSymbolBy('baseCoin', orderBot.baseCoin)
+            if (!symbolRules) throw new Error(`Symbol ${orderBot.baseCoin} not found`)
             return await Promise.all(
-                userFiltered.map(
-                    async (user) =>
-                        {
-                            const orderCloned = JSON.parse(JSON.stringify(orderBot)) // if shift PE/TPs/SL, not share array
-                            await this.bitgetService.placeOrder(orderCloned, user, orderBot.linkOrderId, price).catch((error) => {
+                userFiltered.map(async (user) => {
+                    const alreadyPlaced = await this.orderService.findOne({ symbol: symbolRules.symbol, userId: user._id, terminated: false });
+                    if (!alreadyPlaced) {
+                        const orderCloned = JSON.parse(JSON.stringify(orderBot)) // if shift PE/TPs/SL, not share array
+                        await this.bitgetService.placeOrder(orderCloned, user, orderBot.linkOrderId, price).catch((error) => {
                             this.logger.error('placeOrderBot > Promise.map > catch', user._id, error)
-                        })},
-                ),
+                        })
+                    }
+                }),
             )
         } catch (e) {
             this.logger.error('placeOrderBot', e)
@@ -211,14 +218,11 @@ export class OrderBotService {
         const orderBot = await this.orderBotModel.findById(orderBotId).exec()
         if (!orderBot) throw new HttpException('OrderBot not found', 404)
 
-        const orders = await this.orderModel.find({ linkOrderId: orderBot.linkOrderId, terminated: false }).exec()
-        const ordersGrouped = _.groupBy(orders, 'userId')
+        const orders = await this.orderModel.find({ linkOrderId: orderBot.linkOrderId, terminated: false }).lean().exec()
         await Promise.all(
-            Object.keys(ordersGrouped).map(async (userId) => {
-                const orders = ordersGrouped[userId]
+            orders.map(async (order) => {
                 try {
-                    await this.bitgetService.disabledOrderLink(orders[0].linkOrderId, orders[0].userId)
-                    await this.bitgetService.closePosition(orders[0].symbol, orders[0].userId)
+                    await this.bitgetService.cancelOrder(order)
                 } catch (e) {
                     this.logger.error('deleteOrderBot', e, orderBot.toObject())
                 }
@@ -227,15 +231,14 @@ export class OrderBotService {
     }
 
     async closeForcePosition(orderId: string) {
-        const orderBot = await this.orderBotModel.findById(orderId, 'baseCoin').exec();
-        const symbol = await this.bitgetService.getSymbolBy('baseCoin', orderBot.baseCoin);
-        const users = await this.paymentService.getUsersSubscription(SubscriptionEnum.BOT);
+        const orderBot = await this.orderBotModel.findById(orderId, 'baseCoin').exec()
+        const symbol = await this.bitgetService.getSymbolBy('baseCoin', orderBot.baseCoin)
+        const users = await this.userService.getUsersWithSubscription(SubscriptionEnum.BOT)
         const request = []
         for (const user of users) {
             request.push(this.bitgetService.closePosition(symbol.symbol, user._id))
         }
-        await Promise.all(request);
+        await Promise.all(request)
         return { status: true }
     }
-        
 }

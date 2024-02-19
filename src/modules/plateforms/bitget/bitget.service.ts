@@ -1,10 +1,4 @@
-import {
-    HttpException,
-    Injectable,
-    Logger,
-    OnApplicationBootstrap,
-    OnModuleInit,
-} from '@nestjs/common'
+import { HttpException, Injectable, Logger, OnApplicationBootstrap, OnModuleInit } from '@nestjs/common'
 import { PlaceOrderDTO } from './bitget.dto'
 import { FuturesClient, FuturesOrderSide, FuturesProductType, FuturesProductTypeV2, RestClientV2 } from 'bitget-api'
 import { BitgetUtilsService } from './bitget-utils/bitget-utils.service'
@@ -19,12 +13,13 @@ import { Symbol } from 'src/model/Symbol'
 import { BitgetFuturesService } from './bitget-futures/bitget-futures.service'
 import { ConfigService } from '@nestjs/config'
 import { IOrderEventData } from './bitget-ws/bitget-ws.interface'
+import { OrderService } from 'src/modules/order/order.service'
 
 @Injectable()
 export class BitgetService implements OnModuleInit {
     static PRODUCT_TYPE: FuturesProductType = 'umcbl'
     static PRODUCT_TYPEV2: FuturesProductTypeV2 = 'USDT-FUTURES'
-    static MARGIN_MODE = 'USDT';
+    static MARGIN_MODE = 'USDT'
     static client: {
         [key: string]: FuturesClient
     }
@@ -37,7 +32,8 @@ export class BitgetService implements OnModuleInit {
         private bitgetUtilsService: BitgetUtilsService,
         private bitgetFuturesService: BitgetFuturesService,
         private appConfig: AppConfigService,
-        private configService: ConfigService
+        private orderService: OrderService,
+        private configService: ConfigService,
     ) {
         this.logger = new Logger('BitgetService')
         BitgetService.client = {}
@@ -50,12 +46,12 @@ export class BitgetService implements OnModuleInit {
             BitgetService.PRODUCT_TYPEV2 = 'SUSDT-FUTURES'
             BitgetService.MARGIN_MODE = 'SUSDT'
         }
-    } 
+    }
 
     addNewTrader(user: User) {
         if (!BitgetService.client[user._id.toString()]) {
             BitgetService.client[user._id.toString()] = new FuturesClient({
-                apiKey: user.bitget.api_key, 
+                apiKey: user.bitget.api_key,
                 apiSecret: user.bitget.api_secret_key,
                 apiPass: user.bitget.api_pass,
             })
@@ -69,11 +65,20 @@ export class BitgetService implements OnModuleInit {
         }
     }
 
+    removeTrader(user: User) {
+        if (BitgetService.client[user._id.toString()]) {
+            delete BitgetService.client[user._id.toString()]
+        }
+        if (BitgetService.clientV2[user._id.toString()]) {
+            delete BitgetService.clientV2[user._id.toString()]
+        }
+    }
+
     getFirstClient(): FuturesClient {
         return BitgetService.client[Object.keys(BitgetService.client)[0]]
     }
 
-    getClient(userId: Types.ObjectId): FuturesClient {
+    static getClient(userId: Types.ObjectId): FuturesClient {
         return BitgetService.client[userId.toString()]
     }
 
@@ -82,30 +87,19 @@ export class BitgetService implements OnModuleInit {
     }
 
     async getProfile(userId: Types.ObjectId) {
-        return await this.bitgetUtilsService.getProfile(
-            BitgetService.client[userId.toString()],
-        )
+        return await this.bitgetUtilsService.getProfile(BitgetService.client[userId.toString()])
     }
 
     async getBaseCoins(userId: Types.ObjectId) {
-        return await this.bitgetUtilsService.getBaseCoins(
-            BitgetService.client[userId.toString()],
-        )
+        return await this.bitgetUtilsService.getBaseCoins(BitgetService.client[userId.toString()])
     }
 
     async getQuantityForOrder(user: User) {
-        return await this.bitgetUtilsService.getQuantityForOrder(
-            BitgetService.client[user._id.toString()],
-            user
-        )
+        return await this.bitgetUtilsService.getQuantityForOrder(BitgetService.client[user._id.toString()], user)
     }
 
     async getLeverageLimit(baseCoin: string) {
-        return await this.bitgetUtilsService.getLeverageLimit(
-            this.getFirstClient(),
-            'baseCoin',
-            baseCoin
-        )
+        return await this.bitgetUtilsService.getLeverageLimit(this.getFirstClient(), 'baseCoin', baseCoin)
     }
 
     async getSymbolBy(key: keyof Symbol, value: string | number, select?: ProjectionType<Symbol>): Promise<Symbol> {
@@ -114,118 +108,93 @@ export class BitgetService implements OnModuleInit {
 
     async getCurrentPrice(key: keyof Symbol, value: string | number) {
         const symbol = await this.bitgetUtilsService.getSymbolBy(key, value)
-        return await this.bitgetUtilsService.getCurrentPrice(
-            this.getFirstClient(),
-            symbol.symbol,
-        )
+        return await this.bitgetUtilsService.getCurrentPrice(this.getFirstClient(), symbol.symbol)
     }
 
-    async placeOrder(
-        placeOrderDTO: PlaceOrderDTO,
-        user: User,
-        linkParentOrderId?: Types.ObjectId,
-        currentPrice: number = null,
-    ): Promise<any> {
-        let { PEs, SL, TPs, side, baseCoin, size: margin } = placeOrderDTO;
-        const symbolRules = await this.bitgetUtilsService.getSymbolBy(
-            'baseCoin',
-            baseCoin,
-            '+positionTier'
-        )
+    async placeOrder(placeOrderDTO: PlaceOrderDTO, user: User, linkParentOrderId?: Types.ObjectId, currentPrice: number = null): Promise<any> {
+        let { PEs, SL, TPs, side, baseCoin, size: margin } = placeOrderDTO
+        const symbolRules = await this.bitgetUtilsService.getSymbolBy('baseCoin', baseCoin, '+positionTier')
         if (!symbolRules) {
             return
         }
-        const client = this.getClient(user._id);
+        const client = BitgetService.getClient(user._id)
 
-        PEs = UtilService.sortBySide(PEs, side);
-        TPs = UtilService.sortBySide(TPs, side);
-        if (!margin) margin = await this.getQuantityForOrder(user);
-        const profile = await this.bitgetUtilsService.getProfile(client);
+        PEs = UtilService.sortBySide(PEs, side)
+        TPs = UtilService.sortBySide(TPs, side)
+        if (!margin) margin = await this.getQuantityForOrder(user)
+        const profile = await this.bitgetUtilsService.getProfile(client)
         if (profile.available < margin * PEs.length) {
             while (Math.max(profile.available, 0) <= margin * PEs.length) {
-                PEs.shift();
+                PEs.shift()
             }
             if (PEs.length === 0) {
-                throw new HttpException('Fonds insuffisants pour poser un ordre', 400);
+                throw new HttpException('Fonds insuffisants pour poser un ordre', 400)
             }
         }
+        if (!currentPrice) currentPrice = await this.bitgetUtilsService.getCurrentPrice(client, symbolRules.symbol)
         const fullSide = ('open_' + side) as FuturesOrderSide
         const linkOrderId = linkParentOrderId || new Types.ObjectId()
         const PEAvg = PEs.reduce((a, b) => a + b, 0) / PEs.length
         const leverage = this.bitgetUtilsService.calculateLeverage(PEAvg, margin * PEs.length, SL, symbolRules, side)
-        const size = this.bitgetUtilsService.fixSizeByRules(this.bitgetUtilsService.getQuantityForUSDT(margin, PEAvg, leverage), symbolRules);
-        if (!currentPrice) currentPrice = await this.bitgetUtilsService.getCurrentPrice(client, symbolRules.symbol);
+        const size = this.bitgetUtilsService.fixSizeByRules(this.bitgetUtilsService.getQuantityForUSDT(margin, PEAvg, leverage), symbolRules)
         const results = {
             errors: [],
             success: [],
         }
-        await this.bitgetFuturesService.setMarginMode(client, symbolRules.symbol);
-        await this.bitgetFuturesService.setLeverage(client, symbolRules.symbol, leverage, side);
-        await Promise.all(
-            PEs.map(async (pe) => {
-                const PECalculate = this.bitgetUtilsService.fixPriceByRules(pe, symbolRules);
-                
-                try {
-                    results.success.push(
-                        await this.bitgetFuturesService.placeOrder(
-                            client,
-                            user,
-                            symbolRules,
-                            fullSide,
-                            PECalculate,
-                            TPs,
-                            SL,
-                            size,
-                            leverage,
-                            currentPrice,
-                            linkOrderId,
-                        ),
-                    )
-                } catch (error) {
-                    results.errors.push({
-                        ...error,
-                        message: error.message,
-                        userId: user._id,
-                        symbolRules,
-                        fullSide,
-                        originalPE: pe,
-                        PECalculate,
-                        TPs,
-                        SL,
-                        leverage,
-                        linkOrderId,
-                    })
+        await this.bitgetFuturesService.setMarginMode(client, symbolRules.symbol)
+        await this.bitgetFuturesService.setLeverage(client, symbolRules.symbol, leverage, side)
+        // du plus grand au plus petit, pour être le plus prêt du prix courant pour le plus grand
+        PEs = UtilService.sortBySide(PEs, side).reverse()
+        for (let i = 0; i < PEs.length; i++) {
+            const pe = PEs[i]
+            const PECalculate = this.bitgetUtilsService.fixPriceByRules(pe, symbolRules)
+            try {
+                const peBefore = PEs[i - 1];
+                // si l'ordre précédent doit être executé avant celui-ci
+                if (i > 0 && (currentPrice < peBefore && side === 'long') || (currentPrice > peBefore && side === 'short')) {
+                    // on attend que l'ordre précédent soit exécuté si on doit également être trigger
+                    if ((currentPrice < pe && side === 'long') || (currentPrice > pe && side === 'short')) {
+                        for (let j = i; j < 10; j++) {
+                            await UtilService.sleep(2000)
+                            const order = await this.orderService.findOne({ linkOrderId, userId: user._id, activated: true, inActivation: false, terminated: false });
+                            if (order) break;
+                        }
+                    }
                 }
-            }),
-        )
+                results.success.push(
+                    await this.bitgetFuturesService.placeOrder(client, user, symbolRules, fullSide, PECalculate, TPs, SL, size, leverage, currentPrice, linkOrderId),
+                )
+            } catch (error) {
+                results.errors.push({
+                    ...error,
+                    index: i,
+                    message: error.message,
+                    userId: user._id,
+                    symbolRules,
+                    fullSide,
+                    originalPE: pe,
+                    PECalculate,
+                    TPs,
+                    SL,
+                    leverage,
+                    linkOrderId,
+                })
+            }
+        }
         return results
     }
 
     async activeOrder(orderId: Types.ObjectId, user: User, orderEvent: IOrderEventData) {
         try {
-            return await this.bitgetFuturesService.activeOrder(
-                BitgetService.client[user._id.toString()],
-                orderId,
-                user,
-                orderEvent
-            )
+            return await this.bitgetFuturesService.activeOrder(BitgetService.client[user._id.toString()], orderId, user, orderEvent)
         } catch (e) {
             this.logger.error('activeOrder', e)
         }
     }
 
-    async upgradeSL(
-        order: Order,
-        strategy: IOrderStrategy,
-        numTP: number,
-    ): Promise<StopLoss> {
+    async upgradeSL(order: Order, numTP: number): Promise<StopLoss> {
         try {
-            return await this.bitgetFuturesService.upgradeStopLoss(
-                BitgetService.clientV2[order.userId.toString()],
-                order,
-                strategy,
-                numTP,
-            )
+            return await this.bitgetFuturesService.upgradeStopLoss(BitgetService.clientV2[order.userId.toString()], order, numTP)
         } catch (e) {
             this.logger.error('upgradeSL', e)
         }
@@ -233,12 +202,8 @@ export class BitgetService implements OnModuleInit {
 
     async closePosition(symbol: string, userId: Types.ObjectId) {
         try {
-            const client = BitgetService.getClientV2(userId);
-            return await this.bitgetFuturesService.closePosition(
-                client,
-                userId,
-                symbol,
-            )
+            const client = BitgetService.getClientV2(userId)
+            return await this.bitgetFuturesService.closePosition(client, userId, symbol)
         } catch (e) {
             this.logger.error('cancelSymbol', e)
         }
@@ -246,22 +211,15 @@ export class BitgetService implements OnModuleInit {
 
     async cancelOrder(order: Order) {
         try {
-            return await this.bitgetFuturesService.cancelOrder(
-                BitgetService.client[order.userId.toString()],
-                order,
-            )
+            return await this.bitgetFuturesService.cancelOrder(BitgetService.clientV2[order.userId.toString()], order)
         } catch (e) {
-            this.logger.error('removeOrder', e) 
+            this.logger.error('removeOrder', e)
         }
     }
 
     async disabledOrderLink(linkId: Types.ObjectId, userId: Types.ObjectId) {
         try {
-            await this.bitgetFuturesService.disabledOrderLink(
-                BitgetService.client[userId.toString()],
-                linkId,
-                userId,
-            )
+            await this.bitgetFuturesService.disabledOrderLink(BitgetService.getClientV2(userId), linkId, userId)
         } catch (e) {
             this.logger.error('disabledOrderLink', e)
         }
@@ -269,11 +227,7 @@ export class BitgetService implements OnModuleInit {
 
     async updateOrderPE(order: OrderDocument, newPE: number): Promise<boolean> {
         try {
-            return await this.bitgetFuturesService.updatePE(
-                this.getClient(order.userId),
-                order,
-                newPE,
-            )
+            return await this.bitgetFuturesService.updatePE(BitgetService.getClient(order.userId), order, newPE)
         } catch (e) {
             this.logger.error('updateOrderPE', e)
         }
@@ -281,24 +235,15 @@ export class BitgetService implements OnModuleInit {
 
     async updateTPsOfOrder(order: OrderDocument, newTPs: number[], user?: User): Promise<boolean> {
         try {
-            return await this.bitgetFuturesService.updateTakeProfits(
-                this.getClient(order.userId),
-                order,
-                newTPs,
-                user.preferences.order.TPSize
-            )
+            return await this.bitgetFuturesService.updateTakeProfits(BitgetService.getClient(order.userId), order, newTPs, user.preferences.order.TPSize)
         } catch (e) {
             this.logger.error('updateTPsOfOrder:' + e)
         }
     }
-    
-    async updateOrderSL(order: OrderDocument, newSL: number): Promise<boolean> {
+
+    async updateOrderSL(order: Order, newSL: number): Promise<boolean> {
         try {
-            return await this.bitgetFuturesService.updateStopLoss(
-                this.getClient(order.userId),
-                order,
-                newSL,
-            )
+            return await this.bitgetFuturesService.updateStopLoss(BitgetService.getClientV2(order.userId), order, newSL)
         } catch (e) {
             this.logger.error('updateOrderSL', e)
         }
@@ -306,13 +251,17 @@ export class BitgetService implements OnModuleInit {
 
     async synchronizeAllSL(userId: Types.ObjectId, symbol: string) {
         try {
-            return await this.bitgetFuturesService.synchronizeAllSL(
-                BitgetService.clientV2[userId.toString()],
-                userId,
-                symbol,
-            )
+            return await this.bitgetFuturesService.synchronizeAllSL(BitgetService.clientV2[userId.toString()], userId, symbol)
         } catch (e) {
             this.logger.error('recreateAllSL', e)
+        }
+    }
+
+    async cancelTakeProfitsFromOrder(orderId: Types.ObjectId, userId: Types.ObjectId, order: Order = null, deleteTakeProfit = false, ignoreError = false) {
+        try {
+            return await this.bitgetFuturesService.cancelTakeProfitsFromOrder(BitgetService.getClient(userId), orderId, order, deleteTakeProfit, ignoreError)
+        } catch (e) {
+            this.logger.error('cancelTakeProfitsFromOrder', e)
         }
     }
 }

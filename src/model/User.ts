@@ -2,6 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
 import { SchemaTypes, Types } from 'mongoose'
 import { HydratedDocument } from 'mongoose'
 import { IOrderStrategy } from 'src/interfaces/order-strategy.interface'
+import { ISubscriptionUser } from 'src/modules/payment/payments.interface'
 
 export type UserDocument = HydratedDocument<User>
 
@@ -96,6 +97,9 @@ export class User {
 
     @Prop({ type: String })
     stripeCustomerId: string
+
+    @Prop({ type: SchemaTypes.Mixed })
+    subscription: ISubscriptionUser
 }
 
 export const UserSchema = SchemaFactory.createForClass(User)

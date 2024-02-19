@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common'
+import { Injectable, Logger, OnApplicationBootstrap, OnModuleInit } from '@nestjs/common'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { InjectModel } from '@nestjs/mongoose'
 import { Order } from 'src/model/Order'
@@ -10,9 +10,12 @@ import { UserService } from '../user/user.service'
 import { Symbol } from 'src/model/Symbol'
 import * as exactMath from 'exact-math'
 import { AppConfig } from 'src/model/AppConfig'
+import _ from 'underscore'
+import { PlateformsService } from '../plateforms/plateforms.service'
+import { PaymentsService } from '../payment/payments.service'
 
 @Injectable()
-export class TasksService implements OnApplicationBootstrap {
+export class TasksService implements OnApplicationBootstrap, OnModuleInit {
     private readonly logger = new Logger(TasksService.name)
 
     constructor(
@@ -20,14 +23,27 @@ export class TasksService implements OnApplicationBootstrap {
         @InjectModel(Symbol.name) private symbolModel: Model<Symbol>,
         @InjectModel(AppConfig.name) private appConfigModel: Model<AppConfig>,
         private userService: UserService,
-        private bitgetUtilsService: BitgetUtilsService,
         private bitgetService: BitgetService,
+        private paymentsService: PaymentsService
     ) {}
+
+    async onModuleInit() {
+        await this.synchroSubscriptions();
+    }
 
     async onApplicationBootstrap() {
         const symbol = await this.symbolModel.findOne({}, '+positionTier').exec()
         if (!symbol?.positionTier || symbol.positionTier.length === 0) {
             await this.updateSymbolRules()
+        }
+    }
+
+    @Cron(CronExpression.EVERY_12_HOURS)
+    async synchroSubscriptions() {
+        const users = await this.userService.findAll();
+
+        for (const user of users) {
+            await this.paymentsService.actualizeSubscription(user);
         }
     }
 
@@ -38,7 +54,7 @@ export class TasksService implements OnApplicationBootstrap {
             const now = Date.now()
             const users = await this.userService.getListOfTraders()
             for (const user of users) {
-                const client = this.bitgetService.getClient(user._id)
+                const client = BitgetService.getClient(user._id)
                 const symbols = await this.orderModel.distinct('symbol', { userId: user._id }).exec()
                 for (const symbol of symbols) {
                     const ordersBitget = await client.getOrderHistory(symbol, String(appConfig.syncOrdersBitget.lastUpdated), String(now), '10')

@@ -55,7 +55,7 @@ const Payement = () => {
                     )}
                 </Col>
             </Row>
-            {Object.keys(user.subscription).length === 0 ? (
+            {!user.subscription || Object.keys(user.subscription).length === 0 ? (
                 <Row>
                     <stripe-pricing-table
                         pricing-table-id={import.meta.env.VITE_STRIPE_PRICING_TABLE}

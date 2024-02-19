@@ -7,9 +7,11 @@ import { BitgetModule } from '../plateforms/bitget/bitget.module';
 import { OrderBotController } from './order-bot.controller';
 import { Order, OrderSchema } from 'src/model/Order';
 import { User, UserSchema } from 'src/model/User';
+import { OrderModule } from '../order/order.module';
+import { UserModule } from '../user/user.module';
 
 @Module({
-    imports: [PaymentsModule, BitgetModule, MongooseModule.forFeature([{ name: OrderBot.name, schema: OrderBotSchema }, { name: Order.name, schema: OrderSchema }, { name: User.name, schema: UserSchema }])],
+    imports: [OrderModule, PaymentsModule, BitgetModule, UserModule, MongooseModule.forFeature([{ name: OrderBot.name, schema: OrderBotSchema }, { name: Order.name, schema: OrderSchema }, { name: User.name, schema: UserSchema }])],
     providers: [OrderBotService],
     exports: [OrderBotService],
     controllers: [OrderBotController],

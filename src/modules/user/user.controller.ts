@@ -52,12 +52,6 @@ export class UserController {
     }
 
     @UseGuards(JwtAuthGuard)
-    @Get('subscriptions')
-    async getSubscriptions(@Request() req) {
-        return await this.userService.getSubscriptions(req.user._id);
-    }
-
-    @UseGuards(JwtAuthGuard)
     @Get('stats')
     async getStats(@Request() req, @Query() query: UserStatsDTO) {
         return await this.userService.getOrdersStats(req.user._id, query.dateFrom, query.dateTo);
@@ -67,6 +61,6 @@ export class UserController {
     @Get('admin/users')
     async getUsers(@Req() req) {
         if (!req.user.isAdmin) throw new HttpException('Vous n\'avez pas les droits pour accéder à cette ressource', 403);
-        return await this.userService.getFullUsersForAdmin();
+        return await this.userService.findAll();
     }
 }

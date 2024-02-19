@@ -13,8 +13,7 @@ export class BitgetController {
 
     @Post('placeOrder')
     async placeOrder(@Body() placeOrderDTO: PlaceOrderDTO, @Request() req) {
-        const subscriptions = await this.paymentsService.getSubscriptions(req.user.stripeCustomerId);
-        if (!subscriptions.rights.includes(SubscriptionEnum.TRADER)) throw new HttpException('Vous n\'avez pas assez de droits avec votre abonnement pour avoir cette fonctionnalité', 403);
+        if (!req.user.rights.rights.includes(SubscriptionEnum.TRADER)) throw new HttpException('Vous n\'avez pas assez de droits avec votre abonnement pour avoir cette fonctionnalité', 403);
         return await this.bitgetService.placeOrder(placeOrderDTO, req.user);
     }
 

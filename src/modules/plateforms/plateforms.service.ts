@@ -24,6 +24,11 @@ export class PlateformsService {
         this.bitgetWsService.addNewTrader(user)
     }
 
+    removeTrader(user: User) {
+        this.bitgetService.removeTrader(user)
+        this.bitgetWsService.removeTrader(user)
+    }
+
     async getProfile(userId: Types.ObjectId) {
         return {
             bitget: await this.bitgetService.getProfile(userId),

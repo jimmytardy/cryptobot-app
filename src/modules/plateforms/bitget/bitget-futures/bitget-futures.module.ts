@@ -5,9 +5,10 @@ import { StopLossModule } from 'src/modules/order/stop-loss/stop-loss.module';
 import { TakeProfitModule } from 'src/modules/order/take-profit/take-profit.module';
 import { BitgetUtilsModule } from '../bitget-utils/bitget-utils.module';
 import { ErrorTraceModule } from 'src/modules/error-trace/error-trace.module';
+import { PositionModule } from 'src/modules/position/position.module';
 
 @Module({
-  imports: [BitgetUtilsModule, OrderModule, StopLossModule, TakeProfitModule, ErrorTraceModule],
+  imports: [BitgetUtilsModule, PositionModule, OrderModule, StopLossModule, TakeProfitModule, ErrorTraceModule],
   providers: [BitgetFuturesService],
   exports: [BitgetFuturesService],
 })
