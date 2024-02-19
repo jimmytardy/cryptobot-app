@@ -59,10 +59,8 @@ const Tutorial = () => {
                                 Il faut au minimum:
                                 <ol>
                                     <li>Futures: Afin de pouvoir poser et gérer les ordres</li>
-                                    <li>Portefeuille: Afin d'avoir accès à vos fonds actuels pour calculer les différentes marges (maintien, etc ...)</li>
                                 </ol>
-                                Si vous n'êtes pas sûr, <strong>vous pouvez mettre toutes les autorisations en cas d'évolution de l'application.</strong> De toute manière les clés
-                                API ne permettent pas de transférer vos fonds vers une adresse crypto, ce qui m'empèchera de vous volez.
+                                <p className='text-danger'>Surtout ne pas mettre l'accès au <b>Portefeuille</b>, de cette manière en cas de piratage de l'application, votre portefeuille restera en sécurité.</p>
                                 <br />
                             </>
                         }
