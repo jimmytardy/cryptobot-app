@@ -13,7 +13,7 @@ export class StopLossService {
 
     async createFromOrder(order: Order, clOrderId: Types.ObjectId, orderId?: string): Promise<StopLoss> {
         this.logger.debug(`createFromOrder: order=${JSON.stringify(order)}, clOrderId=${JSON.stringify(clOrderId)}, orderId=${JSON.stringify(orderId)}`);
-        return await new this.stopLossModel({
+        return (await new this.stopLossModel({
             clOrderId,
             price: order.SL,
             orderId,
@@ -24,7 +24,7 @@ export class StopLossService {
             userId: order.userId,
             marginCoin: order.marginCoin,
             quantity: order.quantity,
-        }).save()
+        }).save()).toObject()
     }
     
     async updateOne(stopLoss: Partial<StopLoss> & { _id: Types.ObjectId }, options?: QueryOptions<StopLoss>): Promise<StopLoss> {

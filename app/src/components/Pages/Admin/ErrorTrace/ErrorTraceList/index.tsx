@@ -5,7 +5,7 @@ import Loader from '../../../../utils/Loader'
 import { useNavigate } from 'react-router'
 import { IErrorTraceService } from '../error-trace.interface'
 import { IUser } from '../../../../../interfaces/user.interface'
-import * as dayjs from 'dayjs'
+import dayjs from 'dayjs';
 import { PencilSquare } from 'react-bootstrap-icons'
 
 const ErrorTraceList = () => {

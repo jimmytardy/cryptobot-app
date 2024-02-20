@@ -7,6 +7,5 @@ export default defineConfig({
   base: './app',
   build: {
     outDir: 'client',
-    
   },
 })
