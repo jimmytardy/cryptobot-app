@@ -223,8 +223,10 @@ export class BitgetWsService {
             case 'canceled':
                 await this.orderService.cancelOrder(order._id)
                 break
+            case 'partially_filled':
+                break;
             default:
-                console.info('onOrderEvent', orderEvent, 'not implemented')
+                console.info('onOrderEvent', orderEvent.status, 'not implemented')
         }
     }
 
