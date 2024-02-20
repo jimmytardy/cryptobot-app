@@ -259,7 +259,7 @@ export class BitgetFuturesService {
             }
             const result = await client.submitStopOrder(params)
             const { orderId } = result.data
-            return await this.stopLossService.createFromOrder(order, clientOid, orderId)
+            return await this.stopLossService.createFromOrder(order, totalQuantity, clientOid, orderId)
         } catch (e) {
             this.errorTraceService.createErrorTrace('activeSL', order.userId, ErrorTraceSeverity.IMMEDIATE, {
                 order,
