@@ -73,9 +73,8 @@ export class UserService implements OnApplicationBootstrap {
         return newUser
     }
 
-    async getUsersWithSubscription(subscription: SubscriptionEnum ,filter: FilterQuery<User> = {}, select?: ProjectionType<User>): Promise<User[]> {
+    async getUsersWithSubscription(subscription: SubscriptionEnum , filter: FilterQuery<User> = {}, select?: ProjectionType<User>): Promise<User[]> {
         return await this.userModel.find({ ...filter, 'subscription.rights': subscription, 'subscription.active': true }, select).lean()
-
     }
 
     async getListOfTraders(): Promise<User[]> {
