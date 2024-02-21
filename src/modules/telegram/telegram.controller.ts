@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { Response } from 'express';
 import { JwtTelegramAuthGuard } from 'src/guards/jwt-telegram-auth';
 import { RightEnum } from 'src/model/Right';
+import { join } from 'path';
 
 @Controller('telegram')
 export class TelegramController {
@@ -20,6 +21,6 @@ export class TelegramController {
     @UseGuards(JwtTelegramAuthGuard)
     async client(@Request() req, @Res() res: Response) {
         if (!await this.rightService.checkRight(req.user._id, RightEnum.TELEGRAM_CHANNEL)) throw new UnauthorizedException();
-        return res.sendFile(this.configService.get<string>('TELEGRAM_CLIENT_PATH'));
+        return res.sendFile(join(__dirname, this.configService.get<string>('TELEGRAM_CLIENT_PATH')));
     }
 }
