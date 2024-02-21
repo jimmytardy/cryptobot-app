@@ -1,9 +1,10 @@
 import { Body, Controller, Get, Post, Request, Res, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { TelegramService } from './telegram.service';
-import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 import { RightService } from '../right/right.service';
 import { ConfigService } from '@nestjs/config';
 import { Response } from 'express';
+import { JwtTelegramAuthGuard } from 'src/guards/jwt-telegram-auth';
+import { RightEnum } from 'src/model/Right';
 
 @Controller('telegram')
 export class TelegramController {
@@ -16,10 +17,9 @@ export class TelegramController {
     }
 
     @Get('channel')
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtTelegramAuthGuard)
     async client(@Request() req, @Res() res: Response) {
-        if (!await this.rightService.checkRight(req.user._id, 'telegram')) throw new UnauthorizedException();
-        console.log('co', this.configService.get<string>('TELEGRAM_CLIENT_PATH'))
+        if (!await this.rightService.checkRight(req.user._id, RightEnum.TELEGRAM_CHANNEL)) throw new UnauthorizedException();
         return res.sendFile(this.configService.get<string>('TELEGRAM_CLIENT_PATH'));
     }
 }
