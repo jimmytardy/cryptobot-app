@@ -61,7 +61,7 @@ export class PaymentsService {
     }
 
     async actualizeSubscription(user: User) {
-        if (!user.stripeCustomerId) return
+        if (!user?.stripeCustomerId) return
         const subscription = await this.getSubscription(user.stripeCustomerId) 
         if (!_.isEqual(user.subscription, subscription)) {
             user.subscription = subscription
@@ -79,17 +79,20 @@ export class PaymentsService {
     }
 
     async webhookStripe(event: any): Promise<any> {
-        console.log('payement webhook', event.type)
         let user;
         switch (event.type) {
             case 'customer.created':
-                user = await this.userModel.findOneAndUpdate({ email: event.email }, { $set: { stripeCustomerId: event.data.object.id }, }, { fields: '+stripeCustomerId' , new: true }).exec()
-                await this.actualizeSubscription(user)
+                if (event.data.object.id) {
+                    user = await this.userModel.findOneAndUpdate({ email: event.email }, { $set: { stripeCustomerId: event.data.object.id }, }, { new: true }).exec()
+                    await this.actualizeSubscription(user)
+                }
                 break
             case 'checkout.session.completed':
                 const session = event.data.object
-                user = await this.userModel.findOneAndUpdate({ email: session.customer_email }, { $set: { stripeCustomerId: session.customer } }, { new: true }).exec()
-                await this.actualizeSubscription(user)
+                if (session.customer_email && session.customer) {
+                    user = await this.userModel.findOneAndUpdate({ email: session.customer_email }, { $set: { stripeCustomerId: session.customer } }, { new: true }).exec()
+                    await this.actualizeSubscription(user)
+                }
                 break
             default:
                 if ((event.type as  string).startsWith('customer.subscription')) {
