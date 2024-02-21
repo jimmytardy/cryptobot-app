@@ -202,7 +202,9 @@ export class BitgetFuturesService {
                 // important for active TPs
                 order.activated = true
                 order.PEsTriggered = [PE]
+                await UtilService.sleep(1000); // tempo to avoid error on bitget
                 await this.activeSL(client, order)
+                await UtilService.sleep(1000); // tempo to avoid error on bitget
                 await this.activeTPs(client, user.preferences.order.TPSize, symbolRules, order)
                 order.inActivation = false
                 await this.orderService.updateOne(order);
@@ -239,7 +241,7 @@ export class BitgetFuturesService {
         }
     }
 
-    async activeSL(client: FuturesClient, order: Order, ignoreError = false) {
+    async activeSL(client: FuturesClient, order: Order) {
         const totalQuantity = await this.orderService.getQuantityAvailable(order._id, order)
         try {
             if (totalQuantity === 0) return
@@ -257,7 +259,7 @@ export class BitgetFuturesService {
             }
             const result = await client.submitStopOrder(params)
             const { orderId } = result.data
-            await this.stopLossService.createFromOrder(order, clientOid, orderId)
+            return await this.stopLossService.createFromOrder(order, totalQuantity, clientOid, orderId)
         } catch (e) {
             this.errorTraceService.createErrorTrace('activeSL', order.userId, ErrorTraceSeverity.IMMEDIATE, {
                 order,
@@ -373,7 +375,7 @@ export class BitgetFuturesService {
     }
 
     async upgradeStopLoss(clientV2: RestClientV2, order: Order, numTP: number): Promise<StopLoss> {
-        const stopLoss = await this.stopLossService.findOne(
+        let stopLoss = await this.stopLossService.findOne(
             {
                 orderParentId: order._id,
                 terminated: { $ne: true },
@@ -383,7 +385,9 @@ export class BitgetFuturesService {
         )
         try {
             if (!stopLoss) {
-                return
+                stopLoss = await this.activeSL(BitgetService.getClient(order.userId), order);
+                if (!stopLoss) throw new Error('No stopLoss found');
+                await UtilService.sleep(1000);
             }
 
             let newStep = this.stopLossService.getNewStep(numTP, order.strategy)
@@ -454,6 +458,8 @@ export class BitgetFuturesService {
                         })
                         return false
                     }
+                } else if (!stopLoss) {
+                    await this.activeSL(BitgetService.getClient(order.userId), order);
                 }
             }
             return true

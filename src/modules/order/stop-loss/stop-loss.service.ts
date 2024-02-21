@@ -11,9 +11,9 @@ export class StopLossService {
 
     constructor(@InjectModel(StopLoss.name) private stopLossModel: Model<StopLoss>) {}
 
-    async createFromOrder(order: Order, clOrderId: Types.ObjectId, orderId?: string): Promise<StopLoss> {
+    async createFromOrder(order: Order, quantity: number, clOrderId: Types.ObjectId, orderId?: string): Promise<StopLoss> {
         this.logger.debug(`createFromOrder: order=${JSON.stringify(order)}, clOrderId=${JSON.stringify(clOrderId)}, orderId=${JSON.stringify(orderId)}`);
-        return await new this.stopLossModel({
+        return (await new this.stopLossModel({
             clOrderId,
             price: order.SL,
             orderId,
@@ -23,8 +23,8 @@ export class StopLossService {
             side: order.side,
             userId: order.userId,
             marginCoin: order.marginCoin,
-            quantity: order.quantity,
-        }).save()
+            quantity: quantity,
+        }).save()).toObject()
     }
     
     async updateOne(stopLoss: Partial<StopLoss> & { _id: Types.ObjectId }, options?: QueryOptions<StopLoss>): Promise<StopLoss> {
