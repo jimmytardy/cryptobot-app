@@ -26,6 +26,9 @@ import { UtilService } from './util/util.service';
         ServeStaticModule.forRoot({
             rootPath: join(__dirname, 'client'),
             exclude: ['/api/(.*)'],
+        }, {
+            rootPath: join(__dirname, 'telegram-client'),
+            serveRoot: '/api/telegram/channel' 
         }),
         ModulesModule,
         ScheduleModule.forRoot(),

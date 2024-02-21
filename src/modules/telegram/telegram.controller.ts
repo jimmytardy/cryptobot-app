@@ -17,10 +17,10 @@ export class TelegramController {
         return await this.telegramService.webhook(body);
     }
 
-    @Get('channel')
-    @UseGuards(JwtTelegramAuthGuard)
-    async client(@Request() req, @Res() res: Response) {
-        if (!await this.rightService.checkRight(req.user._id, RightEnum.TELEGRAM_CHANNEL)) throw new UnauthorizedException();
-        return res.sendFile(join(__dirname, this.configService.get<string>('TELEGRAM_CLIENT_PATH')));
-    }
+    // @Get('channel')
+    // @UseGuards(JwtTelegramAuthGuard)
+    // async client(@Request() req, @Res() res: Response) {
+    //     if (!await this.rightService.checkRight(req.user._id, RightEnum.TELEGRAM_CHANNEL)) throw new UnauthorizedException();
+    //     return res.sendFile(join(__dirname, this.configService.get<string>('TELEGRAM_CLIENT_PATH')));
+    // }
 }
