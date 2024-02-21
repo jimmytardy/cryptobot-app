@@ -12,4 +12,5 @@ export default () => ({
     },
     jwtSecret: process.env.JWT_SECRET,
     stripeSecret: process.env.STRIPE_SECRET,
+    telegrameClientBuildPath: process.env.TELEGRAM_CLIENT_PATH,
 });

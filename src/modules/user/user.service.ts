@@ -14,6 +14,7 @@ import { ISubscriptionUser } from '../payment/payments.interface'
 import { BitgetService } from '../plateforms/bitget/bitget.service'
 import _ from 'underscore'
 import { SubscriptionEnum } from 'src/model/Subscription'
+import { RightService } from '../right/right.service'
 
 @Injectable()
 export class UserService implements OnApplicationBootstrap {
@@ -21,7 +22,8 @@ export class UserService implements OnApplicationBootstrap {
     constructor(
         @InjectModel(User.name) private userModel: Model<User>,
         @Inject(forwardRef(() => PlateformsService)) private plateformsService: PlateformsService,
-        private orderService: OrderService
+        private orderService: OrderService,
+        private rightService: RightService
     ) {}
 
     async onApplicationBootstrap() {
@@ -109,6 +111,7 @@ export class UserService implements OnApplicationBootstrap {
         const { bitget, preferences, stripeCustomerId, password, ...userInfo } = user
         return {
             ...userInfo,
+            rights: await this.rightService.getRights(user._id),
         }
     }
 

@@ -31,4 +31,5 @@ export interface IUser extends Omit<IUserPayload, 'password'>, IUserUpdatePayloa
     isAdmin: boolean;
     subscription: IUserSubscriptionItem;
     createdAt: Date
+    rights: string[]
 }

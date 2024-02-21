@@ -11,8 +11,9 @@ import { OrderBotModule } from './order-bot/order-bot.module';
 import { AppConfigModule } from './app-config/app-config.module';
 import { ErrorTraceModule } from './error-trace/error-trace.module';
 import { PositionModule } from './position/position.module';
+import { RightModule } from './right/right.module';
 
 @Module({
-  imports: [OrderModule, PlateformsModule, AuthModule, UserModule, PaymentsModule, TasksModule, TelegramModule, OrderBotModule, AppConfigModule, ErrorTraceModule, PositionModule]
+  imports: [OrderModule, PlateformsModule, AuthModule, UserModule, PaymentsModule, TasksModule, TelegramModule, OrderBotModule, AppConfigModule, ErrorTraceModule, PositionModule, RightModule]
 })
 export class ModulesModule {}

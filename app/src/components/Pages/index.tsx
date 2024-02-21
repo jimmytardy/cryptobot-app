@@ -18,6 +18,7 @@ import AppConfig from './Admin/AppConfig'
 import Tutorial from '../Tutorial'
 import Users from './Admin/Users'
 import ErrorTraceRouter from './Admin/ErrorTrace/index.router'
+import TelegramChannel from './Admin/TelegramChannel'
 
 export interface ICryptobotRouterProps {
     routes: IRoute[]
@@ -61,6 +62,14 @@ const Pages = () => {
             Component: Home,
         },
     ]
+    
+    if (user.rights.includes('TELEGRAM_CHANNEL')) {
+        cryptobotRoutes.splice(-1, 0, {
+            path: 'telegram/channel',
+            Component: TelegramChannel,
+            title: 'Télégram',
+        })
+    }
 
     const adminRoutes: IRoute[] = [
         {
