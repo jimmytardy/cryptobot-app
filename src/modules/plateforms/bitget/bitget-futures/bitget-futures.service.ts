@@ -298,9 +298,9 @@ export class BitgetFuturesService {
         }
     }
 
-    async cancelStopLoss(client: FuturesClient, stopLoss: StopLoss, deleteStopLoss = false) {
+    async cancelStopLoss(client: FuturesClient, stopLoss: StopLoss, deleteStopLoss = false, ignoreError = false, forceDelete = false) {
         try {
-            if (!stopLoss.terminated) {
+            if (!stopLoss.terminated || forceDelete) {
                 const params: CancelFuturesPlanTPSL = {
                     marginCoin: stopLoss.marginCoin,
                     planType: 'loss_plan',
@@ -318,10 +318,12 @@ export class BitgetFuturesService {
                 await this.stopLossService.updateOne(stopLoss)
             }
         } catch (e) {
-            this.errorTraceService.createErrorTrace('cancelStopLoss', stopLoss.userId, ErrorTraceSeverity.ERROR, {
-                stopLoss,
-                error: e,
-            })
+            if (!ignoreError) {
+                this.errorTraceService.createErrorTrace('cancelStopLoss', stopLoss.userId, ErrorTraceSeverity.ERROR, {
+                    stopLoss,
+                    error: e,
+                })
+            } 
         }
     }
 
@@ -433,7 +435,7 @@ export class BitgetFuturesService {
                 if (quantityAvailable === 0) return;
                 const triggerPrice = await this.orderService.getSLTriggerCurrentFromOrder(order);
                 if (!stopLoss || stopLoss.terminated) {
-                    await this.stopLossService.deleteOne(stopLoss._id)
+                    await this.cancelStopLoss(BitgetService.getClient(order.userId), stopLoss, true, true, true) // en cas d'erreur de process on clean la SL
                     await this.activeSL(BitgetService.getClient(order.userId), order);
                     return;
                 } else if ((triggerPrice !== stopLoss.triggerPrice || quantityAvailable !== stopLoss.quantity)) {
