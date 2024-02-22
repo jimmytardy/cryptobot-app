@@ -755,7 +755,8 @@ export class BitgetFuturesService {
 
     async synchronizeAllSL(clientV2: RestClientV2, userId: Types.ObjectId, symbol: string) {
         try {
-            const position = await this.positionService.findOneAndUpdateSynchroExchange({ userId, symbol }, { SL: true }, { lean: true, upsert: true, new: false });
+            const symbolV2 = this.bitgetUtilsService.convertSymbolToV2(symbol)
+            const position = await this.positionService.findOneAndUpdateSynchroExchange({ userId, symbol: symbolV2 }, { SL: true }, { lean: true, upsert: true, new: false });
             // Si avant c'est déjà désactivé on ne fait rien
             if (!position.synchroExchange.SL) return
             const orders = await this.orderService.findAll({ userId, symbol, terminated: false })
@@ -799,7 +800,7 @@ export class BitgetFuturesService {
                     stopLossListToUpdate.push(stopLoss)
                 }
             }
-            await this.positionService.findOneAndUpdateSynchroExchange({ userId, symbol }, { SL: true })
+            await this.positionService.findOneAndUpdateSynchroExchange({ userId, symbol: symbolV2 }, { SL: true })
             // update all SL to size
             for (const stopLoss of stopLossListToUpdate) {
                 const order = orders.find((o) => o._id.equals(stopLoss.orderParentId))
