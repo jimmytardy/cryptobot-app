@@ -429,9 +429,14 @@ export class BitgetFuturesService {
                 const stopLoss: StopLoss = await this.stopLossService.findOne({
                     orderParentId: order._id,
                 })
-                const quantityAvailable = await this.orderService.getQuantityAvailable(order._id, order)
+                const quantityAvailable = await this.orderService.getQuantityAvailable(order._id, order);
+                if (quantityAvailable === 0) return;
                 const triggerPrice = await this.orderService.getSLTriggerCurrentFromOrder(order);
-                if (stopLoss && (triggerPrice !== stopLoss.triggerPrice || quantityAvailable !== stopLoss.quantity)) {
+                if (!stopLoss || stopLoss.terminated) {
+                    await this.stopLossService.deleteOne(stopLoss._id)
+                    await this.activeSL(BitgetService.getClient(order.userId), order);
+                    return;
+                } else if ((triggerPrice !== stopLoss.triggerPrice || quantityAvailable !== stopLoss.quantity)) {
                     const params = {
                         orderId: stopLoss.orderId,
                         clientOid: stopLoss.clOrderId.toString(),
