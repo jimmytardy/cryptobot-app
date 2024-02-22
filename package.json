@@ -6,7 +6,8 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build",
+    "cp-telegram-client": "cp -r ~/cryptobot-telegram-react/telegram-client ./dist",
+    "build": "nest build && pnpm run cp-telegram-client",
     "build:app": "cd app && pnpm run build",
     "build:all": "pnpm run build:app && pnpm run build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",

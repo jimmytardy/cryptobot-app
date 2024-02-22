@@ -15,6 +15,7 @@ import { BitgetService } from '../plateforms/bitget/bitget.service'
 import _ from 'underscore'
 import { SubscriptionEnum } from 'src/model/Subscription'
 import { RightService } from '../right/right.service'
+import { UtilService } from 'src/util/util.service'
 
 @Injectable()
 export class UserService implements OnApplicationBootstrap {
@@ -120,6 +121,7 @@ export class UserService implements OnApplicationBootstrap {
             userId,
             ...(dateFrom ? { createdAt: { $gte: dateFrom } } : {}),
             ...(dateTo ? { createdAt: { $lte: dateTo } } : {}),
+            activated: true,
         }
         const orders = await this.orderService.getOrders(filterQuery)
         const results = {
@@ -138,16 +140,12 @@ export class UserService implements OnApplicationBootstrap {
                 '4': 0,
                 '5': 0,
             },
+            totalPnL: 0,
         }
 
         for (const order of orders) {
-            if (!order.sendToPlateform) {
-                results.nbWaitToSendPlateform++
-                continue
-            }
             if (order.terminated) results.nbTerminated++
             else results.nbInProgress++
-            if (!order.activated) continue
             if (order.TPs) {
                 const TPs = order.TPs.sort((a: TakeProfit, b: TakeProfit) => a.triggerPrice - b.triggerPrice)
                 if (order.side === 'short') TPs.reverse()
@@ -156,13 +154,15 @@ export class UserService implements OnApplicationBootstrap {
                     if (TPs[i].activated) {
                         results.nbTotalTP++
                         results.nbTP[i]++
+                        results.totalPnL += TPs[i].PnL
                     }
                 }
             }
 
-            if (order.SL?.terminated) {
+            if (order.SL?.activated) {
                 results.nbSL[order.SL.step]++
                 results.nbTotalSL++
+                results.totalPnL += UtilService.getPnL(order.SL.quantity, order.PE, order.SL.triggerPrice, order.side)
             }
         }
         return results
