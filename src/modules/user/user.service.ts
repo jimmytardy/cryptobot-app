@@ -154,7 +154,7 @@ export class UserService implements OnApplicationBootstrap {
                     if (TPs[i].activated) {
                         results.nbTotalTP++
                         results.nbTP[i]++
-                        results.totalPnL += TPs[i].PnL
+                        results.totalPnL += UtilService.getPnL(TPs[i].quantity, order.PE, TPs[i].triggerPrice, order.side)
                     }
                 }
             }
