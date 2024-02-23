@@ -68,4 +68,10 @@ export class OrderBotController {
         if (!req.user.isAdmin) throw new HttpException('Vous n\'avez pas les droits pour cette action', 403);
         return await this.orderBotService.closeForcePosition(orderId);
     }
+
+    @Post('synchronize-all-sl/:orderId')
+    async synchronzeAllSLOrderBot(@Req() req, @Param('orderId') orderId: string) {
+        if (!req.user.isAdmin) throw new HttpException('Vous n\'avez pas les droits pour cette action', 403);
+        return await this.orderBotService.synchronizeAllSLOrderBot(orderId);
+    }
 }

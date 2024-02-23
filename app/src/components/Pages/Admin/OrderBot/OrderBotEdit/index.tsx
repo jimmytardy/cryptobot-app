@@ -12,7 +12,7 @@ import PlaceOrderForm from '../../../../PlaceOrderForm'
 const OrderBotEdit = () => {
     const [isLoading, setIsLoading] = useState<boolean>(true)
     const [message, setMessage] = useState<string>()
-    const [showModal, setShowModal] = useState<'resume' | 'delete' | 'close-position' | undefined>()
+    const [showModal, setShowModal] = useState<'resume' | 'delete' | 'close-position' | 'synchronize' | undefined>()
     const navigate = useNavigate()
     let { id } = useParams()
     const methods = useForm<IOrderBot>()
@@ -91,9 +91,10 @@ const OrderBotEdit = () => {
     const handleOpenModalDelete = () => setShowModal('delete')
     const handleOpenModalResume = () => setShowModal('resume')
     const handleOpenModalForceClosePosition = () => setShowModal('close-position')
+    const handleOpenModalSynchronize = () => setShowModal('synchronize')
     const handleCloseModal = () => setShowModal(undefined)
 
-    const handleActionModal = async (action: 'delete' | 'resume' | 'close-position') => {
+    const handleActionModal = async (action: 'delete' | 'resume' | 'close-position' | 'synchronize') => {
         try {
             if (action === 'delete') {
                 await axiosClient.delete('/order-bot/' + id)
@@ -104,6 +105,9 @@ const OrderBotEdit = () => {
             } else if (action === 'close-position') {
                 await axiosClient.post('/order-bot/close-position/' + id)
                 setMessage('Toutes les positions ont bien été fermées')
+            } else if (action === 'synchronize') {
+                await axiosClient.post('/order-bot/synchronize-all-sl/' + id)
+                setMessage('Toutes les positions ont bien été synchronisées')
             }
         } catch (error: any) {
             setMessage(error.response.data.message)
@@ -134,6 +138,9 @@ const OrderBotEdit = () => {
                             <Button className="ms-5" variant="danger" style={{ width: 300 }} type="button" onClick={handleOpenModalDelete}>
                                 Supprimer tous les ordres en cours
                             </Button>
+                            <Button className="ms-5" variant="danger" style={{ width: 300 }} onClick={handleOpenModalSynchronize}>
+                                Synchroniser les Stoploss
+                            </Button>
                             <Button className="ms-5" variant="danger" style={{ width: 300 }} onClick={handleOpenModalForceClosePosition}>
                                 Fermer toutes les positions
                             </Button>
@@ -141,9 +148,9 @@ const OrderBotEdit = () => {
                     </Row>
                     <Modal show={Boolean(showModal)} onHide={handleCloseModal}>
                         <Modal.Header closeButton>
-                            <Modal.Title>{showModal == 'resume' ? 'Reprise' : 'Suppression'} d'un ordre de bot</Modal.Title>
+                            <Modal.Title>{showModal == 'resume' ? 'Reprise' : showModal == 'synchronize' ? 'Modification' : 'Suppression'} d'un ordre de bot</Modal.Title>
                         </Modal.Header>
-                        <Modal.Body>Êtes-vous sûr de vouloir {showModal == 'resume' ? 'reprendre' : 'supprimer'} cet ordre de bot ?</Modal.Body>
+                        <Modal.Body>Êtes-vous sûr de vouloir {showModal == 'resume' ? 'reprendre' : showModal == 'synchronize' ? 'synchroniser' : 'supprimer'} cet ordre de bot ?</Modal.Body>
                         <Modal.Footer>
                             <Button variant="secondary" onClick={handleCloseModal}>
                                 Annuler
@@ -152,6 +159,10 @@ const OrderBotEdit = () => {
                                 (showModal === 'resume' ? (
                                     <Button variant="primary" onClick={() => handleActionModal(showModal)}>
                                         Reprendre
+                                    </Button>
+                                ): showModal === 'synchronize' ? (
+                                    <Button variant="danger" onClick={() => handleActionModal(showModal)}>
+                                        Synchroniser
                                     </Button>
                                 ) : showModal === 'delete' ? (
                                     <Button variant="danger" onClick={() => handleActionModal(showModal)}>

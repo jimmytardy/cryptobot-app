@@ -27,7 +27,7 @@ export class PositionService {
                 $set[`synchroExchange.${key}`] = synchro[key]
             }
         }
-        return await this.positionModel.findOneAndUpdate(filter, { $set }, { new: true, ...options })
+        return await this.positionModel.findOneAndUpdate(filter, { $set }, { new: true, lean: true,...options })
     }
 
     async updateOne(position: Partial<Position> & { _id: Types.ObjectId }, options?: QueryOptions<Position>): Promise<Position> {

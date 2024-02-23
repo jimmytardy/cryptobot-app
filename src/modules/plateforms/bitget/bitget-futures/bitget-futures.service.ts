@@ -242,7 +242,7 @@ export class BitgetFuturesService {
     }
 
     async activeSL(client: FuturesClient, order: Order) {
-        const totalQuantity = await this.orderService.getQuantityAvailable(order._id, order)
+        const totalQuantity = await this.orderService.getQuantityAvailable(order._id, order);
         try {
             if (totalQuantity === 0) return
             const SLTrigger = await this.orderService.getSLTriggerCurrentFromOrder(order)
@@ -377,6 +377,9 @@ export class BitgetFuturesService {
     }
 
     async upgradeStopLoss(clientV2: RestClientV2, order: Order, numTP: number): Promise<StopLoss> {
+        const symbolV2 = this.bitgetUtilsService.convertSymbolToV2(order.symbol);
+        const position = await this.positionService.findOneAndUpdateSynchroExchange({ userId: order.userId, symbol: symbolV2, SL: true }, { SL: false }, { lean: true });
+        if (!position) return;
         let stopLoss = await this.stopLossService.findOne(
             {
                 orderParentId: order._id,
@@ -389,7 +392,7 @@ export class BitgetFuturesService {
             if (!stopLoss) {
                 stopLoss = await this.activeSL(BitgetService.getClient(order.userId), order);
                 if (!stopLoss) throw new Error('No stopLoss found');
-                await UtilService.sleep(1000);
+                return;
             }
 
             let newStep = this.stopLossService.getNewStep(numTP, order.strategy)
@@ -420,6 +423,8 @@ export class BitgetFuturesService {
                 stopLoss,
                 error: e,
             })
+        } finally {
+            await this.positionService.findOneAndUpdateSynchroExchange({ userId: order.userId, symbol: symbolV2 }, { SL: true }, { lean: true });
         }
     }
 
@@ -761,11 +766,11 @@ export class BitgetFuturesService {
     }
 
     async synchronizeAllSL(clientV2: RestClientV2, userId: Types.ObjectId, symbol: string) {
+        const symbolV2 = this.bitgetUtilsService.convertSymbolToV2(symbol)
+        const position = await this.positionService.findOneAndUpdateSynchroExchange({ userId, symbol: symbolV2, SL: true }, { SL: false }, { lean: true });
         try {
-            const symbolV2 = this.bitgetUtilsService.convertSymbolToV2(symbol)
-            const position = await this.positionService.findOneAndUpdateSynchroExchange({ userId, symbol: symbolV2 }, { SL: true }, { lean: true, upsert: true, new: false });
             // Si avant c'est déjà désactivé on ne fait rien
-            if (!position.synchroExchange.SL) return
+            if (!position) return
             const orders = await this.orderService.findAll({ userId, symbol, terminated: false })
             const stopLossList = await this.stopLossService.findAll({
                 orderParentId: { $in: orders.map((o) => o._id) },
@@ -781,7 +786,6 @@ export class BitgetFuturesService {
                 if (stopLoss.terminated) {
                     stopLossListToUpdate.push(stopLoss)
                 } else if (stopLoss.quantity !== quantity) {
-                    await this.stopLossService.updateOne(stopLoss)
                     sizeAvailableMemo[stopLoss._id.toString()] = quantity
                     const params = {
                         orderId: stopLoss.orderId,
@@ -819,6 +823,9 @@ export class BitgetFuturesService {
                 symbol,
                 error: e,
             })
+        } finally  {
+            // security
+            await this.positionService.findOneAndUpdateSynchroExchange({ userId, symbol: symbolV2 }, { SL: true })
         }
     }
 }
