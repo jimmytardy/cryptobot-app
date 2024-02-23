@@ -390,9 +390,10 @@ export class BitgetFuturesService {
         )
         try {
             if (!stopLoss) {
+                await this.positionService.findOneAndUpdateSynchroExchange({ userId: order.userId, symbol: symbolV2 }, { SL: true });
                 stopLoss = await this.activeSL(BitgetService.getClient(order.userId), order);
                 if (!stopLoss) throw new Error('No stopLoss found');
-                return;
+                return stopLoss;
             }
 
             let newStep = this.stopLossService.getNewStep(numTP, order.strategy)
@@ -415,7 +416,7 @@ export class BitgetFuturesService {
             stopLoss.orderId = data.orderId
             stopLoss.historyTrigger = [...stopLoss.historyTrigger, stopLoss.triggerPrice]
             stopLoss.triggerPrice = triggerPrice
-            return await this.stopLossService.updateOne(stopLoss, { new: true })
+            stopLoss = await this.stopLossService.updateOne(stopLoss, { new: true })
         } catch (e) {
             this.errorTraceService.createErrorTrace('upgradeSL', order.userId, ErrorTraceSeverity.IMMEDIATE, {
                 order,
@@ -424,7 +425,8 @@ export class BitgetFuturesService {
                 error: e,
             })
         } finally {
-            await this.positionService.findOneAndUpdateSynchroExchange({ userId: order.userId, symbol: symbolV2 }, { SL: true }, { lean: true });
+            await this.positionService.findOneAndUpdateSynchroExchange({ userId: order.userId, symbol: symbolV2 }, { SL: true });
+            return stopLoss;
         }
     }
 
@@ -432,7 +434,7 @@ export class BitgetFuturesService {
         try {
             order.SL = newSL
             await this.orderService.updateOne(order)
-            if (order.sendToPlateform && order.activated) {
+            if (order.sendToPlateform && order.activated && !order.terminated) {
                 const stopLoss: StopLoss = await this.stopLossService.findOne({
                     orderParentId: order._id,
                 })
@@ -470,8 +472,6 @@ export class BitgetFuturesService {
                         })
                         return false
                     }
-                } else if (!stopLoss) {
-                    await this.activeSL(BitgetService.getClient(order.userId), order);
                 }
             }
             return true

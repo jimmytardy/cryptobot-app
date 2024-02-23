@@ -196,7 +196,7 @@ export class BitgetWsService {
                 case 'executing':
                     break
                 case 'executed':
-                    await this.onTakeProfitTriggered(takeProfit, orderAlgoEvent);
+                    await this.onTakeProfitTriggered(orderAlgoEvent, takeProfit);
                     break
                 default:
                     console.info('onUpdatedOrderAlgoTP', orderAlgoEvent.status, 'not implemented')
@@ -249,7 +249,7 @@ export class BitgetWsService {
         }
     }
 
-    private async onTakeProfitTriggered(takeProfit: TakeProfit, orderAlgoEvent: IOrderAlgoEventData) {
+    private async onTakeProfitTriggered(orderAlgoEvent: IOrderAlgoEventData, takeProfit: TakeProfit) {
         takeProfit.triggerPrice = Number(orderAlgoEvent.triggerPrice)
         takeProfit.quantity = Number(orderAlgoEvent.size)
         takeProfit.terminated = true
