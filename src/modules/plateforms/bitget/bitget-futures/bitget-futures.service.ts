@@ -811,10 +811,12 @@ export class BitgetFuturesService {
                     stopLossListToUpdate.push(stopLoss)
                 }
             }
+            console.log('stopLossListToUpdate', stopLossListToUpdate)
             await this.positionService.findOneAndUpdateSynchroExchange({ userId, symbol: symbolV2 }, { SL: true })
             // update all SL to size
             for (const stopLoss of stopLossListToUpdate) {
                 const order = orders.find((o) => o._id.equals(stopLoss.orderParentId))
+                console.log('activeSL', order._id)
                 await this.activeSL(BitgetService.getClient(order.userId), order)
             }
         } catch (e) {
