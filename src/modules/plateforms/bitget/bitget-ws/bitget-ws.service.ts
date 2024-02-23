@@ -14,6 +14,8 @@ import { TakeProfitService } from 'src/modules/order/take-profit/take-profit.ser
 import { UserService } from 'src/modules/user/user.service'
 import { UtilService } from 'src/util/util.service'
 import { PositionService } from 'src/modules/position/position.service'
+import { ErrorTraceService } from 'src/modules/error-trace/error-trace.service'
+import { ErrorTraceSeverity } from 'src/model/ErrorTrace'
 
 @Injectable()
 export class BitgetWsService {
@@ -28,6 +30,7 @@ export class BitgetWsService {
         private takeProfitService: TakeProfitService,
         private positionService: PositionService,
         private userService: UserService,
+        private erroTraceService: ErrorTraceService
     ) {
         this.client = {}
     }
@@ -130,64 +133,80 @@ export class BitgetWsService {
     }
 
     private async onUpdatedOrderAlgoSL(orderAlgoEvent: IOrderAlgoEventData, stopLoss: StopLoss) {
-        switch (orderAlgoEvent.status) {
-            case 'cancelled':
-                await this.stopLossService.cancel({ _id: stopLoss._id })
-                const quantityAvailable = await this.orderService.getQuantityAvailable(stopLoss.orderParentId)
-                if (quantityAvailable === 0) {
-                    await this.orderService.cancelOrder(stopLoss.orderParentId)
-                } else {
-                    await this.bitgetService.synchronizeAllSL(stopLoss.userId, stopLoss.symbol)
-                }
-                break
-            case 'live':
-                const newSize = Number(orderAlgoEvent.size)
-                const newTriggerPrice = Number(orderAlgoEvent.triggerPrice)
-                // check if a good SL
-                if (newSize !== stopLoss.quantity || newTriggerPrice !== stopLoss.triggerPrice) {
-                    stopLoss.quantity = Number(orderAlgoEvent.size)
-                    stopLoss.triggerPrice = Number(orderAlgoEvent.triggerPrice)
-                    await this.stopLossService.updateOne(stopLoss)
+        try {
+            switch (orderAlgoEvent.status) {
+                case 'cancelled':
+                    await this.stopLossService.cancel({ _id: stopLoss._id })
                     const quantityAvailable = await this.orderService.getQuantityAvailable(stopLoss.orderParentId)
-                    // if we are multiple Order, reorganise all SL
-                    if (quantityAvailable !== newSize) await this.bitgetService.synchronizeAllSL(stopLoss.userId, stopLoss.symbol)
-                }
-                break
-            case 'executed':
-                await this.onStopLossTriggered(stopLoss)
-                break
-            case 'executing':
-                break
-            case 'fail_execute':
-                await this.bitgetService.synchronizeAllSL(stopLoss.userId, stopLoss.symbol)
-            default:
-                console.info('onUpdatedOrderAlgoSL', orderAlgoEvent.status, 'not implemented')
+                    if (quantityAvailable === 0) {
+                        await this.orderService.cancelOrder(stopLoss.orderParentId)
+                    } else {
+                        await this.bitgetService.synchronizeAllSL(stopLoss.userId, stopLoss.symbol)
+                    }
+                    break
+                case 'live':
+                    const newSize = Number(orderAlgoEvent.size)
+                    const newTriggerPrice = Number(orderAlgoEvent.triggerPrice)
+                    // check if a good SL
+                    if (newSize !== stopLoss.quantity || newTriggerPrice !== stopLoss.triggerPrice) {
+                        stopLoss.quantity = Number(orderAlgoEvent.size)
+                        stopLoss.triggerPrice = Number(orderAlgoEvent.triggerPrice)
+                        await this.stopLossService.updateOne(stopLoss)
+                        const quantityAvailable = await this.orderService.getQuantityAvailable(stopLoss.orderParentId)
+                        // if we are multiple Order, reorganise all SL
+                        if (quantityAvailable !== newSize) await this.bitgetService.synchronizeAllSL(stopLoss.userId, stopLoss.symbol)
+                    }
+                    break
+                case 'executed':
+                    await this.onStopLossTriggered(stopLoss)
+                    break
+                case 'executing':
+                    break
+                case 'fail_execute':
+                    await this.bitgetService.synchronizeAllSL(stopLoss.userId, stopLoss.symbol)
+                default:
+                    console.info('onUpdatedOrderAlgoSL', orderAlgoEvent.status, 'not implemented')
+            }
+        } catch (e) {
+            this.erroTraceService.createErrorTrace('onUpdateOrderAlgoSL', stopLoss.userId, ErrorTraceSeverity.IMMEDIATE, {
+                error: e,
+                orderAlgoEvent,
+                stopLoss
+            })
         }
     }
 
     private async onUpdatedOrderAlgoTP(orderAlgoEvent: IOrderAlgoEventData, takeProfit: TakeProfit) {
-        switch (orderAlgoEvent.status) {
-            case 'cancelled':
-                takeProfit.terminated = true
-                takeProfit.cancelled = true
-                await this.takeProfitService.updateOne(takeProfit)
-                const quantityAvailable = await this.orderService.getQuantityAvailable(takeProfit.orderParentId)
-                if (quantityAvailable === 0) {
-                    await this.orderService.cancelOrder(takeProfit.orderParentId)
-                }
-                break
-            case 'live':
-                takeProfit.quantity = Number(orderAlgoEvent.size)
-                takeProfit.triggerPrice = Number(orderAlgoEvent.triggerPrice)
-                await this.takeProfitService.updateOne(takeProfit)
-                break
-            case 'executing':
-                break
-            case 'executed':
-                await this.onTakeProfitTriggered(takeProfit, orderAlgoEvent);
-                break
-            default:
-                console.info('onUpdatedOrderAlgoTP', orderAlgoEvent.status, 'not implemented')
+        try {
+            switch (orderAlgoEvent.status) {
+                case 'cancelled':
+                    takeProfit.terminated = true
+                    takeProfit.cancelled = true
+                    await this.takeProfitService.updateOne(takeProfit)
+                    const quantityAvailable = await this.orderService.getQuantityAvailable(takeProfit.orderParentId)
+                    if (quantityAvailable === 0) {
+                        await this.orderService.cancelOrder(takeProfit.orderParentId)
+                    }
+                    break
+                case 'live':
+                    takeProfit.quantity = Number(orderAlgoEvent.size)
+                    takeProfit.triggerPrice = Number(orderAlgoEvent.triggerPrice)
+                    await this.takeProfitService.updateOne(takeProfit)
+                    break
+                case 'executing':
+                    break
+                case 'executed':
+                    await this.onTakeProfitTriggered(takeProfit, orderAlgoEvent);
+                    break
+                default:
+                    console.info('onUpdatedOrderAlgoTP', orderAlgoEvent.status, 'not implemented')
+            }
+        } catch (e) {
+            this.erroTraceService.createErrorTrace('onUpdatedOrderAlgoTP', takeProfit.userId, ErrorTraceSeverity.IMMEDIATE, {
+                error: e,
+                orderAlgoEvent,
+                takeProfit
+            })
         }
     }
 
