@@ -13,6 +13,9 @@ import { AppConfig } from 'src/model/AppConfig'
 import _ from 'underscore'
 import { PlateformsService } from '../plateforms/plateforms.service'
 import { PaymentsService } from '../payment/payments.service'
+import { SubscriptionEnum } from 'src/model/Subscription'
+import { ErrorTraceService } from '../error-trace/error-trace.service'
+import { ErrorTraceSeverity } from 'src/model/ErrorTrace'
 
 @Injectable()
 export class TasksService implements OnApplicationBootstrap, OnModuleInit {
@@ -24,11 +27,12 @@ export class TasksService implements OnApplicationBootstrap, OnModuleInit {
         @InjectModel(AppConfig.name) private appConfigModel: Model<AppConfig>,
         private userService: UserService,
         private bitgetService: BitgetService,
-        private paymentsService: PaymentsService
+        private paymentsService: PaymentsService,
+        private errorTraceService: ErrorTraceService,
     ) {}
 
     async onModuleInit() {
-        await this.synchroSubscriptions();
+        await this.synchroSubscriptions()
     }
 
     async onApplicationBootstrap() {
@@ -40,38 +44,27 @@ export class TasksService implements OnApplicationBootstrap, OnModuleInit {
 
     @Cron(CronExpression.EVERY_12_HOURS)
     async synchroSubscriptions() {
-        const users = await this.userService.findAll();
+        const users = await this.userService.findAll()
 
         for (const user of users) {
-            await this.paymentsService.actualizeSubscription(user);
+            await this.paymentsService.actualizeSubscription(user)
         }
     }
 
-    @Cron(CronExpression.EVERY_DAY_AT_2AM)
-    async syncOrders() {
+    @Cron(CronExpression.EVERY_HOUR)
+    async syncOrderSL() {
         const appConfig = await this.appConfigModel.findOne()
         if (appConfig.syncOrdersBitget.active) {
-            const now = Date.now()
-            const users = await this.userService.getListOfTraders()
-            for (const user of users) {
-                const client = BitgetService.getClient(user._id)
-                const symbols = await this.orderModel.distinct('symbol', { userId: user._id }).exec()
-                for (const symbol of symbols) {
-                    const ordersBitget = await client.getOrderHistory(symbol, String(appConfig.syncOrdersBitget.lastUpdated), String(now), '10')
-                    if (ordersBitget.data.orderList) {
-                        for (const orderBitget of ordersBitget.data.orderList) {
-                            if (!Types.ObjectId.isValid(orderBitget.clientOid)) continue
-                            const order = await this.orderModel.findOne({ clOrderId: new Types.ObjectId(orderBitget.clientOid) }).exec()
-                            if (!order) continue
-                            order.PE = orderBitget.price || orderBitget.priceAvg
-                            order.usdt = exactMath.round(exactMath.mul(orderBitget.size, order.PE) / order.leverage, -3)
-                            await order.save()
-                        }
-                    }
-                }
+            const orders = await this.orderModel.find({ terminated: false, activated: true }).exec()
+            const request = []
+            for (const order of orders) {
+                request.push(
+                    this.bitgetService
+                        .synchronizeAllSL(order.userId, order.symbol)
+                        .catch((e) => this.errorTraceService.createErrorTrace('TaskService => syncOrderSL', order.userId, ErrorTraceSeverity.IMMEDIATE, { error: e, order }))
+                )
             }
-            appConfig.syncOrdersBitget.lastUpdated = now
-            await appConfig.save()
+            await Promise.all(request)
         }
     }
 
@@ -135,7 +128,7 @@ export class TasksService implements OnApplicationBootstrap, OnModuleInit {
         const symbols = await client.getSymbols(BitgetService.PRODUCT_TYPE)
         if (!symbols.data) return
 
-        await this.symbolModel.deleteMany({}).exec() 
+        await this.symbolModel.deleteMany({}).exec()
         await this.updatePositionTierAndInsert(client, symbols.data as Symbol[], 0)
     }
 

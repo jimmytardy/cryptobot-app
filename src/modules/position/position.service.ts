@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { FilterQuery, Model, ProjectionType, QueryOptions, Types } from 'mongoose';
+import { FilterQuery, Model, ProjectionType, QueryOptions, Types, UpdateQuery } from 'mongoose';
 import { Position, PositionSynchroExchange } from 'src/model/Position';
 
 @Injectable()
@@ -19,15 +19,9 @@ export class PositionService {
         return await this.positionModel.findOneAndUpdate(filter, position || filter, { upsert: true, new: true, setDefaultsOnInsert: true, ...options })
     }
 
-    async findOneAndUpdateSynchroExchange(filter: FilterQuery<Position>, synchro: Partial<PositionSynchroExchange>, options?: QueryOptions<Position>): Promise<Position> {
-        this.logger.debug(`findAndDisableSynchroExchange: filter=${JSON.stringify(filter)}, options=${JSON.stringify(options)}`);
-        const $set = {}
-        for (const key in synchro) {
-            if (synchro[key] !== undefined) {
-                $set[`synchroExchange.${key}`] = synchro[key]
-            }
-        }
-        return await this.positionModel.findOneAndUpdate(filter, { $set }, { new: true, lean: true,...options })
+    async findOneAndUpdate(filter: FilterQuery<Position>, update: UpdateQuery<Position>, options?: QueryOptions<Position>): Promise<Position> {
+        this.logger.debug(`findOneAndUpdate: filter=${JSON.stringify(filter)}, update=${JSON.stringify(update)} options=${JSON.stringify(options)}`);
+        return await this.positionModel.findOneAndUpdate(filter, update, { new: true, lean: true,...options })
     }
 
     async updateOne(position: Partial<Position> & { _id: Types.ObjectId }, options?: QueryOptions<Position>): Promise<Position> {
