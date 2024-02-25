@@ -127,7 +127,7 @@ export class OrderService {
         if (!order) order = await this.orderModel.findById(orderId, 'quantity').lean();
         if (!order) throw new Error('Order not found');
         const TPQuantityClose = await this.getTakeProfitTriggered(order._id, 'quantity', { lean: true });
-        return exactMath.sub(order.quantity, TPQuantityClose.reduce((acc, currentTP) => acc + currentTP.quantity, 0));
+        return exactMath.sub(order.quantity, TPQuantityClose.reduce((acc, currentTP) => exactMath.add(acc, currentTP.quantity), 0));
     }
 
     async cancelOrder(
