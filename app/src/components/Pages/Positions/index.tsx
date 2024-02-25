@@ -1,9 +1,9 @@
-import { Accordion, Button, Col, Container, Row } from 'react-bootstrap'
+import { Col, Container, Row } from 'react-bootstrap'
 import './index.scss'
 import { useEffect, useState } from 'react'
 import axiosClient from '../../../axiosClient'
 import Loader from '../../utils/Loader'
-import { ArrowClockwise, Check, CurrencyDollar, HourglassSplit, X } from 'react-bootstrap-icons'
+import {HourglassSplit, X } from 'react-bootstrap-icons'
 
 interface IOrderStatus {
     cancelled: boolean
