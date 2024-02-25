@@ -544,10 +544,11 @@ export class BitgetFuturesService {
     //     }
     // }
 
-    async updateTakeProfits(client: FuturesClient, order: Order, newTPs: number[], TPSize: TPSizeType): Promise<boolean> {
+    async updateTakeProfits(client: FuturesClient, order: Order, newTPs: number[], TPSize: TPSizeType, currentPrice: number = null): Promise<boolean> {
         try {
             const symbolRules = await this.bitgetUtilsService.getSymbolBy('symbol', order.symbol)
             if (order.sendToPlateform && order.activated) {
+                if (!currentPrice) currentPrice = await this.bitgetUtilsService.getCurrentPrice(client, order.symbol)
                 const takeProfits = await this.takeProfitService.findAll(
                     {
                         orderParentId: order._id,
@@ -558,17 +559,20 @@ export class BitgetFuturesService {
                 )
 
                 const totalQuantity = await this.orderService.getQuantityAvailable(order._id, order)
-                const TPList = [...newTPs]
+                let TPList = [...newTPs]
                 const takeProfitNotTerminated = []
                 const TPPriceTerminated = []
+                let startNum = 1;
                 for (let i = 0; i < takeProfits.length; i++) {
                     if (takeProfits[i].activated || takeProfits[i].terminated) {
                         TPList.splice(takeProfits[i].num - 1, 1)
                         TPPriceTerminated.push(takeProfits[i].triggerPrice)
+                        if (takeProfits[i].num + 1 > startNum) startNum = takeProfits[i].num + 1
                     } else {
                         takeProfitNotTerminated.push(takeProfits[i])
                     }
                 }
+                TPList = TPList.filter(tp => tp > currentPrice)
                 const { TPPrice: newTPPricesCalculate, TPSize: newTPSizeCalculate } = this.bitgetUtilsService.caculateTPsToUse(
                     TPList,
                     totalQuantity,
@@ -581,7 +585,6 @@ export class BitgetFuturesService {
                         await this.cancelTakeProfit(client, takeProfit, true)
                     }),
                 )
-                const startNum = takeProfitNotTerminated.reduce((a, b) => (a < b.num ? a : b.num), 1000)
                 // Enfin on ajoute les nouveaux trades
                 for (let i = 0; i < newTPPricesCalculate.length; i++) {
                     const newSize = newTPSizeCalculate[i]

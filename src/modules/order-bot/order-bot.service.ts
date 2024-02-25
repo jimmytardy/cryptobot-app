@@ -175,6 +175,7 @@ export class OrderBotService {
 
         const orders = await this.orderModel.find({ linkOrderId: oldOrder.linkOrderId, terminated: false }).exec()
         const userMemo: { [key: string]: User } = {}
+        const priceMemo: { [key: string]: number } = {}
         let success = 0
         let errors = 0
         await Promise.all(
@@ -192,7 +193,8 @@ export class OrderBotService {
                         }
                     }
                     if (TPModif.length > 0) {
-                        await this.bitgetService.updateTPsOfOrder(order, orderDTO.TPs, userMemo[order.userId.toString()])
+                        if (!priceMemo[order.symbol]) priceMemo[order.symbol] = await this.bitgetService.getCurrentPrice('symbol', order.symbol)
+                        await this.bitgetService.updateTPsOfOrder(order, orderDTO.TPs, userMemo[order.userId.toString()], priceMemo[order.symbol])
                         success += TPModif.length
                     }
 
