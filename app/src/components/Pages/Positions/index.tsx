@@ -3,7 +3,7 @@ import './index.scss'
 import { useEffect, useState } from 'react'
 import axiosClient from '../../../axiosClient'
 import Loader from '../../utils/Loader'
-import {HourglassSplit, X } from 'react-bootstrap-icons'
+import {Check, HourglassSplit } from 'react-bootstrap-icons'
 
 interface IOrderStatus {
     cancelled: boolean
@@ -127,7 +127,7 @@ const Positions = () => {
                             <Col xs={12} md={6} lg={3} className="position-trigger">
                                 {order.TPs.map((tp) => (
                                     <span className="position-tp" key={'tp-header-' + tp.orderId}>
-                                        {tp.activated ? <X /> : <HourglassSplit />} {tp.triggerPrice}
+                                        {tp.activated ? <Check /> : <HourglassSplit />} {tp.triggerPrice}
                                     </span>
                                 ))}
                             </Col>
