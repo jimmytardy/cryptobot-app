@@ -13,7 +13,7 @@ import { Symbol } from 'src/model/Symbol'
 import { BitgetFuturesService } from './bitget-futures/bitget-futures.service'
 import { ConfigService } from '@nestjs/config'
 import { IOrderEventData } from './bitget-ws/bitget-ws.interface'
-import { OrderService } from 'src/modules/order/order.service'
+import { IOrderPopulated, OrderService } from 'src/modules/order/order.service'
 
 @Injectable()
 export class BitgetService implements OnModuleInit {
@@ -108,7 +108,7 @@ export class BitgetService implements OnModuleInit {
 
     async getCurrentPrice(key: keyof Symbol, value: string | number) {
         const symbol = await this.bitgetUtilsService.getSymbolBy(key, value)
-        return await this.bitgetUtilsService.getCurrentPrice(this.getFirstClient(), symbol.symbol)
+        return await BitgetUtilsService.getCurrentPrice(this.getFirstClient(), symbol.symbol)
     }
 
     async placeOrder(placeOrderDTO: PlaceOrderDTO, user: User, linkParentOrderId?: Types.ObjectId, currentPrice: number = null): Promise<any> {
@@ -131,7 +131,7 @@ export class BitgetService implements OnModuleInit {
                 throw new HttpException('Fonds insuffisants pour poser un ordre', 400)
             }
         }
-        if (!currentPrice) currentPrice = await this.bitgetUtilsService.getCurrentPrice(client, symbolRules.symbol)
+        if (!currentPrice) currentPrice = await BitgetUtilsService.getCurrentPrice(client, symbolRules.symbol)
         const fullSide = ('open_' + side) as FuturesOrderSide
         const linkOrderId = linkParentOrderId || new Types.ObjectId()
         const PEAvg = PEs.reduce((a, b) => a + b, 0) / PEs.length
@@ -263,5 +263,28 @@ export class BitgetService implements OnModuleInit {
         } catch (e) {
             this.logger.error('cancelTakeProfitsFromOrder', e)
         }
+    }
+
+    async getFullOrders(user: User) {
+        const orders: (IOrderPopulated & any)[]= await this.orderService.getOrders({
+            userId: user._id,
+            activated: true,
+            terminated: false,
+        });
+
+        for (const order of orders) {
+            if (!order.TPs) order.TPs = [];
+            if (!order.SL) order.SL = null;
+            order.quantityAvailable = await this.orderService.getQuantityAvailable(order._id, order);
+            order.currentPrice = await BitgetUtilsService.getCurrentPrice(BitgetService.getClient(user._id), order.symbol);
+            order.PnL = UtilService.getPnL(order.quantityAvailable, order.PE, order.currentPrice, order.side);
+            order.PnLPourcentage = order.PnL / order.usdt * 100;
+            for (const TP of order.TPs) {
+                const pourcentage =  user.preferences.order.TPSize[order.TPs.length][TP.num - 1];
+                TP.PnL = UtilService.getPnL(order.quantity * pourcentage, order.PE, TP.triggerPrice, order.side);
+                TP.PnLPourcentage = TP.PnL / order.usdt * 100;
+            }
+        }
+        return orders;
     }
 }

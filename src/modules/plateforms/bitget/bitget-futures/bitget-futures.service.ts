@@ -548,7 +548,7 @@ export class BitgetFuturesService {
         try {
             const symbolRules = await this.bitgetUtilsService.getSymbolBy('symbol', order.symbol)
             if (order.sendToPlateform && order.activated) {
-                if (!currentPrice) currentPrice = await this.bitgetUtilsService.getCurrentPrice(client, order.symbol)
+                if (!currentPrice) currentPrice = await BitgetUtilsService.getCurrentPrice(client, order.symbol)
                 const takeProfits = await this.takeProfitService.findAll(
                     {
                         orderParentId: order._id,

@@ -41,7 +41,7 @@ export class BitgetUtilsService {
         return result
     }
 
-    async getCurrentPrice(client: FuturesClient, symbol: string): Promise<number> {
+    static async getCurrentPrice(client: FuturesClient, symbol: string): Promise<number> {
         return Number.parseFloat((await client.getMarkPrice(symbol)).data.markPrice)
     }
 

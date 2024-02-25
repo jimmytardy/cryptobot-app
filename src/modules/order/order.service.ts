@@ -10,6 +10,8 @@ import _ from 'underscore'
 import { TakeProfitService } from './take-profit/take-profit.service'
 import * as exactMath from 'exact-math';
 import { StopLossService } from './stop-loss/stop-loss.service'
+import { BitgetUtilsService } from '../plateforms/bitget/bitget-utils/bitget-utils.service'
+import { BitgetService } from '../plateforms/bitget/bitget.service'
 
 export interface IOrderPopulated extends Omit<Omit<Order, 'SL'>, 'TPs'> {
     SL: StopLoss
@@ -155,21 +157,6 @@ export class OrderService {
             },
             { terminated: true },
         )
-    }
-
-    async getFullOrders(user: User, filterQuery: FilterQuery<Order>) {
-        const orders: (IOrderPopulated & any)[]= await this.getOrders(filterQuery);
-
-        for (const order of orders) {
-            if (!order.TPs) order.TPs = [];
-            if (!order.SL) order.SL = null;
-            for (const TP of order.TPs) {
-                const pourcentage =  user.preferences.order.TPSize[order.TPs.length][TP.num - 1];
-                TP.PnL = UtilService.getPnL(order.quantity * pourcentage, order.PE, TP.triggerPrice, order.side);
-                TP.PnLPourcentage = TP.PnL / order.usdt * 100;
-            }
-        }
-        return orders;
     }
 
     async getOrders(filterQuery: FilterQuery<Order>): Promise<IOrderPopulated[]> {

@@ -10,7 +10,7 @@ import { OrderService } from '../order/order.service';
 @Controller('user')
 export class UserController {
 
-    constructor (private userService: UserService, private orderService: OrderService) {}
+    constructor (private userService: UserService) {}
 
     @Post()
     async create(@Body() userDTO: CreateUserDTO) {
@@ -27,16 +27,6 @@ export class UserController {
     @Post('preferences')
     async setPreferences(@Request() req, @Body() preferences: UpdatePreferencesDTO) {
         return this.userService.setPreferences(req.user._id, preferences);
-    }
-
-    @UseGuards(JwtAuthGuard)
-    @Get('orders-active')
-    async getOrders(@Request() req) {
-        return this.orderService.getFullOrders(req.user, {
-            userId: req.user._id,
-            activated: true,
-            terminated: false,
-        });
     }
 
     @UseGuards(JwtAuthGuard)

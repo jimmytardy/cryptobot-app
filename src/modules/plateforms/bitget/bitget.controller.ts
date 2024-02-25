@@ -26,4 +26,10 @@ export class BitgetController {
     async getProfile(@Request() req) {
         return await this.bitgetService.getProfile(req.user._id);
     }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('orders-active')
+    async getOrders(@Request() req) {
+        return this.bitgetService.getFullOrders(req.user);
+    }
 }

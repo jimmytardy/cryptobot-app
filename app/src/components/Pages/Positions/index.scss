@@ -1,102 +1,22 @@
 .positions {
-    .accordion-button {
-        background-color: transparent !important;
-        height: auto !important;
-        padding: 0 !important;
-    }
-
-    .accordion-button:focus {
-        box-shadow: none;
-    }
-
-    .accordion-button:not(.collapsed) {
-        color: #212529;
-    }
-
-    .accordion-item {
-        border: none !important;
-        margin-bottom: 2rem;
-        border-radius: 0 !important;
-        margin: 1rem 0;
-        &.position-long {
-            border-left: 5px solid green !important;
-        }
-        &.position-short {
-            border-left: 5px solid red !important;
-        }
-    }
-
-    .orders {
-        .order {
-            padding-top: 0.5rem;
-            padding-bottom: 0.5rem;
-            .order-header {
-                padding: 0.5rem;
-                background-color: #444444;
-                color: white;
-                font-size: 0.8rem;
-            }
-            .order-quantity {
-                justify-content: right!important;
-            }
-        }
-
-        .order:nth-child(2n + 1) {
-            background-color: #f8f9fa;
-            .order-tp-sl-title:nth-child(2n + 1) {
-                color: red;
-            }
-        }
-        .order:nth-child(2n) {
-            background-color: #f8f9fa;
-            .order-tp-sl-title:nth-child(2n + 1) {
-                color: green;
-            }
-        }
-        .order .row > * {
-            display: flex;
-            align-items: center;
-            justify-content: left;
-        }
-
-        span {
-            display: flex;
-            align-items: center;
-            justify-content: left;
-        }
-
-        .order-status {
-            font-size: 1.5rem;
-            svg {
-                border-radius: 100%;
-            }
-            .cancelled svg {
-                background-color: orangered;
-                color: white;
-            }
-            .terminated {
-                svg {
-                    background-color: green;
-                    color: white;
-                }
-            }
-        }
-        .order-tp-sl-title {
-            font-size: 0.8rem;
-            font-weight: 700;
-        }
-
-        .order-tp-sl,
-        .order-tp-sl-title {
-            padding: 0.5rem 2rem;
-        }
-    }
-
     .position {
         padding: 0.5rem;
         text-align: center;
         font-size: 0.8rem;
-
+        border: none !important;
+        margin-bottom: 2rem;
+        border-radius: 1em !important;
+        margin: 1rem 0;
+        &.position-success {
+            box-shadow: 0 0 5px 5px green;
+        }
+        &.position-danger {
+            box-shadow: 0 0 5px 5px red;
+        }
+        .text-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
         & > * {
             display: flex;
             align-items: center;
@@ -105,27 +25,55 @@
             font-size: 1rem;
         }
 
-        .position-TP {
+        .position-order {
             display: flex;
             justify-content: center;
+            align-items: flex-start;
             flex-direction: column;
             font-size: 1rem;
             span {
                 display: flex;
                 align-items: center;
+                font-size: 0.9em;
+                margin: 3px 0;
+            }
+        }
+
+        .position-trigger.position-trigger-sl {
+            justify-content: flex-end;
+        }
+
+        .position-trigger {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            font-size: 1rem;
+            span {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 0.8em;
+                line-height: 1.5em;
+                font-weight: 500;
+                color: white;
+                padding: 3px 8px;
+                border-radius: 15px;
+                margin: 3px 0;
                 svg {
-                    margin-left: 0.5rem;
+                    margin-right: 0.5rem;
                     border-radius: 100%;
 
                     &.icon-check {
                         color: white;
-                        background-color: green;
                     }
+                }
 
-                    &.icon-cancelled {
-                        color: white;
-                        background-color: orangered;
-                    }
+                &.position-tp {
+                    background-color: green;
+                }
+                &.position-sl {
+                    background-color: red;
                 }
             }
         }
