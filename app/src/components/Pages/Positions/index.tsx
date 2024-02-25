@@ -127,7 +127,7 @@ const Positions = () => {
                             <Col xs={12} md={6} lg={3} className="position-trigger">
                                 {order.TPs.map((tp) => (
                                     <span className="position-tp" key={'tp-header-' + tp.orderId}>
-                                        {tp.activated ? <Check /> : <HourglassSplit />} {tp.triggerPrice}
+                                        {tp.activated ? <Check className='icon-check' /> : <HourglassSplit />} {tp.triggerPrice}
                                     </span>
                                 ))}
                             </Col>
