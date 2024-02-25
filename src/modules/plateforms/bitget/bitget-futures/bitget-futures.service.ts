@@ -453,16 +453,16 @@ export class BitgetFuturesService {
                     await this.activeSL(BitgetService.getClient(order.userId), order)
                     return
                 } else if (triggerPrice !== stopLoss.triggerPrice || quantityAvailable !== stopLoss.quantity) {
-                    const params = {
+                    const params: any = {
                         orderId: stopLoss.orderId,
                         clientOid: stopLoss.clOrderId.toString(),
                         marginCoin: stopLoss.marginCoin,
                         productType: BitgetService.PRODUCT_TYPEV2,
                         symbol: this.bitgetUtilsService.convertSymbolToV2(stopLoss.symbol),
                         triggerPrice: triggerPrice.toString(),
-                        triggerType: 'fill_price',
-                        size: quantityAvailable.toString(),
+                        triggerType: 'fill_price'
                     }
+                    if (quantityAvailable !== stopLoss.quantity) params.size = quantityAvailable.toString()
                     try {
                         const { data } = await clientV2.futuresModifyTPSLPOrder(params)
                         stopLoss.orderId = data.orderId
