@@ -321,12 +321,11 @@ export class BitgetFuturesService {
                 await this.stopLossService.updateOne(stopLoss)
             }
         } catch (e) {
-            if (!ignoreError) {
+            !ignoreError &&
                 this.errorTraceService.createErrorTrace('cancelStopLoss', stopLoss.userId, ErrorTraceSeverity.ERROR, {
                     stopLoss,
                     error: e,
                 })
-            }
         }
     }
 
@@ -562,7 +561,7 @@ export class BitgetFuturesService {
                 let TPList = [...newTPs]
                 const takeProfitNotTerminated = []
                 const TPPriceTerminated = []
-                let startNum = 1;
+                let startNum = 1
                 for (let i = 0; i < takeProfits.length; i++) {
                     if (takeProfits[i].activated || takeProfits[i].terminated) {
                         TPList.splice(takeProfits[i].num - 1, 1)
@@ -572,7 +571,7 @@ export class BitgetFuturesService {
                         takeProfitNotTerminated.push(takeProfits[i])
                     }
                 }
-                TPList = TPList.filter(tp => tp > currentPrice)
+                TPList = TPList.filter((tp) => tp > currentPrice)
                 const { TPPrice: newTPPricesCalculate, TPSize: newTPSizeCalculate } = this.bitgetUtilsService.caculateTPsToUse(
                     TPList,
                     totalQuantity,
@@ -659,14 +658,15 @@ export class BitgetFuturesService {
                 }),
             )
         } catch (e) {
-            this.errorTraceService.createErrorTrace('cancelTakeProfitsFromOrder', order.userId, ErrorTraceSeverity.ERROR, {
-                order,
-                error: e,
-            })
+            !ignoreError &&
+                this.errorTraceService.createErrorTrace('cancelTakeProfitsFromOrder', order.userId, ErrorTraceSeverity.ERROR, {
+                    order,
+                    error: e,
+                })
         }
     }
 
-    async cancelOrder(clientV2: RestClientV2, order: Order) {
+    async cancelOrder(clientV2: RestClientV2, order: Order, ignoreError = false) {
         // TODO quand on close un order qui as déjà eu des TP ça plante sur la fermeture de la quantité précise
         try {
             if (!order.terminated) {
@@ -684,8 +684,8 @@ export class BitgetFuturesService {
                             const side = order.side === 'long' ? 'buy' : 'sell'
                             const stopLoss = await this.stopLossService.findOne({ orderParentId: order._id, terminated: false })
                             const client = BitgetService.getClient(order.userId)
-                            await this.cancelStopLoss(client, stopLoss)
-                            await this.cancelTakeProfitsFromOrder(client, order._id, order)
+                            await this.cancelStopLoss(client, stopLoss, false, ignoreError)
+                            await this.cancelTakeProfitsFromOrder(client, order._id, order, false, ignoreError)
                             // cancel exact quantity of order => when is possibility with SDK + cancel all TP and SL
                             await clientV2.futuresSubmitOrder({
                                 symbol: this.bitgetUtilsService.convertSymbolToV2(order.symbol),
@@ -706,20 +706,21 @@ export class BitgetFuturesService {
                         // order not exists
                         traceSeverity = ErrorTraceSeverity.ERROR
                     }
-                    console.trace(e)
-                    this.errorTraceService.createErrorTrace('cancelOrder', order.userId, traceSeverity, {
-                        order,
-                        error: e,
-                    })
+                    !ignoreError &&
+                        this.errorTraceService.createErrorTrace('cancelOrder', order.userId, traceSeverity, {
+                            order,
+                            error: e,
+                        })
                 } finally {
                     await this.orderService.cancelOrder(order._id)
                 }
             }
         } catch (e) {
-            this.errorTraceService.createErrorTrace('cancelOrder', order.userId, ErrorTraceSeverity.IMMEDIATE, {
-                order,
-                error: e,
-            })
+            !ignoreError &&
+                this.errorTraceService.createErrorTrace('cancelOrder', order.userId, ErrorTraceSeverity.IMMEDIATE, {
+                    order,
+                    error: e,
+                })
         }
     }
 

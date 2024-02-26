@@ -209,9 +209,9 @@ export class BitgetService implements OnModuleInit {
         }
     }
 
-    async cancelOrder(order: Order) {
+    async cancelOrder(order: Order, ignoreError = false) {
         try {
-            return await this.bitgetFuturesService.cancelOrder(BitgetService.clientV2[order.userId.toString()], order)
+            return await this.bitgetFuturesService.cancelOrder(BitgetService.clientV2[order.userId.toString()], order, ignoreError)
         } catch (e) {
             this.logger.error('removeOrder', e)
         }
