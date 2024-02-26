@@ -250,12 +250,13 @@ export class BitgetWsService {
     }
 
     private async onTakeProfitTriggered(orderAlgoEvent: IOrderAlgoEventData, takeProfit: TakeProfit) {
+        const order = await this.orderService.findOne({ _id: takeProfit.orderParentId })
         takeProfit.triggerPrice = Number(orderAlgoEvent.triggerPrice)
         takeProfit.quantity = Number(orderAlgoEvent.size)
         takeProfit.terminated = true
         takeProfit.activated = true
+        takeProfit.PnL = UtilService.getPnL(takeProfit.quantity, order.PE, takeProfit.triggerPrice, order.side);
         await this.takeProfitService.updateOne(takeProfit)
-        const order = await this.orderService.findOne({ _id: takeProfit.orderParentId })
         const quantityAvailable = await this.orderService.getQuantityAvailable(takeProfit.orderParentId, order)
         // close order if has take all TPs
         try {
@@ -266,7 +267,7 @@ export class BitgetWsService {
                 // cancel other order that not actived
                 await this.bitgetService.disabledOrderLink(order.linkOrderId, order.userId)
                 // upgrade stop loss
-                // await this.bitgetService.upgradeSL(order, takeProfit.num)
+                await this.bitgetService.upgradeSL(order, takeProfit.num);
             }
         } catch (e) {
             this.logger.error('onTakeProfitTriggered', order, e)

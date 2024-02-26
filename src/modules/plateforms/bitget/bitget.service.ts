@@ -272,7 +272,7 @@ export class BitgetService implements OnModuleInit {
             terminated: false,
         });
 
-        for (const order of orders) {
+        await Promise.all(orders.map(async (order) => {
             if (!order.TPs) order.TPs = [];
             if (!order.SL) order.SL = null;
             order.quantityAvailable = await this.orderService.getQuantityAvailable(order._id, order);
@@ -281,10 +281,12 @@ export class BitgetService implements OnModuleInit {
             order.PnLPourcentage = order.PnL / order.usdt * 100;
             for (const TP of order.TPs) {
                 const pourcentage =  user.preferences.order.TPSize[order.TPs.length][TP.num - 1];
-                TP.PnL = UtilService.getPnL(order.quantity * pourcentage, order.PE, TP.triggerPrice, order.side);
+                if (!TP.PnL) {  
+                    TP.PnL = UtilService.getPnL(order.quantity * pourcentage, order.PE, TP.triggerPrice, order.side);
+                }
                 TP.PnLPourcentage = TP.PnL / order.usdt * 100;
             }
-        }
+        }));
         return orders;
     }
 }
