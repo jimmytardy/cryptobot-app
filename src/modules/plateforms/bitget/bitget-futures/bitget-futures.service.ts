@@ -666,7 +666,7 @@ export class BitgetFuturesService {
         }
     }
 
-    async cancelOrder(clientV2: RestClientV2, order: Order, ignoreError = false) {
+    async cancelOrder(clientV2: RestClientV2, order: Order, orderCancelled = true, ignoreError = false) {
         // TODO quand on close un order qui as déjà eu des TP ça plante sur la fermeture de la quantité précise
         try {
             if (!order.terminated) {
@@ -698,6 +698,7 @@ export class BitgetFuturesService {
                                 tradeSide: 'close',
                                 reduceOnly: 'yes',
                             })
+                            await this.orderService.cancelOrder(order._id, orderCancelled)
                         }
                     }
                 } catch (e) {
@@ -712,7 +713,7 @@ export class BitgetFuturesService {
                             error: e,
                         })
                 } finally {
-                    await this.orderService.cancelOrder(order._id)
+                    await this.orderService.cancelOrder(order._id, orderCancelled)
                 }
             }
         } catch (e) {

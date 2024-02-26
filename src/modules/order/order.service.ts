@@ -133,12 +133,13 @@ export class OrderService {
     }
 
     async cancelOrder(
-        orderId: string | Types.ObjectId
+        orderId: string | Types.ObjectId,
+        cancelled = true
     ) {
         // disabled order
         const order = await this.orderModel.findOneAndUpdate(
             { _id: orderId },
-            { terminated: true, cancelled: true },
+            { terminated: true, cancelled },
             )
         if (order) {
             await this.takeProfitService.cancel({ orderParentId: order._id });

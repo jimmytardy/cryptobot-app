@@ -19,6 +19,7 @@ export const createMockStopLoss = (stopLoss: Partial<StopLoss> = {}): StopLoss =
         side: 'long',
         marginCoin: 'USDT',
         quantity: 0.1,
+        PnL: 0,
         ...stopLoss
     }
 }

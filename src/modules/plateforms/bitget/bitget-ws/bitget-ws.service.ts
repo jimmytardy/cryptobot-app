@@ -30,7 +30,7 @@ export class BitgetWsService {
         private takeProfitService: TakeProfitService,
         private positionService: PositionService,
         private userService: UserService,
-        private erroTraceService: ErrorTraceService
+        private erroTraceService: ErrorTraceService,
     ) {
         this.client = {}
     }
@@ -139,7 +139,7 @@ export class BitgetWsService {
                     await this.stopLossService.cancel({ _id: stopLoss._id })
                     const quantityAvailable = await this.orderService.getQuantityAvailable(stopLoss.orderParentId)
                     if (quantityAvailable === 0) {
-                        await this.orderService.cancelOrder(stopLoss.orderParentId)
+                        await this.orderService.cancelOrder(stopLoss.orderParentId, false)
                     } else {
                         await this.bitgetService.synchronizeAllSL(stopLoss.userId, stopLoss.symbol)
                     }
@@ -158,7 +158,7 @@ export class BitgetWsService {
                     }
                     break
                 case 'executed':
-                    await this.onStopLossTriggered(stopLoss)
+                    await this.onStopLossTriggered(orderAlgoEvent, stopLoss)
                     break
                 case 'executing':
                     break
@@ -171,7 +171,7 @@ export class BitgetWsService {
             this.erroTraceService.createErrorTrace('onUpdateOrderAlgoSL', stopLoss.userId, ErrorTraceSeverity.IMMEDIATE, {
                 error: e,
                 orderAlgoEvent,
-                stopLoss
+                stopLoss,
             })
         }
     }
@@ -185,7 +185,7 @@ export class BitgetWsService {
                     await this.takeProfitService.updateOne(takeProfit)
                     const quantityAvailable = await this.orderService.getQuantityAvailable(takeProfit.orderParentId)
                     if (quantityAvailable === 0) {
-                        await this.orderService.cancelOrder(takeProfit.orderParentId)
+                        await this.orderService.cancelOrder(takeProfit.orderParentId, false)
                     }
                     break
                 case 'live':
@@ -196,7 +196,7 @@ export class BitgetWsService {
                 case 'executing':
                     break
                 case 'executed':
-                    await this.onTakeProfitTriggered(orderAlgoEvent, takeProfit);
+                    await this.onTakeProfitTriggered(orderAlgoEvent, takeProfit)
                     break
                 default:
                     console.info('onUpdatedOrderAlgoTP', orderAlgoEvent.status, 'not implemented')
@@ -205,80 +205,113 @@ export class BitgetWsService {
             this.erroTraceService.createErrorTrace('onUpdatedOrderAlgoTP', takeProfit.userId, ErrorTraceSeverity.IMMEDIATE, {
                 error: e,
                 orderAlgoEvent,
-                takeProfit
+                takeProfit,
             })
         }
     }
 
     private async onUpdatedOrder(data: IOrderEventData[], user: User) {
-        for (const orderEvent of data) {
-            if (orderEvent.status === 'live') return
-            if (!Types.ObjectId.isValid(orderEvent.clientOid)) return
-            const clOrderId = new Types.ObjectId(orderEvent.clientOid)
-            const position = await this.positionService.findOneAndCreate({
-                userId: user._id,
-                symbol: orderEvent.instId,
+        try {
+            for (const orderEvent of data) {
+                if (orderEvent.status === 'live') return
+                if (!Types.ObjectId.isValid(orderEvent.clientOid)) return
+                const clOrderId = new Types.ObjectId(orderEvent.clientOid)
+                const position = await this.positionService.findOneAndCreate({
+                    userId: user._id,
+                    symbol: orderEvent.instId,
+                })
+                const order = await this.orderService.findOne({
+                    clOrderId,
+                    terminated: { $ne: true },
+                    userId: user._id,
+                })
+                if (order && position.synchroExchange.order) return this.onOrderEvent(orderEvent, user, order)
+            }
+        } catch (e) {
+            this.erroTraceService.createErrorTrace('onUpdatedOrder', user._id, ErrorTraceSeverity.IMMEDIATE, {
+                error: e,
+                data,
+                user,
             })
-            const order = await this.orderService.findOne({
-                clOrderId,
-                terminated: { $ne: true },
-                userId: user._id,
-            })
-            if (order && position.synchroExchange.order) return this.onOrderEvent(orderEvent, user, order)
         }
     }
 
     private async onOrderEvent(orderEvent: IOrderEventData, user: User, order: Order) {
-        switch (orderEvent.status) {
-            case 'filled':
-                if (
-                    ((orderEvent.side === 'buy' && orderEvent.posSide === 'long') || (orderEvent.side === 'sell' && orderEvent.posSide === 'short')) &&
-                    !order.activated &&
-                    !order.inActivation
-                ) {
-                    await this.bitgetService.activeOrder(order._id, user, orderEvent)
+        try {
+            switch (orderEvent.status) {
+                case 'filled':
+                    if (
+                        ((orderEvent.side === 'buy' && orderEvent.posSide === 'long') || (orderEvent.side === 'sell' && orderEvent.posSide === 'short')) &&
+                        !order.activated &&
+                        !order.inActivation
+                    ) {
+                        await this.bitgetService.activeOrder(order._id, user, orderEvent)
+                        break
+                    }
+                case 'canceled':
+                    await this.orderService.cancelOrder(order._id)
                     break
-                }
-            case 'canceled':
-                await this.orderService.cancelOrder(order._id)
-                break
-            case 'partially_filled':
-                break;
-            default:
-                console.info('onOrderEvent', orderEvent.status, 'not implemented')
+                case 'partially_filled':
+                    break
+                default:
+                    console.info('onOrderEvent', orderEvent.status, 'not implemented')
+            }
+        } catch (e) {
+            this.erroTraceService.createErrorTrace('onOrderEvent', order.userId, ErrorTraceSeverity.IMMEDIATE, {
+                error: e,
+                orderEvent,
+                order,
+            })
         }
     }
 
     private async onTakeProfitTriggered(orderAlgoEvent: IOrderAlgoEventData, takeProfit: TakeProfit) {
-        const order = await this.orderService.findOne({ _id: takeProfit.orderParentId })
-        takeProfit.triggerPrice = Number(orderAlgoEvent.triggerPrice)
-        takeProfit.quantity = Number(orderAlgoEvent.size)
-        takeProfit.terminated = true
-        takeProfit.activated = true
-        takeProfit.PnL = UtilService.getPnL(takeProfit.quantity, order.PE, takeProfit.triggerPrice, order.side);
-        await this.takeProfitService.updateOne(takeProfit)
-        const quantityAvailable = await this.orderService.getQuantityAvailable(takeProfit.orderParentId, order)
-        // close order if has take all TPs
         try {
+            const order = await this.orderService.findOne({ _id: takeProfit.orderParentId })
+            takeProfit.triggerPrice = Number(orderAlgoEvent.triggerPrice)
+            takeProfit.quantity = Number(orderAlgoEvent.size)
+            takeProfit.terminated = true
+            takeProfit.activated = true
+            takeProfit.PnL = UtilService.getPnL(takeProfit.quantity, order.PE, takeProfit.triggerPrice, order.side)
+            await this.takeProfitService.updateOne(takeProfit)
+            const quantityAvailable = await this.orderService.getQuantityAvailable(takeProfit.orderParentId, order)
+            // close order if has take all TPs
+
             const TPNotTrigger = await this.orderService.getTakeProfitNotTriggered(order._id)
             if (quantityAvailable === 0 || TPNotTrigger.length === 0) {
-                await this.bitgetService.cancelOrder(order, true)
+                await this.bitgetService.cancelOrder(order, false, true)
             } else {
                 // cancel other order that not actived
                 await this.bitgetService.disabledOrderLink(order.linkOrderId, order.userId)
                 // upgrade stop loss
-                await this.bitgetService.upgradeSL(order, takeProfit.num);
+                await this.bitgetService.upgradeSL(order, takeProfit.num)
             }
         } catch (e) {
-            this.logger.error('onTakeProfitTriggered', order, e)
+            this.erroTraceService.createErrorTrace('onStopLossTriggered', takeProfit.userId, ErrorTraceSeverity.IMMEDIATE, {
+                error: e,
+                orderAlgoEvent,
+                takeProfit,
+            })
         }
     }
 
-    private async onStopLossTriggered(stopLoss: StopLoss) {
-        stopLoss.terminated = true
-        stopLoss.activated = true
-        await this.stopLossService.updateOne(stopLoss)
-        await this.bitgetService.cancelTakeProfitsFromOrder(stopLoss.orderParentId, stopLoss.userId, null, false, true)
-        await this.orderService.cancelOrder(stopLoss.orderParentId)
+    private async onStopLossTriggered(orderAlgoEvent: IOrderAlgoEventData, stopLoss: StopLoss) {
+        try {
+            const order = await this.orderService.findOne({ _id: stopLoss.orderParentId }, 'PE side')
+            stopLoss.terminated = true
+            stopLoss.activated = true
+            stopLoss.triggerPrice = Number(orderAlgoEvent.triggerPrice)
+            stopLoss.quantity = Number(orderAlgoEvent.size)
+            stopLoss.PnL = UtilService.getPnL(stopLoss.quantity, order.PE, stopLoss.triggerPrice, order.side)
+            await this.stopLossService.updateOne(stopLoss)
+            await this.bitgetService.cancelTakeProfitsFromOrder(stopLoss.orderParentId, stopLoss.userId, null, false, true)
+            await this.orderService.cancelOrder(stopLoss.orderParentId, false)
+        } catch (e) {
+            this.erroTraceService.createErrorTrace('onStopLossTriggered', stopLoss.userId, ErrorTraceSeverity.IMMEDIATE, {
+                error: e,
+                orderAlgoEvent,
+                stopLoss,
+            })
+        }
     }
 }

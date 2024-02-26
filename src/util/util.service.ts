@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { FuturesHoldSide } from 'bitget-api'
 import { IArrayModification } from './util.interface'
+import * as exactMath from 'exact-math';
 
 @Injectable()
 export class UtilService {
@@ -51,9 +52,9 @@ export class UtilService {
 
     static getPnL(size: number, PE: number, triggerPrice: number, side: FuturesHoldSide): number {
         if (side === 'long') {
-            return (triggerPrice - PE) * size
+            return exactMath.mul(exactMath.sub(triggerPrice, PE), size)
         } else {
-            return (PE - triggerPrice) * size
+            return exactMath.mul(exactMath.sub(PE, triggerPrice), size)
         }
     }
 

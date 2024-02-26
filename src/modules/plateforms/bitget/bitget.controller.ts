@@ -29,7 +29,13 @@ export class BitgetController {
 
     @UseGuards(JwtAuthGuard)
     @Get('orders-active')
-    async getOrders(@Request() req) {
-        return this.bitgetService.getFullOrders(req.user);
+    async getOrdersActive(@Request() req) {
+        return this.bitgetService.getOrdersActives(req.user);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('orders-terminated')
+    async getOrdersTerminated(@Request() req) {
+        return this.bitgetService.getOrdersTerminated(req.user);
     }
 }

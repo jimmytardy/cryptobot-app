@@ -14,6 +14,7 @@ import { BitgetFuturesService } from './bitget-futures/bitget-futures.service'
 import { ConfigService } from '@nestjs/config'
 import { IOrderEventData } from './bitget-ws/bitget-ws.interface'
 import { IOrderPopulated, OrderService } from 'src/modules/order/order.service'
+import * as exactMath from 'exact-math';
 
 @Injectable()
 export class BitgetService implements OnModuleInit {
@@ -209,9 +210,9 @@ export class BitgetService implements OnModuleInit {
         }
     }
 
-    async cancelOrder(order: Order, ignoreError = false) {
+    async cancelOrder(order: Order, cancelOrder = true, ignoreError = false) {
         try {
-            return await this.bitgetFuturesService.cancelOrder(BitgetService.clientV2[order.userId.toString()], order, ignoreError)
+            return await this.bitgetFuturesService.cancelOrder(BitgetService.clientV2[order.userId.toString()], order, cancelOrder, ignoreError)
         } catch (e) {
             this.logger.error('removeOrder', e)
         }
@@ -265,7 +266,7 @@ export class BitgetService implements OnModuleInit {
         }
     }
 
-    async getFullOrders(user: User) {
+    async getOrdersActives(user: User) {
         const orders: (IOrderPopulated & any)[]= await this.orderService.getOrders({
             userId: user._id,
             activated: true,
@@ -277,16 +278,35 @@ export class BitgetService implements OnModuleInit {
             if (!order.SL) order.SL = null;
             order.quantityAvailable = await this.orderService.getQuantityAvailable(order._id, order);
             order.currentPrice = await BitgetUtilsService.getCurrentPrice(BitgetService.getClient(user._id), order.symbol);
-            order.PnL = UtilService.getPnL(order.quantityAvailable, order.PE, order.currentPrice, order.side);
+            order.PnLTerminated = UtilService.getPnL(exactMath.sub(order.quantity, order.quantityAvailable), order.PE, order.currentPrice, order.side);
+            order.PnL = UtilService.getPnL(order.quantity, order.PE, order.currentPrice, order.side);
             order.PnLPourcentage = order.PnL / order.usdt * 100;
+            order.PnLInProgress = 0;
+            let nbTPInProgress = 0;
             for (const TP of order.TPs) {
-                const pourcentage =  user.preferences.order.TPSize[order.TPs.length][TP.num - 1];
                 if (!TP.PnL) {  
-                    TP.PnL = UtilService.getPnL(order.quantity * pourcentage, order.PE, TP.triggerPrice, order.side);
+                    TP.PnL = UtilService.getPnL(TP.quantity, order.PE, TP.triggerPrice, order.side);
                 }
-                TP.PnLPourcentage = TP.PnL / order.usdt * 100;
+                TP.PnLPourcentage = exactMath.div(TP.PnL, order.usdt) * 100;
+                if (!TP.activated) {
+                    order.PnLInProgress = exactMath.add(order.PnLInProgress, TP.PnL);
+                    nbTPInProgress++;
+                }
             }
+            order.PnLInProgress = exactMath.div(order.PnLInProgress, nbTPInProgress);
         }));
         return orders;
+    }
+
+    async getOrdersTerminated(user: User) {
+        const orders: (IOrderPopulated & any)[]= await this.orderService.getOrders({
+            userId: user._id,
+            activated: true,
+            cancelled: true,
+            terminated: true,
+        });
+
+        return []
+
     }
 }

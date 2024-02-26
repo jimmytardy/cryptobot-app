@@ -59,6 +59,9 @@ export class StopLoss {
 
     @Prop({ type: Number })
     quantity: number
+
+    @Prop({ type: Number }) 
+    PnL?: number
 }
 
 export const StopLossSchema = SchemaFactory.createForClass(StopLoss)
