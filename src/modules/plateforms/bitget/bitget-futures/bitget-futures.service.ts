@@ -782,30 +782,40 @@ export class BitgetFuturesService {
                 const order = orders[orderIndex]
                 const triggerPrice = await this.orderService.getSLTriggerCurrentFromOrder(order)
                 const quantity = await this.orderService.getQuantityAvailable(stopLoss.orderParentId, order)
+                const planOrder = await clientV2.getFuturesPlanOrders({
+                    planType: 'profit_loss',
+                    orderId: stopLoss.orderId,
+                    symbol: symbolV2, 
+                    marginCoin: stopLoss.marginCoin,
+                    productType: BitgetService.PRODUCT_TYPEV2,
+                })
+                const stopLossBitget = planOrder.data.entrustedList;
                 if (stopLoss.terminated) {
                     stopLossListToUpdate.push(stopLoss)
-                } else if (stopLoss.quantity !== quantity || triggerPrice !== stopLoss.triggerPrice) {
-                    const params = {
-                        orderId: stopLoss.orderId,
-                        clientOid: stopLoss.clOrderId.toString(),
-                        marginCoin: stopLoss.marginCoin,
-                        productType: BitgetService.PRODUCT_TYPEV2,
-                        symbol: this.bitgetUtilsService.convertSymbolToV2(stopLoss.symbol),
-                        planType: 'loss_plan',
-                        triggerPrice: stopLoss.triggerPrice.toString(),
-                        triggerType: 'fill_market',
-                        executePrice: stopLoss.triggerPrice.toString(),
-                        size: symbolRules.minTradeNum,
-                    }
+                } else if (stopLoss.quantity !== quantity || triggerPrice !== stopLoss.triggerPrice || (!stopLossBitget || stopLossBitget.planStatus !== 'live')) {
                     await this.stopLossService.deleteOne(stopLoss._id)
-                    await clientV2.futuresCancelPlanOrder(params).catch((e) => {
-                        this.errorTraceService.createErrorTrace('recreateAllSL > delete SL', userId, ErrorTraceSeverity.IMMEDIATE, {
-                            userId,
-                            symbol,
-                            stopLoss,
-                            error: e,
+                    if (stopLossBitget) {
+                        const params = {
+                            orderId: stopLoss.orderId,
+                            clientOid: stopLoss.clOrderId.toString(),
+                            marginCoin: stopLoss.marginCoin,
+                            productType: BitgetService.PRODUCT_TYPEV2,
+                            symbol: this.bitgetUtilsService.convertSymbolToV2(stopLoss.symbol), 
+                            planType: 'loss_plan',
+                            triggerPrice: stopLoss.triggerPrice.toString(),
+                            triggerType: 'fill_market',
+                            executePrice: stopLoss.triggerPrice.toString(),
+                            size: symbolRules.minTradeNum,
+                        }
+                        await clientV2.futuresCancelPlanOrder(params).catch((e) => {
+                            this.errorTraceService.createErrorTrace('recreateAllSL > delete SL', userId, ErrorTraceSeverity.IMMEDIATE, {
+                                userId,
+                                symbol,
+                                stopLoss,
+                                error: e,
+                            })
                         })
-                    })
+                    }
                     stopLossListToUpdate.push(stopLoss)
                 }
             }

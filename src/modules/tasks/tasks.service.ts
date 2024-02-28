@@ -36,6 +36,7 @@ export class TasksService implements OnApplicationBootstrap, OnModuleInit {
     }
 
     async onApplicationBootstrap() {
+        await this.syncOrderSL();
         const symbol = await this.symbolModel.findOne({}, '+positionTier').exec()
         if (!symbol?.positionTier || symbol.positionTier.length === 0) {
             await this.updateSymbolRules()
