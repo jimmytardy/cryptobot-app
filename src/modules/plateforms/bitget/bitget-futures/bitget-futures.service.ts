@@ -788,11 +788,18 @@ export class BitgetFuturesService {
                 const quantity = await this.orderService.getQuantityAvailable(stopLoss.orderParentId, order)
                 const planOrder = await clientV2.getFuturesPlanOrders({
                     planType: 'profit_loss',
-                    orderId: stopLoss.orderId,
+                    // orderId: stopLoss.orderId,
                     symbol: symbolV2,
                     marginCoin: stopLoss.marginCoin,
                     productType: BitgetService.PRODUCT_TYPEV2,
+                    startTime: new Date(order.createdAt).getTime(),
                 })
+                userId.equals(new Types.ObjectId('652ef1cd63e288c8cf606894')) && this.errorTraceService.createErrorTrace('recreateAllSL > stopLossListToUpdate', userId, ErrorTraceSeverity.INFO, {
+                    userId,
+                    symbol,
+                    planOrder,
+                })
+                continue;
                 const stopLossBitget = planOrder.data.entrustedList
                 if (stopLoss.terminated || stopLoss.quantity !== quantity || triggerPrice !== stopLoss.triggerPrice || !stopLossBitget || stopLossBitget.planStatus !== 'live') {
                     await this.stopLossService.deleteOne(stopLoss._id)
