@@ -816,7 +816,7 @@ export class BitgetFuturesService {
                             })
                         })
                     }
-                    (stopLoss as any).stopLossBitget = stopLossBitget
+                    (stopLoss as any).stopLossBitget = stopLossBitget;
                     (stopLoss as any).dataMore = {
                         quantity,
                         triggerPrice,
