@@ -21,7 +21,8 @@ const defaultUserPreference: IUserPreferences = {
             6: [0.1, 0.15, 0.25, 0.25, 0.15, 0.1],
         },
         marginCoin: 'USDT',
-        baseCoinAuthorized: undefined
+        baseCoinAuthorized: undefined,
+        automaticUpdate: false,
     },
 }
 
@@ -56,6 +57,9 @@ export class IUserPreferencesOrder {
 
     @Prop({ type: SchemaTypes.Array})
     baseCoinAuthorized?: string[]
+
+    @Prop({ type: Boolean, default: false })
+    automaticUpdate?: boolean
 }
 
 export class IUserPreferences {
@@ -100,6 +104,12 @@ export class User {
 
     @Prop({ type: SchemaTypes.Mixed })
     subscription: ISubscriptionUser
+
+    @Prop({ unique: true })
+    referralCode: string
+
+    @Prop({ type: SchemaTypes.ObjectId, ref: 'User' })
+    referrer: Types.ObjectId
 }
 
 export const UserSchema = SchemaFactory.createForClass(User)

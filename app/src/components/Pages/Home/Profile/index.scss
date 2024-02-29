@@ -5,5 +5,18 @@
         margin-bottom: 1rem;
     }
 
-    
+    .referral-code {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: left;
+
+        svg {
+            margin-left: 0.5rem;
+            margin-right: 0.4em;
+        }
+        &:hover {
+            opacity: 0.8;
+        }
+    }
 }

@@ -29,12 +29,24 @@ const Pages = () => {
     const location = useLocation()
     const navigate = useNavigate()
     if (!user) return <div></div>
-
+    
     const cryptobotRoutes: IRoute[] = [
         {
             path: 'home',
             Component: Home,
             title: 'Accueil',
+        },
+        {
+            path: 'login',
+            Component: Home,
+        },
+        {
+            path: 'register',
+            Component: Home,
+        },
+        {
+            path: 'conditions-generales-utilisation',
+            Component: CGU,
         },
         {
             path: 'place-order',
@@ -47,11 +59,11 @@ const Pages = () => {
             Component: Preferences,
             title: 'Préférences',
         },
-        {
-            path: 'positions',
-            Component: Positions,
-            title: 'Positions',
-        },
+        // {
+        //     path: 'positions',
+        //     Component: Positions,
+        //     title: 'Positions',
+        // },
         {
             path: 'payment',
             Component: Payement,

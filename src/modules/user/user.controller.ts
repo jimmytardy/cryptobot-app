@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpException, Post, Put, Query, Req, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, Param, Post, Put, Query, Req, Request, UseGuards } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from 'src/model/User';
@@ -15,6 +15,11 @@ export class UserController {
     @Post()
     async create(@Body() userDTO: CreateUserDTO) {
         return this.userService.create(userDTO);
+    }
+
+    @Get('referral/:referralCode')
+    async get(@Param('referralCode') referralCode: string) {
+        return await this.userService.findOne({ referralCode, 'subscription.active': true, 'subscription.status': 'active' }, 'email firstname lastname');
     }
 
     @UseGuards(JwtAuthGuard)

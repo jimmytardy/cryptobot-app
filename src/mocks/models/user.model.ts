@@ -33,6 +33,8 @@ export const createMockUser = (user: Partial<User> = {}): User => ({
     },
     subscription: undefined,
     stripeCustomerId: faker.string.uuid(),
+    referralCode: faker.string.uuid(),
+    referrer: undefined,
     ...user
 })
 

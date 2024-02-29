@@ -30,6 +30,10 @@ export class CreateUserDTO {
 
     @Type(() => IUserCryptoExchange)
     bitget: IUserCryptoExchange
+
+    @IsOptional()
+    @IsString()
+    referralCode?: string
 }
 
 class UpdatePreferencesOrderDTO {

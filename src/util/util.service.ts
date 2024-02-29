@@ -61,4 +61,14 @@ export class UtilService {
     static async sleep(ms: number) {
         return await new Promise((r) => setTimeout(r, ms))
     }
+
+    static generateReferralCode(length: number = 6) {
+        let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let code = '';
+        for (let i = 0; i < length; i++) {
+            code += characters.charAt(Math.floor(Math.random() * characters.length));
+        }
+        return code;
+    }
+    
 }

@@ -43,6 +43,11 @@ export class UserService implements OnApplicationBootstrap {
         return await this.userModel.find(filter, select, options)
     }
 
+    async findOne(filter?: FilterQuery<User>, select?: ProjectionType<TakeProfit>, options?: QueryOptions<User>): Promise<User> {
+        this.logger.debug(`findOne: filter=${JSON.stringify(filter)}, select=${JSON.stringify(select)}, options=${JSON.stringify(options)}`)
+        return await this.userModel.findOne(filter, select, options)
+    }
+
     async updateOne(order: Partial<User> & { _id: Types.ObjectId }, options?: QueryOptions<User>): Promise<User> {
         this.logger.debug(`updateOne: order=${JSON.stringify(order)}, options=${JSON.stringify(options)}`)
         return await this.userModel.findByIdAndUpdate(order._id, { $set: order }, options)
@@ -61,13 +66,32 @@ export class UserService implements OnApplicationBootstrap {
                 apiPass: user.bitget.api_pass,
                 apiSecret: user.bitget.api_secret_key,
             })
-            await client.getAccounts(BitgetService.PRODUCT_TYPE)
+            // await client.getAccounts(BitgetService.PRODUCT_TYPE)
         } catch (e) {
             throw new Error('Les informations de la clé API ne sont pas correctes')
         }
+        let referrer = null;
+        if (user.referralCode) {
+            const referrerUser = await this.findOne({ referralCode: user.referralCode }, '_id');
+            if (referrerUser) {
+                referrer = referrerUser._id;
+            }
+            delete user.referralCode;
+        }
+        
+        let referralUnique = false;
+        while (!referralUnique) {
+            const referralCode = UtilService.generateReferralCode();
+            const userWithReferralCode = await this.findOne({ referralCode }, '_id');
+            if (!userWithReferralCode) {
+                user.referralCode = referralCode;
+                referralUnique = true;
+            }
+        }
 
         const newUser = await new this.userModel({
-            ...user,
+            ...user, 
+            referrer,
             password: await hash(user.password, salt),
         }).save()
         this.plateformsService.addNewTrader(newUser)

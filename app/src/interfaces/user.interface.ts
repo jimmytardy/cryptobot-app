@@ -8,6 +8,7 @@ export interface IUserPayload {
         api_secret_key: string
         api_pass: string
     }
+    referralCode?: string
 }
 
 export enum UserSubscriptionEnum {

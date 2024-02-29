@@ -41,6 +41,7 @@ export class TasksService implements OnApplicationBootstrap, OnModuleInit {
         if (!symbol?.positionTier || symbol.positionTier.length === 0) {
             await this.updateSymbolRules()
         }
+        await this.updateQuantity() 
     }
 
     @Cron(CronExpression.EVERY_12_HOURS)
@@ -67,6 +68,16 @@ export class TasksService implements OnApplicationBootstrap, OnModuleInit {
             }
             await Promise.all(request)
         }
+    }
+
+    @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_MIDNIGHT)
+    async updateQuantity() {
+        const users = await this.userService.findAll({ 'preferences.order.automaticUpdate': true, 'subscription.active': true }, undefined, { lean: true });
+        await Promise.all(users.map(async (user) => {
+            const account = await this.bitgetService.getProfile(user._id);
+            user.preferences.order.quantity = Math.ceil(account.available); 
+            await this.userService.updateOne(user);
+        }));
     }
 
     /**
