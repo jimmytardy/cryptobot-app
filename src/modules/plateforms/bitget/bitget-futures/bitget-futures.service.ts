@@ -790,9 +790,7 @@ export class BitgetFuturesService {
                     productType: BitgetService.PRODUCT_TYPEV2,
                 })
                 const stopLossBitget = planOrder.data.entrustedList
-                if (stopLoss.terminated) {
-                    stopLossListToUpdate.push(stopLoss)
-                } else if (stopLoss.quantity !== quantity || triggerPrice !== stopLoss.triggerPrice || !stopLossBitget || stopLossBitget.planStatus !== 'live') {
+                if (stopLoss.terminated || stopLoss.quantity !== quantity || triggerPrice !== stopLoss.triggerPrice || !stopLossBitget || stopLossBitget.planStatus !== 'live') {
                     await this.stopLossService.deleteOne(stopLoss._id)
                     if (stopLossBitget) {
                         const params = {
