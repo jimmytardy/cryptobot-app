@@ -35,7 +35,7 @@ export class OrderService {
 
     async findAll(filter: FilterQuery<Order>, select?: ProjectionType<Order>, options?: QueryOptions<Order>): Promise<Order[]> {
         this.logger.debug(`findAll: filter=${JSON.stringify(filter)}, select=${JSON.stringify(select)}, options=${JSON.stringify(options)}`);
-        return await this.orderModel.find(filter, select, options)
+        return await this.orderModel.find(filter, select, options).lean()
     }
 
     async updateOne(order: Partial<Order> & { _id: Types.ObjectId }, options?: QueryOptions<Order>): Promise<Order> {

@@ -775,11 +775,15 @@ export class BitgetFuturesService {
                 orderParentId: { $in: orders.map((o) => o._id) },
             })
             const symbolRules = await this.bitgetUtilsService.getSymbolBy('symbol', symbol)
-            const stopLossListToUpdate: StopLoss[] = []
+            const orderToActivate: Order[] = []
             // update all SL to minimum
-            for (const stopLoss of stopLossList) {
-                const orderIndex = orders.findIndex((o) => o._id.equals(stopLoss.orderParentId))
-                const order = orders[orderIndex]
+            for (const order of orders) {
+                const stopLoss = stopLossList.find((sl) => sl.orderParentId.equals(order._id));
+                if (!stopLoss) {
+                    orderToActivate.push(order)
+                    continue
+                }
+
                 const triggerPrice = await this.orderService.getSLTriggerCurrentFromOrder(order)
                 const quantity = await this.orderService.getQuantityAvailable(stopLoss.orderParentId, order)
                 const planOrder = await clientV2.getFuturesPlanOrders({
@@ -792,7 +796,7 @@ export class BitgetFuturesService {
                 const stopLossBitget = planOrder.data.entrustedList
                 if (stopLoss.terminated || stopLoss.quantity !== quantity || triggerPrice !== stopLoss.triggerPrice || !stopLossBitget || stopLossBitget.planStatus !== 'live') {
                     await this.stopLossService.deleteOne(stopLoss._id)
-                    if (stopLossBitget) {
+                    if (stopLossBitget && stopLossBitget.planStatus === 'live') {
                         const params = {
                             orderId: stopLoss.orderId,
                             clientOid: stopLoss.clOrderId.toString(),
@@ -814,25 +818,19 @@ export class BitgetFuturesService {
                             })
                         })
                     }
-                    (stopLoss as any).stopLossBitget = stopLossBitget;
-                    (stopLoss as any).dataMore = {
-                        quantity,
-                        triggerPrice,
-                    }
-                    stopLossListToUpdate.push(stopLoss)
+                    orderToActivate.push(order)
                 }
             }
-            userId.equals(new Types.ObjectId('652ef1cd63e288c8cf606894')) && stopLossListToUpdate.length > 0 &&
+            userId.equals(new Types.ObjectId('652ef1cd63e288c8cf606894')) && orderToActivate.length > 0 &&
                 this.errorTraceService.createErrorTrace('recreateAllSL > stopLossListToUpdate', userId, ErrorTraceSeverity.INFO, {
                     userId,
                     symbol,
-                    stopLossListToUpdate,
+                    orderToActivate,
                 })
             await this.positionService.findOneAndUpdate({ userId, symbol: symbolV2 }, { 'synchroExchange.SL': true })
             // update all SL to size
-            for (const stopLoss of stopLossListToUpdate) {
-                const order = orders.find((o) => o._id.equals(stopLoss.orderParentId))
-                await this.activeSL(BitgetService.getClient(order.userId), order)
+            for (const order of orderToActivate) {
+                await this.activeSL(BitgetService.getClient(userId), order)
             }
         } catch (e) {
             this.errorTraceService.createErrorTrace('recreateAllSL', userId, ErrorTraceSeverity.IMMEDIATE, {
