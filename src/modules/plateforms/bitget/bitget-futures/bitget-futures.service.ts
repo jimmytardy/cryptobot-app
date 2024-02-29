@@ -820,7 +820,7 @@ export class BitgetFuturesService {
                     stopLossListToUpdate.push(stopLoss)
                 }
             }
-            userId.equals(new Types.ObjectId('652ef1cd63e288c8cf606894')) &&
+            userId.equals(new Types.ObjectId('652ef1cd63e288c8cf606894')) && stopLossListToUpdate.length > 0 &&
                 this.errorTraceService.createErrorTrace('recreateAllSL > stopLossListToUpdate', userId, ErrorTraceSeverity.INFO, {
                     userId,
                     symbol,
