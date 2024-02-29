@@ -3,7 +3,6 @@ import { Controller, FormProvider, useForm, useFormState } from 'react-hook-form
 import axiosClient from '../../../axiosClient'
 import Loader from '../../utils/Loader'
 import { Accordion, Button, Col, Container, Form, FormCheck, FormControl, FormGroup, FormLabel, FormText, Row } from 'react-bootstrap'
-import { InfoCircle } from 'react-bootstrap-icons'
 import ControllerArrayNumber from '../../utils/form/ControllerArrayNumber'
 import './index.scss'
 import Strategie from './Strategie'
