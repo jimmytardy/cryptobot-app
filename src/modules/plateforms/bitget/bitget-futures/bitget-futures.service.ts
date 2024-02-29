@@ -783,7 +783,7 @@ export class BitgetFuturesService {
                     planType: 'profit_loss',
                     // orderId: stopLoss.orderId,
                     symbol: symbolV2,
-                    marginCoin: stopLoss.marginCoin,
+                    marginCoin: order.marginCoin,
                     productType: BitgetService.PRODUCT_TYPEV2,
                     startTime: new Date(order.createdAt).getTime(),
                 })
