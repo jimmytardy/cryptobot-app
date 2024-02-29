@@ -119,13 +119,10 @@ export class OrderService {
             if (stepsTriggers.length <= step) throw new Error('Step not found')
             if (!currentPrice) return stepsTriggers[step]
             else {
-                console.log('test', order._id, stepsTriggers, step, currentPrice)
                 for (let i = step; i >= 0; i--) {
-                    console.log('test', order._id, order.side === 'long', currentPrice, stepsTriggers[i], currentPrice <= stepsTriggers[i], i)
-                    if (order.side === 'long' && currentPrice <= stepsTriggers[i]) return stepsTriggers[i]
-                    if (order.side === 'short' && currentPrice >= stepsTriggers[i]) return stepsTriggers[i]
+                    if (order.side === 'long' && currentPrice > stepsTriggers[i]) return stepsTriggers[i]
+                    if (order.side === 'short' && currentPrice < stepsTriggers[i]) return stepsTriggers[i]
                 }
-                console.log('coucou')
                 return order.SL
             }
         }
