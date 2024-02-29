@@ -34,12 +34,12 @@ export class StopLossService {
 
     async findOne(filter: FilterQuery<StopLoss>, select?: ProjectionType<StopLoss>, options?: QueryOptions<StopLoss>): Promise<StopLoss> {
         this.logger.debug(`findOne: filter=${JSON.stringify(filter)}, select=${JSON.stringify(select)}, options=${JSON.stringify(options)}`);
-        return await this.stopLossModel.findOne(filter, select, options)
+        return await this.stopLossModel.findOne(filter, select, options).lean()
     }
 
     async findAll(filter: FilterQuery<StopLoss>, select?: ProjectionType<StopLoss>, options?: QueryOptions<StopLoss>): Promise<StopLoss[]> {
         this.logger.debug(`findAll: filter=${JSON.stringify(filter)}, select=${JSON.stringify(select)}, options=${JSON.stringify(options)}`);
-        return await this.stopLossModel.find(filter, select, options)
+        return await this.stopLossModel.find(filter, select, options).lean()
     }
 
     async deleteOne(stopLossId:  Types.ObjectId): Promise<StopLoss> {
