@@ -14,7 +14,7 @@ import { BitgetFuturesService } from './bitget-futures/bitget-futures.service'
 import { ConfigService } from '@nestjs/config'
 import { IOrderEventData } from './bitget-ws/bitget-ws.interface'
 import { IOrderPopulated, OrderService } from 'src/modules/order/order.service'
-import * as exactMath from 'exact-math';
+import * as exactMath from 'exact-math'
 
 @Injectable()
 export class BitgetService implements OnModuleInit {
@@ -150,15 +150,15 @@ export class BitgetService implements OnModuleInit {
             const pe = PEs[i]
             const PECalculate = this.bitgetUtilsService.fixPriceByRules(pe, symbolRules)
             try {
-                const peBefore = PEs[i - 1];
+                const peBefore = PEs[i - 1]
                 // si l'ordre précédent doit être executé avant celui-ci
-                if (i > 0 && (currentPrice < peBefore && side === 'long') || (currentPrice > peBefore && side === 'short')) {
+                if ((i > 0 && currentPrice < peBefore && side === 'long') || (currentPrice > peBefore && side === 'short')) {
                     // on attend que l'ordre précédent soit exécuté si on doit également être trigger
                     if ((currentPrice < pe && side === 'long') || (currentPrice > pe && side === 'short')) {
                         for (let j = i; j < 10; j++) {
                             await UtilService.sleep(2000)
-                            const order = await this.orderService.findOne({ linkOrderId, userId: user._id, activated: true, inActivation: false, terminated: false });
-                            if (order) break;
+                            const order = await this.orderService.findOne({ linkOrderId, userId: user._id, activated: true, inActivation: false, terminated: false })
+                            if (order) break
                         }
                     }
                 }
@@ -250,9 +250,9 @@ export class BitgetService implements OnModuleInit {
         }
     }
 
-    async synchronizeAllSL(userId: Types.ObjectId, symbol: string) {
+    async synchronizeAllSL(userId: Types.ObjectId, symbol: string, currentPrice?: number) {
         try {
-            return await this.bitgetFuturesService.synchronizeAllSL(BitgetService.clientV2[userId.toString()], userId, symbol)
+            return await this.bitgetFuturesService.synchronizeAllSL(BitgetService.clientV2[userId.toString()], userId, symbol, currentPrice)
         } catch (e) {
             this.logger.error('recreateAllSL', e)
         }
@@ -267,46 +267,47 @@ export class BitgetService implements OnModuleInit {
     }
 
     async getOrdersActives(user: User) {
-        const orders: (IOrderPopulated & any)[]= await this.orderService.getOrders({
+        const orders: (IOrderPopulated & any)[] = await this.orderService.getOrders({
             userId: user._id,
             activated: true,
             terminated: false,
-        });
+        })
 
-        await Promise.all(orders.map(async (order) => {
-            if (!order.TPs) order.TPs = [];
-            if (!order.SL) order.SL = null;
-            order.quantityAvailable = await this.orderService.getQuantityAvailable(order._id, order);
-            order.currentPrice = await BitgetUtilsService.getCurrentPrice(BitgetService.getClient(user._id), order.symbol);
-            order.PnLTerminated = UtilService.getPnL(exactMath.sub(order.quantity, order.quantityAvailable), order.PE, order.currentPrice, order.side);
-            order.PnL = UtilService.getPnL(order.quantity, order.PE, order.currentPrice, order.side);
-            order.PnLPourcentage = order.PnL / order.usdt * 100;
-            order.PnLInProgress = 0;
-            let nbTPInProgress = 0;
-            for (const TP of order.TPs) {
-                if (!TP.PnL) {  
-                    TP.PnL = UtilService.getPnL(TP.quantity, order.PE, TP.triggerPrice, order.side);
+        await Promise.all(
+            orders.map(async (order) => {
+                if (!order.TPs) order.TPs = []
+                if (!order.SL) order.SL = null
+                order.quantityAvailable = await this.orderService.getQuantityAvailable(order._id, order)
+                order.currentPrice = await BitgetUtilsService.getCurrentPrice(BitgetService.getClient(user._id), order.symbol)
+                order.PnLTerminated = UtilService.getPnL(exactMath.sub(order.quantity, order.quantityAvailable), order.PE, order.currentPrice, order.side)
+                order.PnL = UtilService.getPnL(order.quantity, order.PE, order.currentPrice, order.side)
+                order.PnLPourcentage = (order.PnL / order.usdt) * 100
+                order.PnLInProgress = 0
+                let nbTPInProgress = 0
+                for (const TP of order.TPs) {
+                    if (!TP.PnL) {
+                        TP.PnL = UtilService.getPnL(TP.quantity, order.PE, TP.triggerPrice, order.side)
+                    }
+                    TP.PnLPourcentage = exactMath.div(TP.PnL, order.usdt) * 100
+                    if (!TP.activated) {
+                        order.PnLInProgress = exactMath.add(order.PnLInProgress, TP.PnL)
+                        nbTPInProgress++
+                    }
                 }
-                TP.PnLPourcentage = exactMath.div(TP.PnL, order.usdt) * 100;
-                if (!TP.activated) {
-                    order.PnLInProgress = exactMath.add(order.PnLInProgress, TP.PnL);
-                    nbTPInProgress++;
-                }
-            }
-            order.PnLInProgress = exactMath.div(order.PnLInProgress, nbTPInProgress);
-        }));
-        return orders;
+                order.PnLInProgress = exactMath.div(order.PnLInProgress, nbTPInProgress)
+            }),
+        )
+        return orders
     }
 
     async getOrdersTerminated(user: User) {
-        const orders: (IOrderPopulated & any)[]= await this.orderService.getOrders({
+        const orders: (IOrderPopulated & any)[] = await this.orderService.getOrders({
             userId: user._id,
             activated: true,
             cancelled: true,
             terminated: true,
-        });
+        })
 
         return []
-
     }
 }

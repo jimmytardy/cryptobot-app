@@ -36,12 +36,12 @@ export class TasksService implements OnApplicationBootstrap, OnModuleInit {
     }
 
     async onApplicationBootstrap() {
-        await this.syncOrderSL();
+        await this.syncOrderSL()
         const symbol = await this.symbolModel.findOne({}, '+positionTier').exec()
         if (!symbol?.positionTier || symbol.positionTier.length === 0) {
             await this.updateSymbolRules()
         }
-        await this.updateQuantity() 
+        await this.updateQuantity()
     }
 
     @Cron(CronExpression.EVERY_12_HOURS)
@@ -58,12 +58,16 @@ export class TasksService implements OnApplicationBootstrap, OnModuleInit {
         const appConfig = await this.appConfigModel.findOne()
         if (appConfig.syncOrdersBitget.active) {
             const orders = await this.orderModel.find({ terminated: false, activated: true }).exec()
+            const currentPriceMemo: { [key: string]: number } = {}
             const request = []
             for (const order of orders) {
+                if (!currentPriceMemo[order.symbol]) {
+                    currentPriceMemo[order.symbol] = await this.bitgetService.getCurrentPrice('symbol', order.symbol)
+                }
                 request.push(
                     this.bitgetService
-                        .synchronizeAllSL(order.userId, order.symbol)
-                        .catch((e) => this.errorTraceService.createErrorTrace('TaskService => syncOrderSL', order.userId, ErrorTraceSeverity.IMMEDIATE, { error: e, order }))
+                        .synchronizeAllSL(order.userId, order.symbol, currentPriceMemo[order.symbol])
+                        .catch((e) => this.errorTraceService.createErrorTrace('TaskService => syncOrderSL', order.userId, ErrorTraceSeverity.IMMEDIATE, { error: e, order })),
                 )
             }
             await Promise.all(request)
@@ -72,12 +76,14 @@ export class TasksService implements OnApplicationBootstrap, OnModuleInit {
 
     @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_MIDNIGHT)
     async updateQuantity() {
-        const users = await this.userService.findAll({ 'preferences.order.automaticUpdate': true, 'subscription.active': true }, undefined, { lean: true });
-        await Promise.all(users.map(async (user) => {
-            const account = await this.bitgetService.getProfile(user._id);
-            user.preferences.order.quantity = Math.ceil(account.available); 
-            await this.userService.updateOne(user);
-        }));
+        const users = await this.userService.findAll({ 'preferences.order.automaticUpdate': true, 'subscription.active': true }, undefined, { lean: true })
+        await Promise.all(
+            users.map(async (user) => {
+                const account = await this.bitgetService.getProfile(user._id)
+                user.preferences.order.quantity = Math.ceil(account.available)
+                await this.userService.updateOne(user)
+            }),
+        )
     }
 
     /**

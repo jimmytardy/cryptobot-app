@@ -8,7 +8,7 @@ import { User } from 'src/model/User'
 import { UtilService } from 'src/util/util.service'
 import _ from 'underscore'
 import { TakeProfitService } from './take-profit/take-profit.service'
-import * as exactMath from 'exact-math';
+import * as exactMath from 'exact-math'
 import { StopLossService } from './stop-loss/stop-loss.service'
 import { BitgetUtilsService } from '../plateforms/bitget/bitget-utils/bitget-utils.service'
 import { BitgetService } from '../plateforms/bitget/bitget.service'
@@ -20,7 +20,7 @@ export interface IOrderPopulated extends Omit<Omit<Order, 'SL'>, 'TPs'> {
 
 @Injectable()
 export class OrderService {
-    logger: Logger = new Logger('OrderService');
+    logger: Logger = new Logger('OrderService')
 
     constructor(
         @InjectModel(Order.name) private readonly orderModel: Model<Order>,
@@ -29,58 +29,62 @@ export class OrderService {
     ) {}
 
     async findOne(filter: FilterQuery<Order>, select?: ProjectionType<Order>, options?: QueryOptions<Order>): Promise<Order> {
-        this.logger.debug(`findOne: filter=${JSON.stringify(filter)}, select=${JSON.stringify(select)}, options=${JSON.stringify(options)}`);
+        this.logger.debug(`findOne: filter=${JSON.stringify(filter)}, select=${JSON.stringify(select)}, options=${JSON.stringify(options)}`)
         return await this.orderModel.findOne(filter, select, options)
     }
 
     async findAll(filter: FilterQuery<Order>, select?: ProjectionType<Order>, options?: QueryOptions<Order>): Promise<Order[]> {
-        this.logger.debug(`findAll: filter=${JSON.stringify(filter)}, select=${JSON.stringify(select)}, options=${JSON.stringify(options)}`);
+        this.logger.debug(`findAll: filter=${JSON.stringify(filter)}, select=${JSON.stringify(select)}, options=${JSON.stringify(options)}`)
         return await this.orderModel.find(filter, select, options).lean()
     }
 
     async updateOne(order: Partial<Order> & { _id: Types.ObjectId }, options?: QueryOptions<Order>): Promise<Order> {
-        this.logger.debug(`updateOne: order=${JSON.stringify(order)}, options=${JSON.stringify(options)}`);
+        this.logger.debug(`updateOne: order=${JSON.stringify(order)}, options=${JSON.stringify(options)}`)
         return await this.orderModel.findByIdAndUpdate(order._id, { $set: order }, options)
     }
 
     async deleteOne(orderId: Types.ObjectId, options?: QueryOptions<Order>): Promise<Order> {
-        this.logger.debug(`deleteOne: orderId=${JSON.stringify(orderId)}, options=${JSON.stringify(options)}`);
+        this.logger.debug(`deleteOne: orderId=${JSON.stringify(orderId)}, options=${JSON.stringify(options)}`)
         return await this.orderModel.findByIdAndDelete(orderId, options)
     }
 
     async closeAllOrderOnSymbol(userId: Types.ObjectId, symbol: string) {
-        const orderIds = await this.orderModel.distinct('_id', { userId, symbol, terminated: false });
+        const orderIds = await this.orderModel.distinct('_id', { userId, symbol, terminated: false })
 
         await this.orderModel.updateMany(
             { _id: { $in: orderIds } },
             {
                 terminated: true,
                 cancelled: true,
-            }
+            },
         )
 
-        await this.takeProfitService.cancel({ orderParentId: { $in: orderIds } });
-        await this.stopLossService.cancel({ orderParentId: { $in: orderIds } });
+        await this.takeProfitService.cancel({ orderParentId: { $in: orderIds } })
+        await this.stopLossService.cancel({ orderParentId: { $in: orderIds } })
     }
 
     async getOrderForActivation(orderId: Types.ObjectId, additionnalUpdated: Omit<Partial<Order>, 'inActivation'> = {}) {
-        this.logger.debug(`getOrderForActivation: orderId=${orderId}, additionnalUpdated=${JSON.stringify(additionnalUpdated)}`);
-        const order = await this.orderModel.findOneAndUpdate({ 
-            _id: orderId, 
-            inActivation: { $ne: true }, 
-            activated: false 
-        }, { 
-            $set: { 
-                inActivation: true, 
-                ...additionnalUpdated
-            } 
-        }, { new: true })
-        return order;
+        this.logger.debug(`getOrderForActivation: orderId=${orderId}, additionnalUpdated=${JSON.stringify(additionnalUpdated)}`)
+        const order = await this.orderModel.findOneAndUpdate(
+            {
+                _id: orderId,
+                inActivation: { $ne: true },
+                activated: false,
+            },
+            {
+                $set: {
+                    inActivation: true,
+                    ...additionnalUpdated,
+                },
+            },
+            { new: true },
+        )
+        return order
     }
 
     async getStepsTriggers(order: Order): Promise<number[]> {
-        let stepsTriggers: number[] = order.PEsTriggered || [];
-        if (stepsTriggers.length === 0) stepsTriggers.push(order.PE);
+        let stepsTriggers: number[] = order.PEsTriggered || []
+        if (stepsTriggers.length === 0) stepsTriggers.push(order.PE)
         if (stepsTriggers.length < 2) {
             const orderLinked = await this.findOne(
                 {
@@ -100,50 +104,54 @@ export class OrderService {
         return UtilService.sortBySide(stepsTriggers.concat(order.TPs), order.side)
     }
 
-    async getSLTriggerCurrentFromOrder(order: Order): Promise<number> {
+    async getSLTriggerCurrentFromOrder(order: Order, currentPrice?: number): Promise<number> {
         const takeProfitLastTrigger = await this.takeProfitService.findOne({ orderParentId: order._id, cancelled: false, terminated: true }, undefined, { sort: { num: -1 } })
-        if (!takeProfitLastTrigger) return order.SL;
+        if (!takeProfitLastTrigger) return order.SL
         const step = this.stopLossService.getNewStep(takeProfitLastTrigger.num, order.strategy)
-        return await this.getSLTriggerFromStep(order, step);
+        return await this.getSLTriggerFromStep(order, step, currentPrice)
     }
 
-    async getSLTriggerFromStep(order: Order, step: number): Promise<number> {
+    async getSLTriggerFromStep(order: Order, step: number, currentPrice?: number): Promise<number> {
         if (step === -1) {
             return order.SL
         } else {
-            const stepsTriggers = await this.getStepsTriggers(order);
-            if (stepsTriggers.length <= step) throw new Error('Step not found');
-            return stepsTriggers[step]
+            const stepsTriggers = await this.getStepsTriggers(order)
+            if (stepsTriggers.length <= step) throw new Error('Step not found')
+            if (!currentPrice) return stepsTriggers[step]
+            else {
+                for (let i = step; i >= 0; i--) {
+                    if (order.side === 'long' && currentPrice <= stepsTriggers[i]) return stepsTriggers[i]
+                    if (order.side === 'short' && currentPrice >= stepsTriggers[i]) return stepsTriggers[i]
+                }
+                return order.SL
+            }
         }
     }
 
     async getTakeProfitTriggered(orderId: Types.ObjectId | string, select?: ProjectionType<TakeProfit>, options?: QueryOptions<TakeProfit>): Promise<TakeProfit[]> {
-        return await this.takeProfitService.findAll({ orderParentId: orderId, terminated: true, cancelled: false, activated: true }, select, options);
+        return await this.takeProfitService.findAll({ orderParentId: orderId, terminated: true, cancelled: false, activated: true }, select, options)
     }
 
     async getTakeProfitNotTriggered(orderId: Types.ObjectId | string, select?: ProjectionType<TakeProfit>, options?: QueryOptions<TakeProfit>): Promise<TakeProfit[]> {
-        return await this.takeProfitService.findAll({ orderParentId: orderId, terminated: false, cancelled: false, activated: false }, select, options);
+        return await this.takeProfitService.findAll({ orderParentId: orderId, terminated: false, cancelled: false, activated: false }, select, options)
     }
 
     async getQuantityAvailable(orderId: Types.ObjectId | string, order: Order = null): Promise<number> {
-        if (!order) order = await this.orderModel.findById(orderId, 'quantity').lean();
-        if (!order) throw new Error('Order not found');
-        const TPQuantityClose = await this.getTakeProfitTriggered(order._id, 'quantity', { lean: true });
-        return exactMath.sub(order.quantity, TPQuantityClose.reduce((acc, currentTP) => exactMath.add(acc, currentTP.quantity), 0));
+        if (!order) order = await this.orderModel.findById(orderId, 'quantity').lean()
+        if (!order) throw new Error('Order not found')
+        const TPQuantityClose = await this.getTakeProfitTriggered(order._id, 'quantity', { lean: true })
+        return exactMath.sub(
+            order.quantity,
+            TPQuantityClose.reduce((acc, currentTP) => exactMath.add(acc, currentTP.quantity), 0),
+        )
     }
 
-    async cancelOrder(
-        orderId: string | Types.ObjectId,
-        cancelled = true
-    ) {
+    async cancelOrder(orderId: string | Types.ObjectId, cancelled = true) {
         // disabled order
-        const order = await this.orderModel.findOneAndUpdate(
-            { _id: orderId },
-            { terminated: true, cancelled },
-            )
+        const order = await this.orderModel.findOneAndUpdate({ _id: orderId }, { terminated: true, cancelled })
         if (order) {
-            await this.takeProfitService.cancel({ orderParentId: order._id });
-            await this.stopLossService.cancel({ orderParentId: order._id });
+            await this.takeProfitService.cancel({ orderParentId: order._id })
+            await this.stopLossService.cancel({ orderParentId: order._id })
         }
     }
 
@@ -217,12 +225,7 @@ export class OrderService {
             }
             for (const tp of order.TPs) {
                 if (tp <= order.PE) {
-                    throw new Error(
-                        'Chaque TP doit être supérieur au PE: ' +
-                            tp +
-                            ' <= ' +
-                            order.PE,
-                    )
+                    throw new Error('Chaque TP doit être supérieur au PE: ' + tp + ' <= ' + order.PE)
                 }
             }
         }
@@ -232,12 +235,7 @@ export class OrderService {
             }
             for (const tp of order.TPs) {
                 if (tp >= order.PE) {
-                    throw new Error(
-                        'Chaque TP doit être inférieur au PE: ' +
-                            tp +
-                            ' >= ' +
-                            order.PE,
-                    )
+                    throw new Error('Chaque TP doit être inférieur au PE: ' + tp + ' >= ' + order.PE)
                 }
             }
         }

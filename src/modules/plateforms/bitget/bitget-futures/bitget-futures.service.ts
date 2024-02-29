@@ -244,11 +244,11 @@ export class BitgetFuturesService {
         }
     }
 
-    async activeSL(client: FuturesClient, order: Order) {
+    async activeSL(client: FuturesClient, order: Order, currentPrice?: number) {
         const totalQuantity = await this.orderService.getQuantityAvailable(order._id, order)
         try {
             if (totalQuantity === 0) return
-            const SLTrigger = await this.orderService.getSLTriggerCurrentFromOrder(order)
+            const SLTrigger = await this.orderService.getSLTriggerCurrentFromOrder(order, currentPrice)
             const clientOid = new Types.ObjectId()
             const params: NewFuturesPlanStopOrder = {
                 symbol: order.symbol,
@@ -764,7 +764,7 @@ export class BitgetFuturesService {
         }
     }
 
-    async synchronizeAllSL(clientV2: RestClientV2, userId: Types.ObjectId, symbol: string) {
+    async synchronizeAllSL(clientV2: RestClientV2, userId: Types.ObjectId, symbol: string, currentPrice?: number) {
         const symbolV2 = this.bitgetUtilsService.convertSymbolToV2(symbol)
         const position = await this.positionService.findOneAndUpdate({ userId, symbol: symbolV2, 'synchroExchange.SL': true }, { 'synchroExchange.SL': false }, { lean: true })
         try {
@@ -777,7 +777,7 @@ export class BitgetFuturesService {
             const orderToActivate: Order[] = []
             // update all SL to minimum
             for (const order of orders) {
-                const stopLoss = stopLossList.find((sl) => sl.orderParentId.equals(order._id));
+                const stopLoss = stopLossList.find((sl) => sl.orderParentId.equals(order._id))
                 const planOrders = await clientV2.getFuturesPlanOrders({
                     planType: 'profit_loss',
                     // orderId: stopLoss.orderId,
@@ -787,10 +787,17 @@ export class BitgetFuturesService {
                     startTime: new Date(order.createdAt).getTime(),
                 })
 
-                const triggerPrice = await this.orderService.getSLTriggerCurrentFromOrder(order)
+                const triggerPrice = await this.orderService.getSLTriggerCurrentFromOrder(order, currentPrice)
                 const quantity = await this.orderService.getQuantityAvailable(order._id, order)
-                const stopLossBitget = planOrders.data.entrustedList?.find((p: any) => p.planType === 'loss_plan' && p.planStatus === 'live');
-                if (!stopLoss || stopLoss.terminated || stopLoss.quantity !== quantity || triggerPrice !== stopLoss.triggerPrice || !stopLossBitget || stopLossBitget.planStatus !== 'live') {
+                const stopLossBitget = planOrders.data.entrustedList?.find((p: any) => p.planType === 'loss_plan' && p.planStatus === 'live')
+                if (
+                    !stopLoss ||
+                    stopLoss.terminated ||
+                    stopLoss.quantity !== quantity ||
+                    triggerPrice !== stopLoss.triggerPrice ||
+                    !stopLossBitget ||
+                    stopLossBitget.planStatus !== 'live'
+                ) {
                     if (stopLoss) await this.stopLossService.deleteOne(stopLoss._id)
                     if (stopLossBitget) {
                         const params = {
@@ -799,7 +806,7 @@ export class BitgetFuturesService {
                             marginCoin: stopLossBitget.marginCoin,
                             productType: BitgetService.PRODUCT_TYPEV2,
                             symbol: stopLossBitget.symbol,
-                            planType: 'loss_plan'
+                            planType: 'loss_plan',
                         }
                         await clientV2.futuresCancelPlanOrder(params).catch((e) => {
                             this.errorTraceService.createErrorTrace('recreateAllSL > delete SL', userId, ErrorTraceSeverity.IMMEDIATE, {
@@ -816,7 +823,7 @@ export class BitgetFuturesService {
             await this.positionService.findOneAndUpdate({ userId, symbol: symbolV2 }, { 'synchroExchange.SL': true })
             // update all SL to size
             for (const order of orderToActivate) {
-                await this.activeSL(BitgetService.getClient(userId), order)
+                await this.activeSL(BitgetService.getClient(userId), order, currentPrice)
             }
         } catch (e) {
             this.errorTraceService.createErrorTrace('recreateAllSL', userId, ErrorTraceSeverity.IMMEDIATE, {
