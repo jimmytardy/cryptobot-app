@@ -321,11 +321,11 @@ export class BitgetFuturesService {
                 await this.stopLossService.updateOne(stopLoss)
             }
         } catch (e) {
-            !ignoreError &&
-                this.errorTraceService.createErrorTrace('cancelStopLoss', stopLoss.userId, ErrorTraceSeverity.ERROR, {
-                    stopLoss,
-                    error: e,
-                })
+            // !ignoreError &&
+            this.errorTraceService.createErrorTrace('cancelStopLoss', stopLoss.userId, ErrorTraceSeverity.ERROR, {
+                stopLoss,
+                error: e,
+            })
         }
     }
 
@@ -658,11 +658,11 @@ export class BitgetFuturesService {
                 }),
             )
         } catch (e) {
-            !ignoreError &&
-                this.errorTraceService.createErrorTrace('cancelTakeProfitsFromOrder', order.userId, ErrorTraceSeverity.ERROR, {
-                    order,
-                    error: e,
-                })
+            // !ignoreError &&
+            this.errorTraceService.createErrorTrace('cancelTakeProfitsFromOrder', order.userId, ErrorTraceSeverity.ERROR, {
+                order,
+                error: e,
+            })
         }
     }
 
@@ -707,21 +707,21 @@ export class BitgetFuturesService {
                         // order not exists
                         traceSeverity = ErrorTraceSeverity.ERROR
                     }
-                    !ignoreError &&
-                        this.errorTraceService.createErrorTrace('cancelOrder', order.userId, traceSeverity, {
-                            order,
-                            error: e,
-                        })
+                    // !ignoreError &&
+                    this.errorTraceService.createErrorTrace('cancelOrder', order.userId, traceSeverity, {
+                        order,
+                        error: e,
+                    })
                 } finally {
                     await this.orderService.cancelOrder(order._id, orderCancelled)
                 }
             }
         } catch (e) {
-            !ignoreError &&
-                this.errorTraceService.createErrorTrace('cancelOrder', order.userId, ErrorTraceSeverity.IMMEDIATE, {
-                    order,
-                    error: e,
-                })
+            // !ignoreError &&
+            this.errorTraceService.createErrorTrace('cancelOrder', order.userId, ErrorTraceSeverity.IMMEDIATE, {
+                order,
+                error: e,
+            })
         }
     }
 
@@ -785,14 +785,14 @@ export class BitgetFuturesService {
                 const planOrder = await clientV2.getFuturesPlanOrders({
                     planType: 'profit_loss',
                     orderId: stopLoss.orderId,
-                    symbol: symbolV2, 
+                    symbol: symbolV2,
                     marginCoin: stopLoss.marginCoin,
                     productType: BitgetService.PRODUCT_TYPEV2,
                 })
-                const stopLossBitget = planOrder.data.entrustedList;
+                const stopLossBitget = planOrder.data.entrustedList
                 if (stopLoss.terminated) {
                     stopLossListToUpdate.push(stopLoss)
-                } else if (stopLoss.quantity !== quantity || triggerPrice !== stopLoss.triggerPrice || (!stopLossBitget || stopLossBitget.planStatus !== 'live')) {
+                } else if (stopLoss.quantity !== quantity || triggerPrice !== stopLoss.triggerPrice || !stopLossBitget || stopLossBitget.planStatus !== 'live') {
                     await this.stopLossService.deleteOne(stopLoss._id)
                     if (stopLossBitget) {
                         const params = {
@@ -800,7 +800,7 @@ export class BitgetFuturesService {
                             clientOid: stopLoss.clOrderId.toString(),
                             marginCoin: stopLoss.marginCoin,
                             productType: BitgetService.PRODUCT_TYPEV2,
-                            symbol: this.bitgetUtilsService.convertSymbolToV2(stopLoss.symbol), 
+                            symbol: this.bitgetUtilsService.convertSymbolToV2(stopLoss.symbol),
                             planType: 'loss_plan',
                             triggerPrice: stopLoss.triggerPrice.toString(),
                             triggerType: 'fill_market',
@@ -816,9 +816,16 @@ export class BitgetFuturesService {
                             })
                         })
                     }
+                    (stopLoss as any).stopLossBitget = stopLossBitget
                     stopLossListToUpdate.push(stopLoss)
                 }
             }
+            userId.equals(new Types.ObjectId('652ef1cd63e288c8cf606894')) &&
+                this.errorTraceService.createErrorTrace('recreateAllSL > stopLossListToUpdate', userId, ErrorTraceSeverity.INFO, {
+                    userId,
+                    symbol,
+                    stopLossListToUpdate,
+                })
             await this.positionService.findOneAndUpdate({ userId, symbol: symbolV2 }, { 'synchroExchange.SL': true })
             // update all SL to size
             for (const stopLoss of stopLossListToUpdate) {
