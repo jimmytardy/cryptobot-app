@@ -268,6 +268,7 @@ export class BitgetFuturesService {
                 order,
                 totalQuantity,
                 error: e,
+                currentPrice
             })
         }
     }
