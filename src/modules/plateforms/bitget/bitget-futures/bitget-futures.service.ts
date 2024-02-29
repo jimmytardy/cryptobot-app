@@ -246,9 +246,9 @@ export class BitgetFuturesService {
 
     async activeSL(client: FuturesClient, order: Order, currentPrice?: number) {
         const totalQuantity = await this.orderService.getQuantityAvailable(order._id, order)
+        if (totalQuantity === 0) return
+        const SLTrigger = await this.orderService.getSLTriggerCurrentFromOrder(order, currentPrice)
         try {
-            if (totalQuantity === 0) return
-            const SLTrigger = await this.orderService.getSLTriggerCurrentFromOrder(order, currentPrice)
             const clientOid = new Types.ObjectId()
             const params: NewFuturesPlanStopOrder = {
                 symbol: order.symbol,
@@ -268,7 +268,8 @@ export class BitgetFuturesService {
                 order,
                 totalQuantity,
                 error: e,
-                currentPrice
+                currentPrice,
+                SLTrigger
             })
         }
     }
