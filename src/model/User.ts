@@ -23,6 +23,7 @@ const defaultUserPreference: IUserPreferences = {
         marginCoin: 'USDT',
         baseCoinAuthorized: undefined,
         automaticUpdate: false,
+        pourcentage: 4
     },
 }
 
