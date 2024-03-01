@@ -66,7 +66,7 @@ export class UserService implements OnApplicationBootstrap {
                 apiPass: user.bitget.api_pass,
                 apiSecret: user.bitget.api_secret_key,
             })
-            // await client.getAccounts(BitgetService.PRODUCT_TYPE)
+            await client.getAccounts(BitgetService.PRODUCT_TYPE)
         } catch (e) {
             throw new Error('Les informations de la clé API ne sont pas correctes')
         }
