@@ -120,7 +120,7 @@ const Stats = () => {
               datasets: [
                 {
                   data: stats.nbTP,
-                  backgroundColor: colors.green,
+                  backgroundColor: colors.green.reverse(),
                 },
               ],
             }} />
@@ -130,11 +130,11 @@ const Stats = () => {
           <div className="col-body">
             <div className="form-title">Détails des SLs</div>
             <Pie data={{
-              labels: ['SL', 'PE Bas', 'PE Haut', 'TP1', 'TP2', 'TP3', 'TP4'],
+              labels: ['SL', 'PE Bas', 'PE Haut', 'TP1', 'TP2', 'TP3', 'TP4', 'TP5'],
               datasets: [
                 {
-                  data: stats.nbTP,
-                  backgroundColor: colors.red.reverse(),
+                  data: [Object.values(stats.nbSL)],
+                  backgroundColor: colors.red.reverse().slice(0, 3).concat(colors.green),
                 },
               ],
             }} />

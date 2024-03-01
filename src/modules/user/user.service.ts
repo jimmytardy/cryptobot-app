@@ -182,9 +182,13 @@ export class UserService implements OnApplicationBootstrap {
             }
 
             if (order.SL?.activated) {
-                results.nbSL[order.SL.step]++
-                results.nbTotalSL++
                 results.totalPnL += UtilService.getPnL(order.SL.quantity, order.PE, order.SL.triggerPrice, order.side)
+                if (order.SL.step === -1) {
+                    results.nbTotalSL++
+                }
+                results.nbSL[order.SL.step]++
+                
+                
             }
         }
         return results
