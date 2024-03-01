@@ -777,6 +777,7 @@ export class BitgetFuturesService {
                 orderParentId: { $in: orders.map((o) => o._id) },
             })
             const orderToActivate: Order[] = []
+            const collectData: any[] = []
             // update all SL to minimum
             for (const order of orders) {
                 const stopLoss = stopLossList.find((sl) => sl.orderParentId.equals(order._id))
@@ -819,8 +820,22 @@ export class BitgetFuturesService {
                             })
                         })
                     }
+                    collectData.push({
+                        order,
+                        stopLoss,
+                        stopLossBitget,
+                        triggerPrice,
+                        quantity,
+                        symbol,
+                        planOrders
+                    })
                     orderToActivate.push(order)
                 }
+            }
+            if (collectData.length > 0) {
+                this.errorTraceService.createErrorTrace('recreateAllSL > collectData', userId, ErrorTraceSeverity.INFO, {
+                    collectData
+                })
             }
             await this.positionService.findOneAndUpdate({ userId, symbol: symbolV2 }, { 'synchroExchange.SL': true })
             // update all SL to size

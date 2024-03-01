@@ -36,7 +36,7 @@ const Profile = () => {
                 </Col>
 
                 <Col xs={12}>
-                    {user.subscription.active && user.subscription.status === 'active' ? (
+                    {user.subscription?.active && user.subscription?.status === 'active' ? (
                         <FormText onClick={copyReferralLink} className="referral-code">
                             Code de parrainage: <b>{user.referralCode}</b>{' '}
                             {!hasCopy ? (
