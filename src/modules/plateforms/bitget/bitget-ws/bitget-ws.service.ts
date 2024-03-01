@@ -284,7 +284,7 @@ export class BitgetWsService {
                 // cancel other order that not actived
                 await this.bitgetService.disabledOrderLink(order.linkOrderId, order.userId)
                 // upgrade stop loss
-                await this.bitgetService.upgradeSL(order, takeProfit.num)
+                await this.bitgetService.synchronizeAllSL(order.userId, order.symbol, takeProfit.triggerPrice);
             }
         } catch (e) {
             this.erroTraceService.createErrorTrace('onStopLossTriggered', takeProfit.userId, ErrorTraceSeverity.IMMEDIATE, {
