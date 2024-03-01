@@ -240,4 +240,19 @@ export class OrderService {
             }
         }
     }
+
+    async getActivePositions(userId: Types.ObjectId) {
+        const orders = await this.getOrders({ userId, activated: true, terminated: false, cancelled: false });
+        const positions = [];
+        for (const order of orders) {
+            positions.push({
+                symbol: order.symbol.replace('USDT', '').replace('_UMCBL', ''),
+                side: order.side,
+                PE: order.PE,
+                SL: order.SL?.triggerPrice,
+                TPs: order.TPs.map(tp => ({ triggerPrice: tp.triggerPrice, activated: tp.activated })),
+            })
+        }
+        return positions
+    }
 }

@@ -14,4 +14,15 @@ export interface IStats {
         '4': number,
         '5': number,
     },
+    positions: IPosition[]
+}
+
+export interface IPosition {
+    usdt: number
+    symbol: string
+    PE: number
+    side: string
+    quantity: number
+    TPs: { activated: boolean; triggerPrice: number }[]
+    SL: number
 }

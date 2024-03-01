@@ -163,6 +163,7 @@ export class UserService implements OnApplicationBootstrap {
                 '5': 0,
             },
             totalPnL: 0,
+            positions: []
         }
 
         for (const order of orders) {
@@ -187,10 +188,9 @@ export class UserService implements OnApplicationBootstrap {
                     results.nbTotalSL++
                 }
                 results.nbSL[order.SL.step]++
-                
-                
             }
         }
+        results.positions = await this.orderService.getActivePositions(userId);
         return results
     }
 }
