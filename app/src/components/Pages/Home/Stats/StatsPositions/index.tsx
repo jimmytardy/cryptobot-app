@@ -28,13 +28,13 @@ const StatsPositions = ({ positions }: IPositionProps) => {
                     </Col>
                     <Col xs={5} md={6} lg={7} xl={9} className="position-trigger">
                         {position.TPs.map((tp, index) => (
-                            <span className="position-tp" key={'tp-header-' + position.symbol + index}>
+                            <span className={`position-tp position-${tp.activated ? 'activated': "wait"}`} key={'tp-header-' + position.symbol + index}>
                                 {tp.activated ? <Check className="icon-check" /> : <HourglassSplit />} {tp.triggerPrice}
                             </span>
                         ))}
                     </Col>
                     <Col xs={2} lg={2} xl={1} className="position-trigger position-trigger-sl">
-                        <span className="position-sl">{position.SL}</span>
+                        <span className="position-sl position-wait">{position.SL}</span>
                     </Col>
                 </Row>
             ))}

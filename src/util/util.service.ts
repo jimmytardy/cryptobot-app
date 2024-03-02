@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { FuturesHoldSide } from 'bitget-api'
 import { IArrayModification } from './util.interface'
-import * as exactMath from 'exact-math';
+import * as exactMath from 'exact-math'
 
 @Injectable()
 export class UtilService {
@@ -50,6 +50,22 @@ export class UtilService {
         })
     }
 
+    static sortBySideObject<T extends object>(objects: T[], attribute: keyof T, side: FuturesHoldSide): T[] {
+        if (objects.length > 0 && typeof objects[0][attribute] !== 'number') {
+            throw new Error(`L'attribut ${String(attribute)} doit être de type number.`)
+        }
+        return objects.sort((a, b) => {
+            const valueA = a[attribute] as number;
+            const valueB = b[attribute] as number;
+
+            if (side === 'long') {
+                return valueA - valueB
+            } else {
+                return valueB - valueA
+            }
+        })
+    }
+
     static getPnL(size: number, PE: number, triggerPrice: number, side: FuturesHoldSide): number {
         if (side === 'long') {
             return exactMath.mul(exactMath.sub(triggerPrice, PE), size)
@@ -63,12 +79,11 @@ export class UtilService {
     }
 
     static generateReferralCode(length: number = 6) {
-        let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let code = '';
+        let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+        let code = ''
         for (let i = 0; i < length; i++) {
-            code += characters.charAt(Math.floor(Math.random() * characters.length));
+            code += characters.charAt(Math.floor(Math.random() * characters.length))
         }
-        return code;
+        return code
     }
-    
 }

@@ -55,7 +55,6 @@
                 font-size: 0.8em;
                 line-height: 1.5em;
                 font-weight: 500;
-                color: white;
                 padding: 3px 8px;
                 border-radius: 15px;
                 margin: 3px 1em 3px 0;
@@ -66,16 +65,30 @@
 
                     &.icon-check {
                         font-size: 1.5em;
-                        color: white;
                     }
                 }
+            }
 
+            .position-activated {
                 &.position-tp {
                     background-color: green;
+                    color: white;
                 }
                 &.position-sl {
                     background-color: red;
+                    color: white;
                 }
+            }
+            .position-wait {
+                &.position-tp {
+                    border: 2px dotted green;
+                    color: black;
+                }
+                &.position-sl {
+                    border: 2px dotted red;
+                    color: black;
+                }
+                
             }
         }
     }
