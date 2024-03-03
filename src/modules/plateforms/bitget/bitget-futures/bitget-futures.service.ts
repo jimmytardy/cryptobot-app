@@ -845,13 +845,12 @@ export class BitgetFuturesService {
                     if ((parseFloat(stopLossBitget.size) !== quantity || parseFloat(stopLossBitget.triggerPrice) !== triggerPrice) && stopLoss) {
                         const params = {
                             orderId: stopLossBitget.orderId,
-                            // clientOid: stopLossBitget.clientOid,
+                            clientOid: stopLossBitget.clientOid,
                             marginCoin: stopLossBitget.marginCoin,
                             productType: BitgetService.PRODUCT_TYPEV2,
                             symbol: stopLossBitget.symbol,
-                            planType: 'loss_plan',
                             triggerPrice: triggerPrice.toString(),
-                            triggerType: 'fill_price',
+                            triggerType: stopLossBitget.triggerType,
                             size: quantity.toString(),
                         }
                         await clientV2.futuresModifyPlanOrder(params).catch((e) => {
