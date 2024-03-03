@@ -742,6 +742,23 @@ export class BitgetFuturesService {
         await this.orderService.disabledOrderLink(linkId, userId)
     }
 
+    async disabledOrderLinkFromOrder(clientv2: RestClientV2, order: Order) {
+        const slTrigger = await this.orderService.getSLTriggerCurrentFromOrder(order);
+
+        const orders = await this.orderService.findAll({
+            linkOrderId: order.linkOrderId,
+            terminated: false,
+            activated: false,
+            userId: order.userId,
+            PE: { $lte: slTrigger }
+        })
+        await Promise.all(
+            orders.map(async (order) => {
+                await this.cancelOrder(clientv2, order)
+            }),
+        )
+    }
+
     async closePosition(client: RestClientV2, userId: Types.ObjectId, symbol: string) {
         try {
             const symbolV2 = this.bitgetUtilsService.convertSymbolToV2(symbol)

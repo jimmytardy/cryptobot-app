@@ -282,7 +282,7 @@ export class BitgetWsService {
                 await this.bitgetService.cancelOrder(order, false, true)
             } else {
                 // cancel other order that not actived
-                await this.bitgetService.disabledOrderLink(order.linkOrderId, order.userId)
+                await this.bitgetService.disabledOrderLinkFromOrder(order)
                 // upgrade stop loss
                 await this.bitgetService.synchronizeAllSL(order.userId, order.symbol, takeProfit.triggerPrice);
             }

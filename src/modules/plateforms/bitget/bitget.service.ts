@@ -226,6 +226,13 @@ export class BitgetService implements OnModuleInit {
         }
     }
 
+    async disabledOrderLinkFromOrder(order: Order) {
+        try {
+            await this.bitgetFuturesService.disabledOrderLinkFromOrder(BitgetService.getClientV2(order.userId), order)
+        } catch (e) {
+            this.logger.error('disabledOrderLinkFromOrder', e)
+        }
+    }
     async updateOrderPE(order: OrderDocument, newPE: number): Promise<boolean> {
         try {
             return await this.bitgetFuturesService.updatePE(BitgetService.getClient(order.userId), order, newPE)
