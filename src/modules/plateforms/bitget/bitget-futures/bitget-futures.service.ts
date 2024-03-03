@@ -853,7 +853,7 @@ export class BitgetFuturesService {
                             triggerType: stopLossBitget.triggerType,
                             size: quantity.toString(),
                         }
-                        await clientV2.futuresModifyPlanOrder(params).catch((e) => {
+                        await clientV2.futuresModifyTPSLPOrder(params).catch((e) => {
                             this.errorTraceService.createErrorTrace('recreateAllSL > futuresModifyPlanOrder SL', userId, ErrorTraceSeverity.IMMEDIATE, {
                                 userId,
                                 symbol,
