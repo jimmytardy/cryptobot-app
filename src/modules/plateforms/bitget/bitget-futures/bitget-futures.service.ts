@@ -826,11 +826,14 @@ export class BitgetFuturesService {
                             planType: 'loss_plan',
                         }
                         await clientV2.futuresCancelPlanOrder(params).catch((e) => {
-                            this.errorTraceService.createErrorTrace('recreateAllSL > delete SL', userId, ErrorTraceSeverity.IMMEDIATE, {
+                            this.errorTraceService.createErrorTrace('recreateAllSL > futuresCancelPlanOrder SL', userId, ErrorTraceSeverity.IMMEDIATE, {
                                 userId,
                                 symbol,
                                 stopLoss,
                                 error: e,
+                                stopLossBitget,
+                                stopLossBitgetList,
+                                params
                             })
                         })
                     }
@@ -852,11 +855,14 @@ export class BitgetFuturesService {
                             size: quantity.toString(),
                         }
                         await clientV2.futuresModifyPlanOrder(params).catch((e) => {
-                            this.errorTraceService.createErrorTrace('recreateAllSL > delete SL', userId, ErrorTraceSeverity.IMMEDIATE, {
+                            this.errorTraceService.createErrorTrace('recreateAllSL > futuresModifyPlanOrder SL', userId, ErrorTraceSeverity.IMMEDIATE, {
                                 userId,
                                 symbol,
                                 stopLoss,
                                 error: e,
+                                stopLossBitget,
+                                stopLossBitgetList,
+                                params
                             })
                         })
                         stopLoss.triggerPrice = triggerPrice
