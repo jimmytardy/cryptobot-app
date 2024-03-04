@@ -807,7 +807,7 @@ export class BitgetFuturesService {
                     startTime: new Date(order.createdAt).getTime(),
                 })
                 const stopLossBitgetList = planOrders.data.entrustedList?.filter((p: any) => p.planType === 'loss_plan' && p.planStatus === 'live')
-                if (stopLossBitgetList.length > 1) {
+                if (stopLossBitgetList?.length > 1) {
                     for (const stopLossBitget of stopLossBitgetList) {
                         const params = {
                             orderId: stopLossBitget.orderId,
@@ -830,7 +830,7 @@ export class BitgetFuturesService {
                     orderToActivate.push(order)
                     continue
                 }
-                const stopLossBitget = stopLossBitgetList[0]
+                const stopLossBitget = stopLossBitgetList && stopLossBitgetList[0]
                 if (!stopLoss || !stopLossBitget || stopLoss.terminated || !Types.ObjectId.isValid(stopLossBitget.clientOid)) {
                     if (stopLoss) await this.stopLossService.deleteOne(stopLoss._id)
                     if (stopLossBitget) {
