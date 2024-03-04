@@ -29,9 +29,14 @@ export class TakeProfitService {
         return await this.takeProfitModel.findOneAndDelete(filter, { lean: true })
     }
 
+    async deleteMany(filter: FilterQuery<TakeProfit>): Promise<void> {
+        this.logger.debug(`deleteOne: filter=${JSON.stringify(filter)}`)
+        await this.takeProfitModel.deleteMany(filter, { lean: true })
+    }
+
     async cancel(filter: Omit<FilterQuery<TakeProfit>, 'terminated'>) {
         this.logger.debug(`cancelTakeProfits: filter=${JSON.stringify(filter)}`)
-        return await this.takeProfitModel.updateMany({ ...filter, terminated: false }, { $set: { terminated: true, cancelled: true } })
+        return await this.takeProfitModel.updateMany({ ...filter, terminated: false, cancelled: false, activated: false }, { $set: { terminated: true, cancelled: true } })
     }
 
     async createFromOrder(order: Order, triggerPrice: number, quantity: number, num: number, clOrderId: any, orderId: any): Promise<TakeProfit> {

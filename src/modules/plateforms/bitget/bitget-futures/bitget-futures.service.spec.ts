@@ -501,52 +501,6 @@ describe('BitgetFuturesService', () => {
         })
     })
 
-    describe('replaceTakeProfit', () => {
-        let order: Order
-        let takeProfit: TakeProfit
-        beforeEach(() => {
-            order = createMockOrder({ activated: true })
-            takeProfit = createMockTakeProfit({ activated: true, terminated: false, num: 2 })
-            service.addTakeProfit = jest.fn().mockResolvedValue(undefined)
-            service.cancelTakeProfit = jest.fn().mockResolvedValue(undefined)
-            service.logger.error = jest.fn()
-        })
-
-        it('should replace take-profit when takeProfit exists', async () => {
-            const newTP = 9500
-            const newSize = 2
-            // Appelez la fonction replaceTakeProfit
-            await service.replaceTakeProfit(mockFuturesClient, order, takeProfit, newTP, newSize)
-            expect(service.cancelTakeProfit).toHaveBeenCalledWith(mockFuturesClient, takeProfit, true)
-            expect(service.addTakeProfit).toHaveBeenCalledWith(mockFuturesClient, order, newTP, takeProfit.num, newSize)
-            expect(service.addTakeProfit).toHaveBeenCalledAfter(service.cancelTakeProfit as any)
-        })
-
-        it('should not replace when takeProfit not exist', async () => {
-            const newTP = 9500
-            const newSize = 2
-            // Appelez la fonction replaceTakeProfit
-            await service.replaceTakeProfit(mockFuturesClient, order, undefined, newTP, newSize)
-
-            expect(service.cancelTakeProfit).not.toHaveBeenCalled()
-            expect(service.addTakeProfit).not.toHaveBeenCalled()
-        })
-
-        it('should handle errors when replacing take-profit', async () => {
-            const newTP = 9500
-            const newSize = 2
-            // Configurez le mock de cancelTakeProfit pour générer une erreur
-            service.cancelTakeProfit = jest.fn().mockRejectedValue(new Error('Failed to delete TP'))
-
-            // Appelez la fonction
-            await service.replaceTakeProfit(mockFuturesClient, order, takeProfit, newTP, newSize)
-
-            // Vérifiez si le logger a été appelé pour l'erreur générée
-            expect(mockErrorTraceService.createErrorTrace).toHaveBeenCalled()
-            expect(service.addTakeProfit).not.toHaveBeenCalled()
-        })
-    })
-
     describe('upgradeStopLoss', () => {
         let order: Order
         let orderStrategy: IOrderStrategy

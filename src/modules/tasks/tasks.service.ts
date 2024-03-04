@@ -66,7 +66,7 @@ export class TasksService implements OnApplicationBootstrap, OnModuleInit {
                 }
                 request.push(
                     this.bitgetService
-                        .synchronizeAllSL(order.userId, order.symbol, currentPriceMemo[order.symbol])
+                        .synchronizePosition(order.userId, order.symbol, currentPriceMemo[order.symbol])
                         .catch((e) => this.errorTraceService.createErrorTrace('TaskService => syncOrderSL', order.userId, ErrorTraceSeverity.IMMEDIATE, { error: e, order })),
                 )
             }

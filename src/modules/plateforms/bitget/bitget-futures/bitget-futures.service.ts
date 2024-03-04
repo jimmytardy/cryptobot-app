@@ -31,6 +31,7 @@ import { IOrderEventData } from '../bitget-ws/bitget-ws.interface'
 import { UtilService } from 'src/util/util.service'
 import { PositionService } from 'src/modules/position/position.service'
 import { ConfigService } from '@nestjs/config'
+import { IBitgetPlanOrder, IBitgetPosition } from '../bitget.interface'
 
 @Injectable()
 export class BitgetFuturesService {
@@ -196,7 +197,7 @@ export class BitgetFuturesService {
                 )
                 await this.orderService.updateOne(orderAlreadActived)
                 await this.updateTakeProfits(client, orderAlreadActived, orderAlreadActived.TPs, user.preferences.order.TPSize)
-                await this.updateStopLoss(BitgetService.getClientV2(orderAlreadActived.userId), orderAlreadActived, orderAlreadActived.SL)
+                await this.updateStopLoss(BitgetService.getClientV2(orderAlreadActived.userId), orderAlreadActived, orderAlreadActived.SL, parseFloat(orderBitget.priceAvg))
                 await this.orderService.deleteOne(order._id)
             } else {
                 const symbolRules = await this.bitgetUtilsService.getSymbolBy('symbol', order.symbol)
@@ -249,6 +250,7 @@ export class BitgetFuturesService {
         if (totalQuantity === 0) return
         const SLTrigger = await this.orderService.getSLTriggerCurrentFromOrder(order, currentPrice)
         try {
+            await this.cancelStopLoss(BitgetService.getClientV2(order.userId), order._id);
             const clientOid = new Types.ObjectId()
             const params: NewFuturesPlanStopOrder = {
                 symbol: order.symbol,
@@ -274,17 +276,28 @@ export class BitgetFuturesService {
         }
     }
 
-    async cancelTakeProfit(client: FuturesClient, takeProfit: TakeProfit, deleteTakeProfit = false, ignoreError = false) {
+    async cancelTakeProfit(clientV2: RestClientV2, takeProfit: TakeProfit, deleteTakeProfit = false, ignoreError = false) {
         try {
-            if (!takeProfit.terminated) {
-                const params: CancelFuturesPlanTPSL = {
-                    marginCoin: takeProfit.marginCoin,
+            const planOrders = await clientV2.getFuturesPlanOrders({
+                planType: 'profit_loss',
+                orderId: takeProfit.orderId,
+                symbol: this.bitgetUtilsService.convertSymbolToV2(takeProfit.symbol),
+                marginCoin: takeProfit.marginCoin,
+                productType: BitgetService.PRODUCT_TYPEV2,
+            })
+            const takeProfitBitget = (planOrders.data.entrustedList || []).filter(
+                (p: any) => p.planType === 'profit_plan' && p.planStatus === 'live' && Types.ObjectId.isValid(p.clientOid),
+            )
+            if (takeProfitBitget) {
+                const params = {
+                    orderId: takeProfitBitget.orderId,
+                    clientOid: takeProfitBitget.clientOid,
+                    marginCoin: takeProfitBitget.marginCoin,
+                    productType: BitgetService.PRODUCT_TYPEV2,
+                    symbol: takeProfitBitget.symbol,
                     planType: 'profit_plan',
-                    symbol: takeProfit.symbol,
-                    clientOid: takeProfit.clOrderId.toString(),
-                    orderId: takeProfit.orderId,
                 }
-                await client.cancelPlanOrderTPSL(params)
+                await clientV2.futuresCancelPlanOrder(params)
             }
             if (deleteTakeProfit) {
                 await this.takeProfitService.deleteOne({ _id: takeProfit._id })
@@ -303,29 +316,49 @@ export class BitgetFuturesService {
         }
     }
 
-    async cancelStopLoss(client: FuturesClient, stopLoss: StopLoss, deleteStopLoss = false, ignoreError = false, forceDelete = false) {
+    async cancelStopLoss(clientV2: RestClientV2, orderId: string | Types.ObjectId, deleteStopLoss = false, stopLossBitgetList: any[] = null) {
+        const order = await this.orderService.findOne({ _id: orderId })
         try {
-            if (!stopLoss.terminated || forceDelete) {
-                const params: CancelFuturesPlanTPSL = {
-                    marginCoin: stopLoss.marginCoin,
-                    planType: 'loss_plan',
-                    symbol: stopLoss.symbol,
-                    clientOid: stopLoss.clOrderId.toString(),
-                    orderId: stopLoss.orderId,
-                }
-                await client.cancelPlanOrderTPSL(params)
+            if (!order) throw new Error('Order not found')
+            if (!stopLossBitgetList) {
+                const planOrders = await clientV2.getFuturesPlanOrders({
+                    planType: 'profit_loss',
+                    // orderId: stopLoss.orderId,
+                    symbol: this.bitgetUtilsService.convertSymbolToV2(order.symbol),
+                    marginCoin: order.marginCoin,
+                    productType: BitgetService.PRODUCT_TYPEV2,
+                    startTime: new Date(order.createdAt).getTime(),
+                })
+                stopLossBitgetList = (planOrders.data.entrustedList || []).filter(
+                    (p: any) => p.planType === 'loss_plan' && p.planStatus === 'live' && Types.ObjectId.isValid(p.clientOid),
+                )
             }
-            if (deleteStopLoss) {
-                await this.stopLossService.deleteOne(stopLoss._id)
-            } else {
-                stopLoss.cancelled = true
-                stopLoss.terminated = true
-                await this.stopLossService.updateOne(stopLoss)
+
+            for (const stopLossBitget of stopLossBitgetList) {
+                const params = {
+                    orderId: stopLossBitget.orderId,
+                    clientOid: stopLossBitget.clientOid,
+                    marginCoin: stopLossBitget.marginCoin,
+                    productType: BitgetService.PRODUCT_TYPEV2,
+                    symbol: stopLossBitget.symbol,
+                    planType: 'loss_plan',
+                }
+                await clientV2.futuresCancelPlanOrder(params)
+            }
+            const stopLoss = await this.stopLossService.findOne({ orderParentId: orderId })
+            if (stopLoss) {
+                if (deleteStopLoss) {
+                    await this.stopLossService.deleteOne(stopLoss._id)
+                } else {
+                    stopLoss.cancelled = true
+                    stopLoss.terminated = true
+                    await this.stopLossService.updateOne(stopLoss)
+                }
             }
         } catch (e) {
-            // !ignoreError &&
-            this.errorTraceService.createErrorTrace('cancelStopLoss', stopLoss.userId, ErrorTraceSeverity.ERROR, {
-                stopLoss,
+            this.errorTraceService.createErrorTrace('cancelStopLoss', order.userId, ErrorTraceSeverity.ERROR, {
+                order,
+                stopLossBitgetList,
                 error: e,
             })
         }
@@ -359,22 +392,6 @@ export class BitgetFuturesService {
                 quantity,
                 clOrderId,
                 params,
-                error: e,
-            })
-        }
-    }
-
-    async replaceTakeProfit(client: FuturesClient, order: Order, takeProfit: TakeProfit, newTP: number, newSize: number) {
-        try {
-            if (!takeProfit) return
-            await this.cancelTakeProfit(client, takeProfit, true)
-            await this.addTakeProfit(client, order, newTP, takeProfit.num, newSize)
-        } catch (e) {
-            this.errorTraceService.createErrorTrace('replaceTakeProfit', order.userId, ErrorTraceSeverity.ERROR, {
-                order,
-                takeProfit,
-                newTP,
-                newSize,
                 error: e,
             })
         }
@@ -438,8 +455,10 @@ export class BitgetFuturesService {
         }
     }
 
-    async updateStopLoss(clientV2: RestClientV2, order: Order, newSL?: number): Promise<boolean> {
+    async updateStopLoss(clientV2: RestClientV2, order: Order, newSL?: number, currentPrice: number = null): Promise<boolean> {
         try {
+            if (!currentPrice) currentPrice = await BitgetUtilsService.getCurrentPrice(BitgetService.getClient(order.userId), order.symbol);
+            if (currentPrice < newSL) return false
             order.SL = newSL
             await this.orderService.updateOne(order)
             if (order.sendToPlateform && order.activated && !order.terminated) {
@@ -450,7 +469,7 @@ export class BitgetFuturesService {
                 if (quantityAvailable === 0) return
                 const triggerPrice = await this.orderService.getSLTriggerCurrentFromOrder(order)
                 if (!stopLoss || stopLoss.terminated) {
-                    await this.cancelStopLoss(BitgetService.getClient(order.userId), stopLoss, true, true, true) // en cas d'erreur de process on clean la SL
+                    await this.cancelStopLoss(clientV2, stopLoss.orderParentId, true) // en cas d'erreur de process on clean la SL
                     await this.activeSL(BitgetService.getClient(order.userId), order)
                     return
                 } else if (triggerPrice !== stopLoss.triggerPrice || quantityAvailable !== stopLoss.quantity) {
@@ -527,24 +546,6 @@ export class BitgetFuturesService {
         }
     }
 
-    // async recreateTakeProfits(client: FuturesClient, order: Order, newTPs: number[], TPSize: TPSizeType): Promise<boolean> {
-    //     try {
-    //         await Promise.all(
-    //             takeProfitNotTerminated.map(async (takeProfit) => {
-    //                 await this.cancelTakeProfit(client, takeProfit, true)
-    //             }),
-    //         )
-    //         const startNum = takeProfitNotTerminated[0].num
-    //         // Enfin on ajoute les nouveaux trades
-    //         for (let i = 0; i < newTPPricesCalculate.length; i++) {
-    //             const newSize = newTPSizeCalculate[i]
-    //             await this.addTakeProfit(client, order, newTPPricesCalculate[i], startNum + i, newSize)
-    //         }
-    //     } catch (e) {
-
-    //     }
-    // }
-
     async updateTakeProfits(client: FuturesClient, order: Order, newTPs: number[], TPSize: TPSizeType, currentPrice: number = null): Promise<boolean> {
         try {
             const symbolRules = await this.bitgetUtilsService.getSymbolBy('symbol', order.symbol)
@@ -581,11 +582,7 @@ export class BitgetFuturesService {
                     symbolRules,
                     order.side,
                 )
-                await Promise.all(
-                    takeProfitNotTerminated.map(async (takeProfit) => {
-                        await this.cancelTakeProfit(client, takeProfit, true)
-                    }),
-                )
+                await this.cancelTakeProfitsFromOrder(BitgetService.getClientV2(order.userId), order._id, order, null, true)
                 // Enfin on ajoute les nouveaux trades
                 for (let i = 0; i < newTPPricesCalculate.length; i++) {
                     const newSize = newTPSizeCalculate[i]
@@ -649,18 +646,41 @@ export class BitgetFuturesService {
         }
     }
 
-    async cancelTakeProfitsFromOrder(client: FuturesClient, orderId: Types.ObjectId, order: Order = null, deleteTakeProfit = false, ignoreError = false) {
+    async cancelTakeProfitsFromOrder(clientV2: RestClientV2, orderId: Types.ObjectId, order: Order = null, takeProfitsBitgetList: any[] = null, deleteTakeProfits = false) {
         if (!order) order = await this.orderService.findOne({ _id: orderId })
         try {
-            if (!order) throw new Error('Order not found')
-            const takeProfits = await this.takeProfitService.findAll({ orderParentId: order._id, terminated: false })
-            await Promise.all(
-                takeProfits.map(async (takeProfit) => {
-                    await this.cancelTakeProfit(client, takeProfit, deleteTakeProfit, ignoreError)
-                }),
-            )
+            if (!order) throw new Error('Order not found');
+            if (!takeProfitsBitgetList) {
+                const planOrders = await clientV2.getFuturesPlanOrders({
+                    planType: 'profit_loss',
+                    // orderId: stopLoss.orderId,
+                    symbol: this.bitgetUtilsService.convertSymbolToV2(order.symbol),
+                    marginCoin: order.marginCoin,
+                    productType: BitgetService.PRODUCT_TYPEV2,
+                    startTime: new Date(order.createdAt).getTime(),
+                })
+                takeProfitsBitgetList = (planOrders.data.entrustedList || []).filter(
+                    (p: any) => p.planType === 'profit_plan' && p.planStatus === 'live',
+                )
+            }
+
+            for (const takeProfitBitget of takeProfitsBitgetList) {
+                const params = {
+                    orderId: takeProfitBitget.orderId,
+                    clientOid: takeProfitBitget.clientOid,
+                    marginCoin: takeProfitBitget.marginCoin,
+                    productType: BitgetService.PRODUCT_TYPEV2,
+                    symbol: takeProfitBitget.symbol,
+                    planType: 'profit_plan',
+                }
+                await clientV2.futuresCancelPlanOrder(params)
+            }
+            if (deleteTakeProfits) {
+                await this.takeProfitService.deleteMany({ orderParentId: orderId, activated: false, terminated: false, cancelled: false })
+            } else {
+                await this.takeProfitService.cancel({ orderParentId: order._id, terminated: false })
+            }
         } catch (e) {
-            // !ignoreError &&
             this.errorTraceService.createErrorTrace('cancelTakeProfitsFromOrder', order.userId, ErrorTraceSeverity.ERROR, {
                 order,
                 error: e,
@@ -668,54 +688,62 @@ export class BitgetFuturesService {
         }
     }
 
-    async cancelOrder(clientV2: RestClientV2, order: Order, orderCancelled = true, ignoreError = false) {
+    async cancelOrder(clientV2: RestClientV2, order: Order, orderCancelled = true, positionBitget: any = null) {
         // TODO quand on close un order qui as déjà eu des TP ça plante sur la fermeture de la quantité précise
         try {
-            if (!order.terminated) {
-                try {
-                    if (order.sendToPlateform && order.orderId) {
-                        if (!order.activated) {
-                            await clientV2.futuresCancelOrder({
-                                symbol: this.bitgetUtilsService.convertSymbolToV2(order.symbol),
-                                productType: BitgetService.PRODUCT_TYPEV2,
-                                marginCoin: order.marginCoin,
-                                clientOid: order.clOrderId.toString(),
-                            })
-                        } else {
-                            const quantityAvailable = await this.orderService.getQuantityAvailable(order._id, order)
-                            const side = order.side === 'long' ? 'buy' : 'sell'
-                            const stopLoss = await this.stopLossService.findOne({ orderParentId: order._id, terminated: false })
-                            const client = BitgetService.getClient(order.userId)
-                            await this.cancelStopLoss(client, stopLoss, false, ignoreError)
-                            await this.cancelTakeProfitsFromOrder(client, order._id, order, false, ignoreError)
-                            // cancel exact quantity of order => when is possibility with SDK + cancel all TP and SL
-                            await clientV2.futuresSubmitOrder({
-                                symbol: this.bitgetUtilsService.convertSymbolToV2(order.symbol),
-                                productType: BitgetService.PRODUCT_TYPEV2,
-                                marginMode: 'isolated',
-                                marginCoin: order.marginCoin,
-                                orderType: 'market',
-                                size: quantityAvailable.toString(),
-                                side,
-                                tradeSide: 'close',
-                                reduceOnly: 'yes',
-                            })
-                            await this.orderService.cancelOrder(order._id, orderCancelled)
+            if (!positionBitget) {
+                await this.orderService.closeAllOrderOnSymbol(order.userId, order.symbol)
+            } else {
+                if (!order.terminated) {
+                    try {
+                        if (order.sendToPlateform && order.orderId) {
+                            if (!order.activated) {
+                                await clientV2.futuresCancelOrder({
+                                    symbol: this.bitgetUtilsService.convertSymbolToV2(order.symbol),
+                                    productType: BitgetService.PRODUCT_TYPEV2,
+                                    marginCoin: order.marginCoin,
+                                    clientOid: order.clOrderId.toString(),
+                                })
+                            } else {
+                                // const quantityAvailable = await this.orderService.getQuantityAvailable(order._id, order)
+                                // const side = order.side === 'long' ? 'buy' : 'sell'
+                                // await this.cancelStopLoss(clientV2, order._id)
+                                // await this.cancelTakeProfitsFromOrder(clientV2, order._id, order)
+                                // // cancel exact quantity of order => when is possibility with SDK + cancel all TP and SL
+                                // if (quantityAvailable > 0) {
+                                //     await clientV2.futuresSubmitOrder({
+                                //         symbol: this.bitgetUtilsService.convertSymbolToV2(order.symbol),
+                                //         productType: BitgetService.PRODUCT_TYPEV2,
+                                //         marginMode: 'isolated',
+                                //         marginCoin: order.marginCoin,
+                                //         orderType: 'market',
+                                //         size: quantityAvailable.toString(),
+                                //         side,
+                                //         tradeSide: 'close',
+                                //         reduceOnly: 'yes',
+                                //     })
+                                // }
+                                await clientV2.futuresFlashClosePositions({
+                                    symbol: this.bitgetUtilsService.convertSymbolToV2(order.symbol),
+                                    productType: BitgetService.PRODUCT_TYPEV2,
+                                })
+                                await this.orderService.cancelOrder(order._id, orderCancelled)
+                            }
                         }
+                    } catch (e) {
+                        let traceSeverity: ErrorTraceSeverity = ErrorTraceSeverity.IMMEDIATE
+                        if (e.body.code !== '40768') {
+                            // order not exists
+                            traceSeverity = ErrorTraceSeverity.ERROR
+                        }
+                        // !ignoreError &&
+                        this.errorTraceService.createErrorTrace('cancelOrder', order.userId, traceSeverity, {
+                            order,
+                            error: e,
+                        })
+                    } finally {
+                        await this.orderService.cancelOrder(order._id, orderCancelled)
                     }
-                } catch (e) {
-                    let traceSeverity: ErrorTraceSeverity = ErrorTraceSeverity.IMMEDIATE
-                    if (e.body.code !== '40768') {
-                        // order not exists
-                        traceSeverity = ErrorTraceSeverity.ERROR
-                    }
-                    // !ignoreError &&
-                    this.errorTraceService.createErrorTrace('cancelOrder', order.userId, traceSeverity, {
-                        order,
-                        error: e,
-                    })
-                } finally {
-                    await this.orderService.cancelOrder(order._id, orderCancelled)
                 }
             }
         } catch (e) {
@@ -727,34 +755,47 @@ export class BitgetFuturesService {
         }
     }
 
-    async disabledOrderLink(clientv2: RestClientV2, linkId: Types.ObjectId, userId: Types.ObjectId) {
+    async disabledOrderLink(clientV2: RestClientV2, linkId: Types.ObjectId, userId: Types.ObjectId) {
+        const symbolV2 = this.bitgetUtilsService.convertSymbolToV2(linkId.toString())
         const orders = await this.orderService.findAll({
             linkOrderId: linkId,
             terminated: false,
             activated: false,
             userId,
         })
+        const positionsBitget = await clientV2.getFuturesPosition({
+            symbol: symbolV2,
+            productType: BitgetService.PRODUCT_TYPEV2,
+            marginCoin: BitgetService.MARGIN_MODE,
+        })
+        const positionBitget = positionsBitget.data.find((p: any) => p.symbol === symbolV2)
         await Promise.all(
             orders.map(async (order) => {
-                await this.cancelOrder(clientv2, order)
+                await this.cancelOrder(clientV2, order, true, positionBitget)
             }),
         )
         await this.orderService.disabledOrderLink(linkId, userId)
     }
 
-    async disabledOrderLinkFromOrder(clientv2: RestClientV2, order: Order) {
-        const slTrigger = await this.orderService.getSLTriggerCurrentFromOrder(order);
-
+    async disabledOrderLinkFromOrder(clientV2: RestClientV2, order: Order) {
+        const slTrigger = await this.orderService.getSLTriggerCurrentFromOrder(order)
+        const symbolV2 = this.bitgetUtilsService.convertSymbolToV2(order.symbol)
         const orders = await this.orderService.findAll({
             linkOrderId: order.linkOrderId,
             terminated: false,
             activated: false,
             userId: order.userId,
-            PE: { $lte: slTrigger }
+            PE: { $lte: slTrigger },
         })
+        const positionsBitget = await clientV2.getFuturesPosition({
+            symbol: symbolV2,
+            productType: BitgetService.PRODUCT_TYPEV2,
+            marginCoin: BitgetService.MARGIN_MODE,
+        })
+        const positionBitget = positionsBitget.data.find((p: any) => p.symbol === symbolV2)
         await Promise.all(
             orders.map(async (order) => {
-                await this.cancelOrder(clientv2, order)
+                await this.cancelOrder(clientV2, order, true, positionBitget)
             }),
         )
     }
@@ -783,21 +824,28 @@ export class BitgetFuturesService {
         }
     }
 
-    async synchronizeAllSL(clientV2: RestClientV2, userId: Types.ObjectId, symbol: string, currentPrice?: number) {
+    async synchronizePosition(clientV2: RestClientV2, userId: Types.ObjectId, symbol: string, currentPrice?: number) {
         const symbolV2 = this.bitgetUtilsService.convertSymbolToV2(symbol)
         const position = await this.positionService.findOneAndUpdate({ userId, symbol: symbolV2, 'synchroExchange.SL': true }, { 'synchroExchange.SL': false }, { lean: true })
         try {
             // Si avant c'est déjà désactivé on ne fait rien
             if (!position) return
-            const orders = await this.orderService.findAll({ userId, symbol, terminated: false, activated: true })
-            const stopLossList = await this.stopLossService.findAll({
-                orderParentId: { $in: orders.map((o) => o._id) },
+            const order = await this.orderService.findOne({ userId, symbol, terminated: false, activated: true })
+            const stopLoss = await this.stopLossService.findOne({
+                orderParentId: order._id,
             })
-            const orderToActivate: Order[] = []
-            const collectData: any[] = []
-            // update all SL to minimum
-            for (const order of orders) {
-                const stopLoss = stopLossList.find((sl) => sl.orderParentId.equals(order._id))
+            const positionsBitget = await clientV2.getFuturesPosition({
+                symbol: symbolV2,
+                productType: BitgetService.PRODUCT_TYPEV2,
+                marginCoin: BitgetService.MARGIN_MODE,
+            })
+            const positionBitget: IBitgetPosition = positionsBitget.data.find((p: any) => p.symbol === symbolV2)
+            if (!positionBitget) {
+                await this.orderService.cancelOrder(order._id, true)
+            } else {
+                let orderToActivate: boolean = false
+                const collectData: any[] = []
+                // update all SL to minimum
                 const planOrders = await clientV2.getFuturesPlanOrders({
                     planType: 'profit_loss',
                     // orderId: stopLoss.orderId,
@@ -806,7 +854,8 @@ export class BitgetFuturesService {
                     productType: BitgetService.PRODUCT_TYPEV2,
                     startTime: new Date(order.createdAt).getTime(),
                 })
-                const stopLossBitgetList = planOrders.data.entrustedList?.filter((p: any) => p.planType === 'loss_plan' && p.planStatus === 'live')
+
+                const stopLossBitgetList: IBitgetPlanOrder[] = planOrders.data.entrustedList?.filter((p: any) => p.planType === 'loss_plan' && p.planStatus === 'live')
                 if (stopLossBitgetList.length > 1) {
                     for (const stopLossBitget of stopLossBitgetList) {
                         const params = {
@@ -827,81 +876,82 @@ export class BitgetFuturesService {
                             })
                         })
                     }
-                    orderToActivate.push(order)
-                    continue
-                }
-                const stopLossBitget = stopLossBitgetList[0]
-                if (!stopLoss || !stopLossBitget || stopLoss.terminated || !Types.ObjectId.isValid(stopLossBitget.clientOid)) {
-                    if (stopLoss) await this.stopLossService.deleteOne(stopLoss._id)
-                    if (stopLossBitget) {
-                        const params = {
-                            orderId: stopLossBitget.orderId,
-                            clientOid: stopLossBitget.clientOid,
-                            marginCoin: stopLossBitget.marginCoin,
-                            productType: BitgetService.PRODUCT_TYPEV2,
-                            symbol: stopLossBitget.symbol,
-                            planType: 'loss_plan',
-                        }
-                        await clientV2.futuresCancelPlanOrder(params).catch((e) => {
-                            this.errorTraceService.createErrorTrace('recreateAllSL > futuresCancelPlanOrder SL', userId, ErrorTraceSeverity.IMMEDIATE, {
-                                userId,
-                                symbol,
-                                stopLoss,
-                                error: e,
-                                stopLossBitget,
-                                stopLossBitgetList,
-                                params
-                            })
-                        })
-                    }
-                    orderToActivate.push(order)
-                    collectData.push({ order, stopLoss, stopLossBitget })
+                    orderToActivate = true
                 } else {
-                    const triggerPrice = await this.orderService.getSLTriggerCurrentFromOrder(order, currentPrice)
-                    const quantity = await this.orderService.getQuantityAvailable(order._id, order)
-                    if ((parseFloat(stopLossBitget.size) !== quantity || parseFloat(stopLossBitget.triggerPrice) !== triggerPrice) && stopLoss) {
-                        const params = {
-                            orderId: stopLossBitget.orderId,
-                            clientOid: stopLossBitget.clientOid,
-                            marginCoin: stopLossBitget.marginCoin,
-                            productType: BitgetService.PRODUCT_TYPEV2,
-                            symbol: stopLossBitget.symbol,
-                            triggerPrice: triggerPrice.toString(),
-                            triggerType: stopLossBitget.triggerType,
-                            size: quantity.toString(),
-                        }
-                        await clientV2.futuresModifyTPSLPOrder(params).catch((e) => {
-                            this.errorTraceService.createErrorTrace('recreateAllSL > futuresModifyPlanOrder SL', userId, ErrorTraceSeverity.IMMEDIATE, {
-                                userId,
-                                symbol,
-                                stopLoss,
-                                error: e,
-                                stopLossBitget,
-                                stopLossBitgetList,
-                                params
+                    const stopLossBitget = stopLossBitgetList[0]
+                    if (!stopLoss || !stopLossBitget || stopLoss.terminated || !Types.ObjectId.isValid(stopLossBitget.clientOid)) {
+                        if (stopLoss) await this.stopLossService.deleteOne(stopLoss._id)
+                        if (stopLossBitget) {
+                            const params = {
+                                orderId: stopLossBitget.orderId,
+                                clientOid: stopLossBitget.clientOid,
+                                marginCoin: stopLossBitget.marginCoin,
+                                productType: BitgetService.PRODUCT_TYPEV2,
+                                symbol: stopLossBitget.symbol,
+                                planType: 'loss_plan',
+                            }
+                            await clientV2.futuresCancelPlanOrder(params).catch((e) => {
+                                this.errorTraceService.createErrorTrace('recreateAllSL > futuresCancelPlanOrder SL', userId, ErrorTraceSeverity.IMMEDIATE, {
+                                    userId,
+                                    symbol,
+                                    stopLoss,
+                                    error: e,
+                                    stopLossBitget,
+                                    stopLossBitgetList,
+                                    params,
+                                })
                             })
-                        })
-                        stopLoss.triggerPrice = triggerPrice
-                        stopLoss.quantity = quantity
-                        stopLoss.orderId = stopLossBitget.orderId
-                        stopLoss.clOrderId = new Types.ObjectId(stopLossBitget.clientOid);
-                        await this.stopLossService.updateOne(stopLoss)
-                    } else if (stopLoss.quantity !== quantity || stopLoss.triggerPrice !== triggerPrice) {
-                        stopLoss.quantity = quantity
-                        stopLoss.triggerPrice = triggerPrice
-                        await this.stopLossService.updateOne(stopLoss)
+                        }
+                        orderToActivate = true
+                        collectData.push({ order, stopLoss, stopLossBitget })
+                    } else {
+                        const triggerPrice = await this.orderService.getSLTriggerCurrentFromOrder(order, currentPrice)
+                        const quantity = await this.orderService.getQuantityAvailable(order._id, order)
+                        if ((parseFloat(stopLossBitget.size) !== quantity || parseFloat(stopLossBitget.triggerPrice) !== triggerPrice) && stopLoss) {
+                            const params = {
+                                orderId: stopLossBitget.orderId,
+                                clientOid: stopLossBitget.clientOid,
+                                marginCoin: stopLossBitget.marginCoin,
+                                productType: BitgetService.PRODUCT_TYPEV2,
+                                symbol: stopLossBitget.symbol,
+                                triggerPrice: triggerPrice.toString(),
+                                triggerType: stopLossBitget.triggerType,
+                                size: quantity.toString(),
+                            }
+                            await clientV2.futuresModifyTPSLPOrder(params).catch((e) => {
+                                this.errorTraceService.createErrorTrace('recreateAllSL > futuresModifyPlanOrder SL', userId, ErrorTraceSeverity.IMMEDIATE, {
+                                    userId,
+                                    symbol,
+                                    stopLoss,
+                                    error: e,
+                                    stopLossBitget,
+                                    stopLossBitgetList,
+                                    params,
+                                })
+                            })
+                            stopLoss.triggerPrice = triggerPrice
+                            stopLoss.quantity = quantity
+                            stopLoss.orderId = stopLossBitget.orderId
+                            stopLoss.clOrderId = new Types.ObjectId(stopLossBitget.clientOid)
+                            await this.stopLossService.updateOne(stopLoss)
+                        } else if (stopLoss.quantity !== quantity || stopLoss.triggerPrice !== triggerPrice) {
+                            stopLoss.quantity = quantity
+                            stopLoss.triggerPrice = triggerPrice
+                            await this.stopLossService.updateOne(stopLoss)
+                        }
                     }
                 }
-            }
-            if (collectData.length > 0) {
-                this.errorTraceService.createErrorTrace('recreateAllSL > collectData', userId, ErrorTraceSeverity.INFO, {
-                    collectData,
-                })
-            }
-            await this.positionService.findOneAndUpdate({ userId, symbol: symbolV2 }, { 'synchroExchange.SL': true })
-            // update all SL to size
-            for (const order of orderToActivate) {
-                await this.activeSL(BitgetService.getClient(userId), order, currentPrice)
+
+                if (collectData.length > 0) {
+                    this.errorTraceService.createErrorTrace('recreateAllSL > collectData', userId, ErrorTraceSeverity.INFO, {
+                        collectData,
+                    })
+                }
+                await this.positionService.findOneAndUpdate({ userId, symbol: symbolV2 }, { 'synchroExchange.SL': true })
+                // update all SL to size
+                if (orderToActivate) {
+                    await this.activeSL(BitgetService.getClient(userId), order, currentPrice)
+                }
             }
         } catch (e) {
             this.errorTraceService.createErrorTrace('recreateAllSL', userId, ErrorTraceSeverity.IMMEDIATE, {

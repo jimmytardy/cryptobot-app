@@ -249,25 +249,25 @@ export class BitgetService implements OnModuleInit {
         }
     }
 
-    async updateOrderSL(order: Order, newSL: number): Promise<boolean> {
+    async updateOrderSL(order: Order, newSL: number, currentPrice: number = null): Promise<boolean> {
         try {
-            return await this.bitgetFuturesService.updateStopLoss(BitgetService.getClientV2(order.userId), order, newSL)
+            return await this.bitgetFuturesService.updateStopLoss(BitgetService.getClientV2(order.userId), order, newSL, currentPrice)
         } catch (e) {
             this.logger.error('updateOrderSL', e)
         }
     }
 
-    async synchronizeAllSL(userId: Types.ObjectId, symbol: string, currentPrice?: number) {
+    async synchronizePosition(userId: Types.ObjectId, symbol: string, currentPrice?: number) {
         try {
-            return await this.bitgetFuturesService.synchronizeAllSL(BitgetService.clientV2[userId.toString()], userId, symbol, currentPrice)
+            return await this.bitgetFuturesService.synchronizePosition(BitgetService.clientV2[userId.toString()], userId, symbol, currentPrice)
         } catch (e) {
             this.logger.error('recreateAllSL', e)
         }
     }
 
-    async cancelTakeProfitsFromOrder(orderId: Types.ObjectId, userId: Types.ObjectId, order: Order = null, deleteTakeProfit = false, ignoreError = false) {
+    async cancelTakeProfitsFromOrder(orderId: Types.ObjectId, userId: Types.ObjectId, order: Order = null) {
         try {
-            return await this.bitgetFuturesService.cancelTakeProfitsFromOrder(BitgetService.getClient(userId), orderId, order, deleteTakeProfit, ignoreError)
+            return await this.bitgetFuturesService.cancelTakeProfitsFromOrder(BitgetService.getClientV2(userId), orderId, order)
         } catch (e) {
             this.logger.error('cancelTakeProfitsFromOrder', e)
         }

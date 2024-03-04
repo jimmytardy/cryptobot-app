@@ -200,7 +200,8 @@ export class OrderBotService {
 
                     if (SLModif) {
                         try {
-                            await this.bitgetService.updateOrderSL(order, orderDTO.SL)
+                            if (!priceMemo[order.symbol]) priceMemo[order.symbol] = await this.bitgetService.getCurrentPrice('symbol', order.symbol)
+                            await this.bitgetService.updateOrderSL(order, orderDTO.SL, priceMemo[order.symbol])
                             success++
                         } catch (e) {
                             this.logger.error('setOrder => updateOrder', e, order.toObject(), 'update SL')
@@ -244,14 +245,14 @@ export class OrderBotService {
         return { status: true }
     }
 
-    async synchronizeAllSLOrderBot(orderBotId: string) {
+    async synchronizePositionOrderBot(orderBotId: string) {
         const orderBot = await this.orderBotModel.findById(orderBotId).lean().exec()
         const userIds = await this.orderModel.distinct('userId', { linkOrderId: orderBot.linkOrderId, terminated: false, activated: true }).exec();
         const users = await this.userService.getUsersWithSubscription(SubscriptionEnum.BOT, { _id: { $in: userIds }});
         const symbolRules = await this.bitgetService.getSymbolBy('baseCoin', orderBot.baseCoin)
         const request = []
         for (const user of users) {
-            request.push(this.bitgetService.synchronizeAllSL(user._id, symbolRules.symbol))
+            request.push(this.bitgetService.synchronizePosition(user._id, symbolRules.symbol))
         }
         await Promise.all(request)
         return { status: true }

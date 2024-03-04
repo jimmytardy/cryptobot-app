@@ -141,7 +141,7 @@ export class BitgetWsService {
                     if (quantityAvailable === 0) {
                         await this.orderService.cancelOrder(stopLoss.orderParentId, false)
                     } else {
-                        await this.bitgetService.synchronizeAllSL(stopLoss.userId, stopLoss.symbol)
+                        await this.bitgetService.synchronizePosition(stopLoss.userId, stopLoss.symbol)
                     }
                     break
                 case 'live':
@@ -154,7 +154,7 @@ export class BitgetWsService {
                         await this.stopLossService.updateOne(stopLoss)
                         const quantityAvailable = await this.orderService.getQuantityAvailable(stopLoss.orderParentId)
                         // if we are multiple Order, reorganise all SL
-                        if (quantityAvailable !== newSize) await this.bitgetService.synchronizeAllSL(stopLoss.userId, stopLoss.symbol)
+                        if (quantityAvailable !== newSize) await this.bitgetService.synchronizePosition(stopLoss.userId, stopLoss.symbol)
                     }
                     break
                 case 'executed':
@@ -163,7 +163,7 @@ export class BitgetWsService {
                 case 'executing':
                     break
                 case 'fail_execute':
-                    await this.bitgetService.synchronizeAllSL(stopLoss.userId, stopLoss.symbol)
+                    await this.bitgetService.synchronizePosition(stopLoss.userId, stopLoss.symbol)
                 default:
                     console.info('onUpdatedOrderAlgoSL', orderAlgoEvent.status, 'not implemented')
             }
@@ -284,7 +284,7 @@ export class BitgetWsService {
                 // cancel other order that not actived
                 await this.bitgetService.disabledOrderLinkFromOrder(order)
                 // upgrade stop loss
-                await this.bitgetService.synchronizeAllSL(order.userId, order.symbol, takeProfit.triggerPrice);
+                await this.bitgetService.synchronizePosition(order.userId, order.symbol, takeProfit.triggerPrice);
             }
         } catch (e) {
             this.erroTraceService.createErrorTrace('onStopLossTriggered', takeProfit.userId, ErrorTraceSeverity.IMMEDIATE, {
@@ -304,7 +304,7 @@ export class BitgetWsService {
             stopLoss.quantity = Number(orderAlgoEvent.size)
             stopLoss.PnL = UtilService.getPnL(stopLoss.quantity, order.PE, stopLoss.triggerPrice, order.side)
             await this.stopLossService.updateOne(stopLoss)
-            await this.bitgetService.cancelTakeProfitsFromOrder(stopLoss.orderParentId, stopLoss.userId, null, false, true)
+            await this.bitgetService.cancelTakeProfitsFromOrder(stopLoss.orderParentId, stopLoss.userId, null)
             await this.orderService.cancelOrder(stopLoss.orderParentId, false)
         } catch (e) {
             this.erroTraceService.createErrorTrace('onStopLossTriggered', stopLoss.userId, ErrorTraceSeverity.IMMEDIATE, {
