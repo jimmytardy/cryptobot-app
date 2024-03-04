@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "cp-telegram-client": "cp -r ~/cryptobot-telegram-react/telegram-client ./dist",
+    "cp-telegram-client": "cp -r ~/cryptobot-telegram-react/telegram-client/build ./dist",
     "build": "nest build && pnpm run cp-telegram-client",
     "build:app": "cd app && pnpm run build",
     "build:all": "pnpm run build:app && pnpm run build",
