@@ -676,9 +676,9 @@ export class BitgetFuturesService {
                 await clientV2.futuresCancelPlanOrder(params)
             }
             if (deleteTakeProfits) {
-                await this.takeProfitService.deleteMany({ orderParentId: orderId, activated: false, terminated: false, cancelled: false })
+                await this.takeProfitService.deleteMany({ orderParentId: orderId, activated: false })
             } else {
-                await this.takeProfitService.cancel({ orderParentId: order._id, terminated: false })
+                await this.takeProfitService.cancel({ orderParentId: order._id, activated: false })
             }
         } catch (e) {
             this.errorTraceService.createErrorTrace('cancelTakeProfitsFromOrder', order.userId, ErrorTraceSeverity.ERROR, {
