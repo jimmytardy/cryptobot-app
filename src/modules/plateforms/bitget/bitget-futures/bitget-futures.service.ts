@@ -44,7 +44,7 @@ export class BitgetFuturesService {
         private takeProfitService: TakeProfitService,
         private errorTraceService: ErrorTraceService,
         private positionService: PositionService,
-    ) {}
+    ) { }
 
     async setLeverage(client: FuturesClient, symbol: string, newLeverage: number, side: FuturesHoldSide): Promise<void> {
         await client
@@ -675,16 +675,17 @@ export class BitgetFuturesService {
                 }
                 await clientV2.futuresCancelPlanOrder(params)
             }
-            if (deleteTakeProfits) {
-                await this.takeProfitService.deleteMany({ orderParentId: orderId, activated: false })
-            } else {
-                await this.takeProfitService.cancel({ orderParentId: order._id, activated: false })
-            }
         } catch (e) {
             this.errorTraceService.createErrorTrace('cancelTakeProfitsFromOrder', order.userId, ErrorTraceSeverity.ERROR, {
                 order,
                 error: e,
             })
+        } finally {
+            if (deleteTakeProfits) {
+                await this.takeProfitService.deleteMany({ orderParentId: orderId, activated: false })
+            } else {
+                await this.takeProfitService.cancel({ orderParentId: order._id, activated: false })
+            }
         }
     }
 

@@ -36,12 +36,11 @@ export class TasksService implements OnApplicationBootstrap, OnModuleInit {
     }
 
     async onApplicationBootstrap() {
-        await this.syncOrderSL()
+        await this.syncPositions()
         const symbol = await this.symbolModel.findOne({}, '+positionTier').exec()
         if (!symbol?.positionTier || symbol.positionTier.length === 0) {
             await this.updateSymbolRules()
         }
-        await this.updateQuantity()
     }
 
     @Cron(CronExpression.EVERY_12_HOURS)
@@ -54,7 +53,7 @@ export class TasksService implements OnApplicationBootstrap, OnModuleInit {
     }
 
     @Cron(CronExpression.EVERY_HOUR)
-    async syncOrderSL() {
+    async syncPositions() {
         const appConfig = await this.appConfigModel.findOne()
         if (appConfig.syncOrdersBitget.active) {
             const orders = await this.orderModel.find({ terminated: false, activated: true }).exec()
