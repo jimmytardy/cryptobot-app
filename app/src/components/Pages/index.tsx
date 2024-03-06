@@ -19,6 +19,7 @@ import Tutorial from '../Tutorial'
 import Users from './Admin/Users'
 import ErrorTraceRouter from './Admin/ErrorTrace/index.router'
 import TelegramChannel from './Admin/TelegramChannel'
+import StategyRouter from './Admin/Strategies/index.router'
 
 export interface ICryptobotRouterProps {
     routes: IRoute[]
@@ -98,6 +99,11 @@ const Pages = () => {
             Component: Users,
             path: 'users',
             title: 'Utilisateurs',
+        },
+        {
+            Component: StategyRouter,
+            path: 'strategy/*',
+            title: 'Statégies',
         },
         {
             title: 'Erreurs',

@@ -41,7 +41,6 @@ export class TasksService implements OnApplicationBootstrap, OnModuleInit {
         if (!symbol?.positionTier || symbol.positionTier.length === 0) {
             await this.updateSymbolRules()
         }
-        await this.updateQuantity()
     }
 
     @Cron(CronExpression.EVERY_12_HOURS)
@@ -80,7 +79,7 @@ export class TasksService implements OnApplicationBootstrap, OnModuleInit {
         await Promise.all(
             users.map(async (user) => {
                 const account = await this.bitgetService.getProfile(user._id)
-                user.preferences.order.quantity = Math.ceil(account.totalPnL)
+                user.preferences.bot.quantity = Math.ceil(account.totalPnL)
                 await this.userService.updateOne(user)
             }),
         )

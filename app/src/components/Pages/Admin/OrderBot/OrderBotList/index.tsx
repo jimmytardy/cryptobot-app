@@ -28,7 +28,7 @@ const OrderBotList = () => {
             <Row>
                 <Button style={{width: 200}} className="ms-auto mb-4" variant='success' onClick={() => navigate('/admin/order-bot/new')}>
                     Ajouter un ordre
-                </Button>
+               </Button>
             </Row>
             <Row className="list-header">
                 <Col xs={3} md={1}>Base Coin</Col>
@@ -71,7 +71,7 @@ const OrderBotList = () => {
                     ))}
                 </Col>
             </Row>
-        </Container>
+        </Container> 
     )
 }
 

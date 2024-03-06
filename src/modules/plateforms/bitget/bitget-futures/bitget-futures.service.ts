@@ -80,10 +80,11 @@ export class BitgetFuturesService {
                     `La quantité ${margin} est trop petite pour un ordre, le minimum est ${symbolRules.minTradeNum}`,
                 )
             }
-            const sideOrder = side.split('_')[1] as FuturesHoldSide
-            let TPsCalculate = this.bitgetUtilsService.caculateTPsToUse(tps, size, user.preferences.order.TPSize, symbolRules, sideOrder).TPPrice
+            const sideOrder = side.split('_')[1] as FuturesHoldSide;
+            const tpForStrategy = UtilService.getTPsForStrategy(tps, user.preferences.bot.strategy.TP);
+            let TPsCalculate = this.bitgetUtilsService.caculateTPsToUse(tpForStrategy, size, user.preferences.bot.strategy.TP.TPSize, symbolRules, sideOrder).TPPrice
             // @ts-ignore
-            if (TPsCalculate.length === 0) throw new Error(`La quantité est trop petite pour la taille des TPs`)
+            if (TPsCalculate.length === 0) throw new Error(`La quantité est trop petite pour la taille des TPs ou la stratégie ne permet pas de poser cette ordre`)
             const clOrderId = new Types.ObjectId()
             let newOrder: Order = {
                 _id: new Types.ObjectId(),
@@ -102,7 +103,7 @@ export class BitgetFuturesService {
                 activated: false,
                 terminated: false,
                 leverage,
-                strategy: user.preferences.order.strategy,
+                strategy: user.preferences.bot.strategy,
             } as Order
             this.orderService.validateOrder(newOrder)
 
@@ -196,7 +197,7 @@ export class BitgetFuturesService {
                     orderAlreadActived.PEsTriggered.length,
                 )
                 await this.orderService.updateOne(orderAlreadActived)
-                await this.updateTakeProfits(client, orderAlreadActived, orderAlreadActived.TPs, user.preferences.order.TPSize)
+                await this.updateTakeProfits(client, orderAlreadActived, orderAlreadActived.TPs)
                 await this.updateStopLoss(BitgetService.getClientV2(orderAlreadActived.userId), orderAlreadActived, orderAlreadActived.SL, parseFloat(orderBitget.priceAvg))
                 await this.orderService.deleteOne(order._id)
             } else {
@@ -209,7 +210,7 @@ export class BitgetFuturesService {
                 await UtilService.sleep(1000) // tempo to avoid error on bitget
                 await this.activeSL(client, order)
                 await UtilService.sleep(1000) // tempo to avoid error on bitget
-                await this.activeTPs(client, user.preferences.order.TPSize, symbolRules, order)
+                await this.activeTPs(client, symbolRules, order)
                 order.inActivation = false
                 await this.orderService.updateOne(order)
             }
@@ -223,8 +224,8 @@ export class BitgetFuturesService {
         }
     }
 
-    async activeTPs(client: FuturesClient, tpSize: TPSizeType, symbolRules: FuturesSymbolRule, order: Order) {
-        const TPSize = this.bitgetUtilsService.caculateTPsToUse(order.TPs, order.quantity, tpSize, symbolRules, order.side).TPSize
+    async activeTPs(client: FuturesClient, symbolRules: FuturesSymbolRule, order: Order) {
+        const TPSize = this.bitgetUtilsService.caculateTPsToUse(order.TPs, order.quantity, order.strategy.TP.TPSize, symbolRules, order.side).TPSize
         for (let i = 0; i < TPSize.length; i++) {
             const size = TPSize[i]
             const TP = order.TPs[i]
@@ -233,7 +234,6 @@ export class BitgetFuturesService {
             } catch (e) {
                 this.errorTraceService.createErrorTrace('activeTPs', order.userId, ErrorTraceSeverity.IMMEDIATE, {
                     order,
-                    tpSize,
                     symbolRules,
                     TPSize,
                     i,
@@ -546,7 +546,7 @@ export class BitgetFuturesService {
         }
     }
 
-    async updateTakeProfits(client: FuturesClient, order: Order, newTPs: number[], TPSize: TPSizeType, currentPrice: number = null): Promise<boolean> {
+    async updateTakeProfits(client: FuturesClient, order: Order, newTPs: number[], currentPrice: number = null): Promise<boolean> {
         try {
             const symbolRules = await this.bitgetUtilsService.getSymbolBy('symbol', order.symbol)
             if (order.sendToPlateform && order.activated) {
@@ -561,7 +561,7 @@ export class BitgetFuturesService {
                 )
 
                 const totalQuantity = await this.orderService.getQuantityAvailable(order._id, order)
-                let TPList = [...newTPs]
+                let TPList = UtilService.getTPsForStrategy(newTPs, order.strategy.TP);
                 const takeProfitNotTerminated = []
                 const TPPriceTerminated = []
                 let startNum = 1
@@ -578,7 +578,7 @@ export class BitgetFuturesService {
                 const { TPPrice: newTPPricesCalculate, TPSize: newTPSizeCalculate } = this.bitgetUtilsService.caculateTPsToUse(
                     TPList,
                     totalQuantity,
-                    TPSize,
+                    order.strategy.TP.TPSize,
                     symbolRules,
                     order.side,
                 )
@@ -591,7 +591,7 @@ export class BitgetFuturesService {
 
                 order.TPs = [...TPPriceTerminated, ...newTPPricesCalculate]
             } else {
-                const newTPsCalculate = this.bitgetUtilsService.caculateTPsToUse(newTPs, order.quantity, TPSize, symbolRules, order.side).TPPrice
+                const newTPsCalculate = this.bitgetUtilsService.caculateTPsToUse(newTPs, order.quantity, order.strategy.TP.TPSize, symbolRules, order.side).TPPrice
                 order.TPs = newTPsCalculate
             }
             await this.orderService.updateOne(order)
@@ -600,7 +600,6 @@ export class BitgetFuturesService {
             this.errorTraceService.createErrorTrace('updateTakeProfits', order.userId, ErrorTraceSeverity.ERROR, {
                 order,
                 newTPs,
-                TPSize,
                 error: e,
             })
             return false

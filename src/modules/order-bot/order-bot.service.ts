@@ -113,7 +113,7 @@ export class OrderBotService {
 
     async placeOrderBot(orderBot: OrderBot, users: User[]) {
         try {
-            const userFiltered = users.filter((user) => !user.preferences.order.baseCoinAuthorized || user.preferences.order.baseCoinAuthorized.includes(orderBot.baseCoin))
+            const userFiltered = users.filter((user) => !user.preferences.bot.baseCoinAuthorized || user.preferences.bot.baseCoinAuthorized.includes(orderBot.baseCoin))
             const price = await this.bitgetService.getCurrentPrice('baseCoin', orderBot.baseCoin)
             const symbolRules = await this.bitgetService.getSymbolBy('baseCoin', orderBot.baseCoin)
             if (!symbolRules) throw new Error(`Symbol ${orderBot.baseCoin} not found`)

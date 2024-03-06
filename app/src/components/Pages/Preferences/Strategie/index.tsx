@@ -7,49 +7,53 @@ import {
     FormText,
     Row,
 } from 'react-bootstrap'
-import { useFormContext } from 'react-hook-form'
-import { IPreferencePayload, IOrderStrategy, SLStepEnum } from '..'
+import { Path, useFormContext } from 'react-hook-form'
+import { IOrderStrategy, SLStepEnum } from '..'
 import './index.scss'
 import { useCallback } from 'react'
 
-const Strategie = () => {
-    const { setValue, watch } = useFormContext<IPreferencePayload>()
-    const strategy = watch('order.strategy')
+interface IStrategieProps<T extends object> {
+    name: Path<T>;
+}
 
-    const stepLabel: { [key in SLStepEnum]: string } = {
-        [SLStepEnum.Default]: 'SL de base',
-        [SLStepEnum.PE_BAS]: 'PE le plus bas',
-        [SLStepEnum.PE_HAUT]: 'PE le plus haut',
-        [SLStepEnum.TP1]: 'TP1',
-        [SLStepEnum.TP2]: 'TP2',
-        [SLStepEnum.TP3]: 'TP3',
-        [SLStepEnum.TP4]: 'TP4',
-    }
-    const toogleStrategie = useCallback(() => {
-        if (strategy) setValue('order.strategy', undefined)
-        else
-            setValue('order.strategy', {
-                '0': SLStepEnum.PE_BAS,
-                '1': SLStepEnum.PE_HAUT,
-                '2': SLStepEnum.TP1,
-                '3': SLStepEnum.TP2,
-                '4': SLStepEnum.TP3,
-            })
-    }, [strategy])
+const Strategie = <T extends object,>({ name }: IStrategieProps<T>) => {
+    const { setValue, watch } = useFormContext<T>()
+    const strategy = watch(name)
 
-    const onChangeStrategie =
-        (key: keyof IOrderStrategy) => (value: number) => {
-            if (strategy) {
-                setValue('order.strategy', {
-                    ...strategy,
-                    [key]: value,
-                })
-            }
-        }
+    // const stepLabel: { [key in SLStepEnum]: string } = {
+    //     [SLStepEnum.Default]: 'SL de base',
+    //     [SLStepEnum.PE_BAS]: 'PE le plus bas',
+    //     [SLStepEnum.PE_HAUT]: 'PE le plus haut',
+    //     [SLStepEnum.TP1]: 'TP1',
+    //     [SLStepEnum.TP2]: 'TP2',
+    //     [SLStepEnum.TP3]: 'TP3',
+    //     [SLStepEnum.TP4]: 'TP4',
+    // }
+    // const toogleStrategie = useCallback(() => {
+    //     if (strategy) setValue('order.strategy', undefined)
+    //     else
+    //         setValue('order.strategy', {
+    //             '0': SLStepEnum.PE_BAS,
+    //             '1': SLStepEnum.PE_HAUT,
+    //             '2': SLStepEnum.TP1,
+    //             '3': SLStepEnum.TP2,
+    //             '4': SLStepEnum.TP3,
+    //         })
+    // }, [strategy])
+
+    // const onChangeStrategie =
+    //     (key: keyof IOrderStrategy) => (value: number) => {
+    //         if (strategy) {
+    //             setValue('order.strategy', {
+    //                 ...strategy,
+    //                 [key]: value,
+    //             })
+    //         }
+    //     }
 
     return (
         <Row className="strategy">
-            <FormCheck
+            {/* <FormCheck
                 type="switch"
                 id="strategy"
                 checked={!Boolean(strategy)}
@@ -154,7 +158,7 @@ const Strategie = () => {
                         </Row>
                     </FormGroup>
                 )}
-            </Col>
+            </Col> */}
         </Row>
     )
 }
