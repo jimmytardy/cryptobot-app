@@ -37,6 +37,7 @@ export class TasksService implements OnApplicationBootstrap, OnModuleInit {
 
     async onApplicationBootstrap() {
         await this.syncPositions()
+        await this.synchroSubscriptions();
         const symbol = await this.symbolModel.findOne({}, '+positionTier').exec()
         if (!symbol?.positionTier || symbol.positionTier.length === 0) {
             await this.updateSymbolRules()
@@ -54,7 +55,7 @@ export class TasksService implements OnApplicationBootstrap, OnModuleInit {
 
     @Cron(CronExpression.EVERY_HOUR)
     async syncPositions() {
-        const appConfig = await this.appConfigModel.findOne()
+        const appConfig = await this.appConfigModel.findOne() 
         if (appConfig.syncOrdersBitget.active) {
             const orders = await this.orderModel.find({ terminated: false, activated: true }).exec()
             const currentPriceMemo: { [key: string]: number } = {}

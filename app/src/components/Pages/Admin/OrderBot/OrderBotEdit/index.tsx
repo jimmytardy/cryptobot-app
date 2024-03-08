@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router'
 import axiosClient from '../../../../../axiosClient'
 import Loader from '../../../../utils/Loader'
 import { FormProvider, useForm } from 'react-hook-form'
-import { Col, Container, Row, Button, Modal } from 'react-bootstrap'
+import { Col, Container, Row, Button, Modal, FormLabel } from 'react-bootstrap'
 import { ArraySortEnum, checkSortArray, isObjectId } from '../../../../../utils'
 import NotFound from '../../../../utils/NotFound'
 import PlaceOrderForm from '../../../../PlaceOrderForm'
@@ -12,6 +12,7 @@ import PlaceOrderForm from '../../../../PlaceOrderForm'
 const OrderBotEdit = () => {
     const [isLoading, setIsLoading] = useState<boolean>(true)
     const [message, setMessage] = useState<string>()
+    const [currentPrice, setCurrentPrice] = useState<number>()
     const [showModal, setShowModal] = useState<'resume' | 'delete' | 'close-position' | 'synchronize' | undefined>()
     const navigate = useNavigate()
     let { id } = useParams()
@@ -20,16 +21,18 @@ const OrderBotEdit = () => {
 
     useEffect(() => {
         if (!isObjectId(id)) return
-        ;(async () => {
-            const response = await axiosClient.get<IOrderBot>('/order-bot/' + id)
-            if (!response) return navigate('/admin/order-bot')
-            methods.reset(response.data)
-            setlockedFields({
-                baseCoin: response.data.baseCoin,
-                side: response.data.side,
-            })
-            setIsLoading(false)
-        })()
+            ; (async () => {
+                const response = await axiosClient.get<IOrderBot & { currentPrice: number }>('/order-bot/' + id)
+                if (!response) return navigate('/admin/order-bot');
+                const { currentPrice: currentPriceData, ...orderBot } = response.data
+                setCurrentPrice(currentPriceData);
+                methods.reset(orderBot)
+                setlockedFields({
+                    baseCoin: response.data.baseCoin,
+                    side: response.data.side,
+                })
+                setIsLoading(false)
+            })()
     }, [])
 
     if (isObjectId(id) === false) return <NotFound />
@@ -106,7 +109,7 @@ const OrderBotEdit = () => {
                 await axiosClient.post('/order-bot/close-position/' + id)
                 setMessage('Toutes les positions ont bien été fermées')
             } else if (action === 'synchronize') {
-                await axiosClient.post('/order-bot/synchronize-all-sl/' + id)
+                await axiosClient.post('/order-bot/synchronize/' + id)
                 setMessage('Toutes les positions ont bien été synchronisées')
             }
         } catch (error: any) {
@@ -121,6 +124,9 @@ const OrderBotEdit = () => {
             <h2>Edition d'un ordre de bot</h2>
             <FormProvider {...methods}>
                 <form onSubmit={methods.handleSubmit(handleOrderBotSave)}>
+                <Row>
+                    <FormLabel><b>Prix actuel: {currentPrice}</b></FormLabel>
+                </Row>
                     <PlaceOrderForm
                         lockedFields={lockedFields}
                     />
@@ -129,19 +135,19 @@ const OrderBotEdit = () => {
                             {message && <p>{message}</p>}
                         </Col>
                         <Col xs={12} className="text-center m-auto">
-                            <Button style={{ width: 150 }} type="submit">
+                            <Button className="ms-5 mb-4" style={{ width: 150 }} type="submit">
                                 Enregistrer
                             </Button>
-                            <Button className="ms-5" style={{ width: 150 }} onClick={handleOpenModalResume}>
+                            <Button className="ms-5 mb-4" style={{ width: 150 }} onClick={handleOpenModalResume}>
                                 Reprendre
                             </Button>
-                            <Button className="ms-5" variant="danger" style={{ width: 300 }} type="button" onClick={handleOpenModalDelete}>
+                            <Button className="ms-5 mb-4" variant="danger" style={{ width: 300 }} type="button" onClick={handleOpenModalDelete}>
                                 Supprimer tous les ordres en cours
                             </Button>
-                            <Button className="ms-5" variant="danger" style={{ width: 300 }} onClick={handleOpenModalSynchronize}>
-                                Synchroniser les Stoploss
+                            <Button className="ms-5 mb-4" variant="danger" style={{ width: 300 }} onClick={handleOpenModalSynchronize}>
+                                Synchroniser les Positions
                             </Button>
-                            <Button className="ms-5" variant="danger" style={{ width: 300 }} onClick={handleOpenModalForceClosePosition}>
+                            <Button className="ms-5 mb-4" variant="danger" style={{ width: 300 }} onClick={handleOpenModalForceClosePosition}>
                                 Fermer toutes les positions
                             </Button>
                         </Col>
@@ -160,7 +166,7 @@ const OrderBotEdit = () => {
                                     <Button variant="primary" onClick={() => handleActionModal(showModal)}>
                                         Reprendre
                                     </Button>
-                                ): showModal === 'synchronize' ? (
+                                ) : showModal === 'synchronize' ? (
                                     <Button variant="danger" onClick={() => handleActionModal(showModal)}>
                                         Synchroniser
                                     </Button>

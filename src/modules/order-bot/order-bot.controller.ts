@@ -4,13 +4,14 @@ import { OrderBotService } from './order-bot.service';
 import { NewOrderBotDTO, SetOrderBotDTO } from './order-bot.dto';
 import { Types } from 'mongoose';
 import { OrderBot } from 'src/model/OrderBot';
+import { BitgetService } from '../plateforms/bitget/bitget.service';
 
 @Controller('order-bot')
 @UseGuards(JwtAuthGuard)
 export class OrderBotController {
     logger: Logger = new Logger('OrderBotController');
 
-    constructor(private orderBotService: OrderBotService) { }
+    constructor(private orderBotService: OrderBotService, private bitgetService: BitgetService) { }
     
     @Get()
     getOrderBots(@Req() req) {
@@ -34,9 +35,13 @@ export class OrderBotController {
     }
 
     @Get(':orderId')
-    getOrderBot(@Req() req, @Param('orderId') orderId: string) {
+    async getOrderBot(@Req() req, @Param('orderId') orderId: string) {
         if (!req.user.isAdmin) throw new HttpException('Vous n\'avez pas les droits pour accéder à cette ressource', 403);
-        return this.orderBotService.findById(orderId);
+        const orderBot = (await this.orderBotService.findById(orderId)).toObject();
+        return {
+            ...orderBot,
+            currentPrice: await this.bitgetService.getCurrentPrice('baseCoin', orderBot.baseCoin),
+        };
     }
 
     @Post(':orderId')
@@ -69,7 +74,7 @@ export class OrderBotController {
         return await this.orderBotService.closeForcePosition(orderId);
     }
 
-    @Post('synchronize-all-sl/:orderId')
+    @Post('synchronize/:orderId')
     async synchronzeAllSLOrderBot(@Req() req, @Param('orderId') orderId: string) {
         if (!req.user.isAdmin) throw new HttpException('Vous n\'avez pas les droits pour cette action', 403);
         return await this.orderBotService.synchronizePositionOrderBot(orderId);

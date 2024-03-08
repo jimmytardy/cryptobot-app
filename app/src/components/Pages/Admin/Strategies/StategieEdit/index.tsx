@@ -37,7 +37,7 @@ const StategieEdit = () => {
             },
         },
     })
-    const navigate = useNavigate()
+    
     const [loading, setLoading] = useState<boolean>(true)
     let { id } = useParams()
     if (!id) return <Navigate to={'/admin/strategy'} />

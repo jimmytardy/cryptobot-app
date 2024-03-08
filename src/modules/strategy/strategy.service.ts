@@ -12,4 +12,8 @@ export class StrategyService {
     async findAll(filter?: FilterQuery<Strategy>, select?: ProjectionType<Strategy>, options?: QueryOptions<Strategy>) {
         return await this.stategyModel.find(filter, select, options).exec();
     }
+
+    async findAndUpdateOne(strategy: Strategy) {
+        return await this.stategyModel.findOneAndUpdate({ _id: strategy._id }, strategy, { new: true, upsert: true }).exec();
+    }
 }
