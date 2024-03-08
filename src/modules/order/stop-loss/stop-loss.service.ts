@@ -53,6 +53,6 @@ export class StopLossService {
     }
 
     getNewStep(numTPTrigger: number, strategy: IOrderStrategy): number {
-        return strategy ? strategy[numTPTrigger] : numTPTrigger - 1 // numTPTrigger + 1 = Place dans la liste des steps, -2 pour obtenir le step actuel => numTPTrigger - 1
+        return strategy ? strategy.SL[numTPTrigger] : numTPTrigger - 1 // numTPTrigger + 1 = Place dans la liste des steps, -2 pour obtenir le step actuel => numTPTrigger - 1
     }
 }

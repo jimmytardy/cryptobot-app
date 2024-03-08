@@ -79,7 +79,7 @@ export class TasksService implements OnApplicationBootstrap, OnModuleInit {
         await Promise.all(
             users.map(async (user) => {
                 const account = await this.bitgetService.getProfile(user._id)
-                user.preferences.order.quantity = Math.ceil(account.totalPnL)
+                user.preferences.bot.quantity = Math.ceil(account.totalPnL)
                 await this.userService.updateOne(user)
             }),
         )

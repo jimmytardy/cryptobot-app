@@ -17,7 +17,7 @@ export const createMockUser = (user: Partial<User> = {}): User => ({
     lastname: faker.person.lastName(),
     isAdmin: false,
     preferences: {
-        order: {
+        bot: {
             TPSize: {
                 1: [1],
                 2: [0.5, 0.5],
@@ -26,9 +26,7 @@ export const createMockUser = (user: Partial<User> = {}): User => ({
                 5: [0.15, 0.2, 0.3, 0.2, 0.15],
                 6: [0.1, 0.15, 0.25, 0.25, 0.15, 0.1],
             },
-            quantity: 500,
-            marginCoin: 'USDT',
-            baseCoinAuthorized: undefined,
+            
         },
     },
     subscription: undefined,
@@ -36,7 +34,7 @@ export const createMockUser = (user: Partial<User> = {}): User => ({
     referralCode: faker.string.uuid(),
     referrer: undefined,
     ...user
-})
+} as any)
 
 export const createMockOrderStrategy = (orderStrategy: Partial<IOrderStrategy> = {}): IOrderStrategy => ({
     '0': SLStepEnum.Default,
@@ -45,4 +43,4 @@ export const createMockOrderStrategy = (orderStrategy: Partial<IOrderStrategy> =
     '3': SLStepEnum.TP1,
     '4': SLStepEnum.TP2,
     ...orderStrategy
-})
+} as any)

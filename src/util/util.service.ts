@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common'
 import { FuturesHoldSide } from 'bitget-api'
 import { IArrayModification } from './util.interface'
 import * as exactMath from 'exact-math'
+import { IOrderStrategyTP } from 'src/interfaces/order-strategy.interface'
+import { TPSizeType } from 'src/model/User'
 
 @Injectable()
 export class UtilService {
@@ -85,5 +87,9 @@ export class UtilService {
             code += characters.charAt(Math.floor(Math.random() * characters.length))
         }
         return code
+    }
+
+    static getTPsForStrategy(tps: number[], TPStrategie: IOrderStrategyTP): number[] {
+        return tps.filter((_, index) => TPStrategie.numAutorized[index])
     }
 }

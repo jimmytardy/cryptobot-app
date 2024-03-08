@@ -83,7 +83,7 @@ export class BitgetUtilsService {
     }
 
     async getQuantityForOrder(client: FuturesClient, user: User) {
-        let { quantity, pourcentage } = user.preferences.order || {}
+        let { quantity, pourcentage } = user.preferences.bot || {}
         if (!quantity && quantity !== 0) {
             const account = await this.getAccount(client)
             quantity = account.usdtEquity

@@ -18,6 +18,7 @@ interface IControllerArrayNumberProps<T extends FieldValues> {
     type?: 'string' | 'number'
     className?: string,
     max?: number
+    disabled?: boolean
 }
 
 const ControllerArrayNumber = <T extends FieldValues>({
@@ -27,6 +28,7 @@ const ControllerArrayNumber = <T extends FieldValues>({
     className,
     type = 'string',
     max = -1,
+    disabled = false,
 }: IControllerArrayNumberProps<T>) => {
     const { control, getValues, setValue } = useFormContext<T>()
     // Gérer les changements dans l'array'
@@ -102,6 +104,7 @@ const ControllerArrayNumber = <T extends FieldValues>({
                                     <div className="controller-array-number-input">
                                         <Form.Control
                                             type="text"
+                                            disabled={disabled}
                                             value={elem}
                                             id={`${field}-${index}`}
                                             onKeyDown={(e) => {

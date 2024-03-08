@@ -243,7 +243,7 @@ export class BitgetService implements OnModuleInit {
 
     async updateTPsOfOrder(order: OrderDocument, newTPs: number[], user?: User, currentPrice?: number): Promise<boolean> {
         try {
-            return await this.bitgetFuturesService.updateTakeProfits(BitgetService.getClient(order.userId), order, newTPs, user.preferences.order.TPSize, currentPrice)
+            return await this.bitgetFuturesService.updateTakeProfits(BitgetService.getClient(order.userId), order, newTPs, currentPrice)
         } catch (e) {
             this.logger.error('updateTPsOfOrder:' + e)
         }

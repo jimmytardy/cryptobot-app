@@ -10,23 +10,6 @@ export type TPSizeType = { [x: string]: number[] }
 
 export type LeviersSizeType = { minPrice: number; value: number }[]
 
-const defaultUserPreference: IUserPreferences = {
-    order: {
-        TPSize: {
-            1: [1],
-            2: [0.5, 0.5],
-            3: [0.25, 0.5, 0.25],
-            4: [0.2, 0.3, 0.3, 0.2],
-            5: [0.15, 0.2, 0.3, 0.2, 0.15],
-            6: [0.1, 0.15, 0.25, 0.25, 0.15, 0.1],
-        },
-        marginCoin: 'USDT',
-        baseCoinAuthorized: undefined,
-        automaticUpdate: false,
-        pourcentage: 4
-    },
-}
-
 @Schema({ _id: false })
 export class IUserCryptoExchange {
     @Prop()
@@ -47,9 +30,6 @@ export class IUserPreferencesOrder {
     @Prop({ type: Number })
     quantity?: number
 
-    @Prop({ type: SchemaTypes.Mixed })
-    TPSize: TPSizeType
-
     @Prop({ type: String, default: 'USDT' })
     marginCoin: string
     
@@ -64,7 +44,7 @@ export class IUserPreferencesOrder {
 }
 
 export class IUserPreferences {
-    order: IUserPreferencesOrder
+    bot: IUserPreferencesOrder
 }
 
 @Schema({
@@ -91,7 +71,7 @@ export class User {
     @Prop({ type: SchemaTypes.Mixed })
     bitget: IUserCryptoExchange
 
-    @Prop({ type: SchemaTypes.Mixed, default: defaultUserPreference })
+    @Prop({ type: SchemaTypes.Mixed, required: true })
     preferences: IUserPreferences
 
     @Prop({ default: false })
