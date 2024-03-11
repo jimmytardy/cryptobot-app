@@ -44,7 +44,7 @@ export class BitgetFuturesService {
         private takeProfitService: TakeProfitService,
         private errorTraceService: ErrorTraceService,
         private positionService: PositionService,
-    ) { }
+    ) {}
 
     async setLeverage(client: FuturesClient, symbol: string, newLeverage: number, side: FuturesHoldSide): Promise<void> {
         await client
@@ -80,8 +80,8 @@ export class BitgetFuturesService {
                     `La quantité ${margin} est trop petite pour un ordre, le minimum est ${symbolRules.minTradeNum}`,
                 )
             }
-            const sideOrder = side.split('_')[1] as FuturesHoldSide;
-            const tpForStrategy = UtilService.getTPsForStrategy(tps, user.preferences.bot.strategy.TP);
+            const sideOrder = side.split('_')[1] as FuturesHoldSide
+            const tpForStrategy = UtilService.getTPsForStrategy(tps, user.preferences.bot.strategy.TP)
             let TPsCalculate = this.bitgetUtilsService.caculateTPsToUse(tpForStrategy, size, user.preferences.bot.strategy.TP.TPSize, symbolRules, sideOrder).TPPrice
             // @ts-ignore
             if (TPsCalculate.length === 0) throw new Error(`La quantité est trop petite pour la taille des TPs ou la stratégie ne permet pas de poser cette ordre`)
@@ -250,7 +250,7 @@ export class BitgetFuturesService {
         if (totalQuantity === 0) return
         const SLTrigger = await this.orderService.getSLTriggerCurrentFromOrder(order, currentPrice)
         try {
-            await this.cancelStopLoss(BitgetService.getClientV2(order.userId), order._id);
+            await this.cancelStopLoss(BitgetService.getClientV2(order.userId), order._id)
             const clientOid = new Types.ObjectId()
             const params: NewFuturesPlanStopOrder = {
                 symbol: order.symbol,
@@ -457,7 +457,7 @@ export class BitgetFuturesService {
 
     async updateStopLoss(clientV2: RestClientV2, order: Order, newSL?: number, currentPrice: number = null): Promise<boolean> {
         try {
-            if (!currentPrice) currentPrice = await BitgetUtilsService.getCurrentPrice(BitgetService.getClient(order.userId), order.symbol);
+            if (!currentPrice) currentPrice = await BitgetUtilsService.getCurrentPrice(BitgetService.getClient(order.userId), order.symbol)
             if (currentPrice < newSL) return false
             order.SL = newSL
             await this.orderService.updateOne(order)
@@ -561,7 +561,7 @@ export class BitgetFuturesService {
                 )
 
                 const totalQuantity = await this.orderService.getQuantityAvailable(order._id, order)
-                let TPList = UtilService.getTPsForStrategy(newTPs, order.strategy.TP);
+                let TPList = UtilService.getTPsForStrategy(newTPs, order.strategy.TP)
                 const takeProfitNotTerminated = []
                 const TPPriceTerminated = []
                 let startNum = 1
@@ -648,7 +648,7 @@ export class BitgetFuturesService {
     async cancelTakeProfitsFromOrder(clientV2: RestClientV2, orderId: Types.ObjectId, order: Order = null, takeProfitsBitgetList: any[] = null, deleteTakeProfits = false) {
         if (!order) order = await this.orderService.findOne({ _id: orderId })
         try {
-            if (!order) throw new Error('Order not found');
+            if (!order) throw new Error('Order not found')
             if (!takeProfitsBitgetList) {
                 const planOrders = await clientV2.getFuturesPlanOrders({
                     planType: 'profit_loss',
@@ -658,9 +658,7 @@ export class BitgetFuturesService {
                     productType: BitgetService.PRODUCT_TYPEV2,
                     startTime: new Date(order.createdAt).getTime(),
                 })
-                takeProfitsBitgetList = (planOrders.data.entrustedList || []).filter(
-                    (p: any) => p.planType === 'profit_plan' && p.planStatus === 'live',
-                )
+                takeProfitsBitgetList = (planOrders.data.entrustedList || []).filter((p: any) => p.planType === 'profit_plan' && p.planStatus === 'live')
             }
 
             for (const takeProfitBitget of takeProfitsBitgetList) {
@@ -689,8 +687,17 @@ export class BitgetFuturesService {
     }
 
     async cancelOrder(clientV2: RestClientV2, order: Order, orderCancelled = true, positionBitget: any = null) {
-        // TODO quand on close un order qui as déjà eu des TP ça plante sur la fermeture de la quantité précise
         try {
+            const symbolV2 = this.bitgetUtilsService.convertSymbolToV2(order.symbol)
+
+            if (positionBitget === null) {
+                const positionsBitget = await clientV2.getFuturesPosition({
+                    productType: BitgetService.PRODUCT_TYPEV2,
+                    symbol: symbolV2,
+                    marginCoin: order.marginCoin,
+                })
+                positionBitget = positionsBitget.data.find((p: any) => p.symbol === symbolV2)
+            }
             if (!positionBitget) {
                 await this.orderService.closeAllOrderOnSymbol(order.userId, order.symbol)
             } else {
@@ -723,11 +730,11 @@ export class BitgetFuturesService {
                                 //         reduceOnly: 'yes',
                                 //     })
                                 // }
+                                await this.orderService.cancelOrder(order._id, orderCancelled)
                                 await clientV2.futuresFlashClosePositions({
                                     symbol: this.bitgetUtilsService.convertSymbolToV2(order.symbol),
                                     productType: BitgetService.PRODUCT_TYPEV2,
                                 })
-                                await this.orderService.cancelOrder(order._id, orderCancelled)
                             }
                         }
                     } catch (e) {

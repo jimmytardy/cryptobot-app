@@ -3,23 +3,29 @@ import { Button, Col, Container, Row } from 'react-bootstrap'
 import { IStrategy } from '../../../../../interfaces/stategy.interface'
 import Loader from '../../../../utils/Loader'
 import axiosClient from '../../../../../axiosClient'
-import dayjs from 'dayjs';
+import dayjs from 'dayjs'
 import { useNavigate } from 'react-router'
+import { PencilSquare } from 'react-bootstrap-icons'
 
 const StrategyList = () => {
     const [strategies, setStrategies] = useState<IStrategy[]>()
-    const navigate = useNavigate();
+    const navigate = useNavigate()
 
     useEffect(() => {
         ;(async () => {
-            const response = await axiosClient.get('/strategy')
+            const response = await axiosClient.get('/strategy/admin')
             setStrategies(response.data)
         })()
-    }, [])
+    }, []);
 
     if (!strategies) return <Loader />
+
+    const handleEdit = (id: string) => {
+        navigate('/admin/strategy/' + id)
+    }
+
     return (
-        <Container>
+        <Container className="list">
             <h2>Liste des stratégies disponibles</h2>
             <Row>
                 <Button style={{ width: 200 }} className="ms-auto mb-4" variant="success" onClick={() => navigate('/admin/strategy/new')}>
@@ -48,13 +54,13 @@ const StrategyList = () => {
                                 {strategy.name}
                             </Col>
                             <Col xs={2} md={2}>
-                                {strategy.available ? 'Oui' : 'Non'}
+                                {strategy.active ? 'Oui' : 'Non'}
                             </Col>
                             <Col xs={3} md={3}>
                                 {dayjs(strategy.createdAt).format('DD/MM/YYYY à HH:mm')}
                             </Col>
                             <Col xs={3} md={2} className="text-end">
-                                Action
+                                <PencilSquare cursor={'pointer'} onClick={() => handleEdit(strategy._id)} />
                             </Col>
                         </Row>
                     ))}

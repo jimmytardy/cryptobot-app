@@ -1,0 +1,18 @@
+.strategy {
+    border-radius: 1rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    .strategy-line {
+        padding: 0.8em 0;
+
+        &:not(:last-child) {
+            border-bottom: 1px dashed gray;
+        }
+
+        & > * {
+            display: flex;
+            align-items: center;
+            justify-content: left;
+        }
+    }
+}

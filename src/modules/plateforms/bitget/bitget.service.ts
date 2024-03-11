@@ -120,7 +120,7 @@ export class BitgetService implements OnModuleInit {
         }
         const client = BitgetService.getClient(user._id)
 
-        PEs = UtilService.sortBySide(PEs, side)
+        PEs = UtilService.sortBySide(PEs, side).filter((pe, index) => pe > 0 && user.preferences.bot.strategy.PE[index])
         TPs = UtilService.sortBySide(TPs, side)
         if (!margin) margin = await this.getQuantityForOrder(user)
         const profile = await this.bitgetUtilsService.getProfile(client)
@@ -210,11 +210,11 @@ export class BitgetService implements OnModuleInit {
         }
     }
 
-    async cancelOrder(order: Order, cancelOrder = true, ignoreError = false) {
+    async cancelOrder(order: Order, cancelOrder = true) {
         try {
-            return await this.bitgetFuturesService.cancelOrder(BitgetService.clientV2[order.userId.toString()], order, cancelOrder, ignoreError)
+            return await this.bitgetFuturesService.cancelOrder(BitgetService.clientV2[order.userId.toString()], order, cancelOrder)
         } catch (e) {
-            this.logger.error('removeOrder', e)
+            this.logger.error('remcancelOrderoveOrder', e)
         }
     }
 

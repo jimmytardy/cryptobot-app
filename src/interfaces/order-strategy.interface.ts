@@ -4,6 +4,7 @@ import { TPSizeType } from "src/model/User";
 export interface IOrderStrategy {
     SL: IOrderStrategySL;
     TP: IOrderStrategyTP;
+    PE: boolean[]
     strategyId?: Types.ObjectId
 }
 
@@ -13,11 +14,10 @@ export interface IOrderStrategySL {
     '2': SLStepEnum, // for TP3
     '3': SLStepEnum, // for TP4
     '4': SLStepEnum, // for TP5
-    '5': SLStepEnum, // for TP6
 }
 
 export interface IOrderStrategyTP {
-    numAutorized: boolean[];
+    numAuthorized: boolean[];
     TPSize: TPSizeType;
 }
 

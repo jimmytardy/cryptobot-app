@@ -90,6 +90,6 @@ export class UtilService {
     }
 
     static getTPsForStrategy(tps: number[], TPStrategie: IOrderStrategyTP): number[] {
-        return tps.filter((_, index) => TPStrategie.numAutorized[index])
+        return tps.filter((_, index) => TPStrategie.numAuthorized[index])
     }
 }

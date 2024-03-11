@@ -1,6 +1,6 @@
 .basecoin-authorized {
-    background-color: blanchedalmond;
-    border-radius: 15px;
+    border: 2px dashed gray;
+    border-radius: 5px;
     margin-top: 1em;
     margin-bottom: 1em;
     padding: 0.5rem;
@@ -13,7 +13,7 @@
             font-weight: 700;
         }
         span.coin-item {
-            background-color: darkred;
+            background-color: gray;
             color: white;
             padding: 0.3em 3em 0.3em 1em;
             margin: 0.5rem;

@@ -7,16 +7,16 @@ import { X } from 'react-bootstrap-icons'
 
 const BaseCoinAuthorized = () => {
     const { watch, setValue, getValues } = useFormContext<IPreferencePayload>()
-    const coins = watch('order.baseCoinAuthorized')
+    const coins = watch('bot.baseCoinAuthorized')
     const addCoin = (coin: string) => {
-        const currentCoins = getValues('order.baseCoinAuthorized')
-        setValue('order.baseCoinAuthorized', [...(currentCoins || []), coin])
+        const currentCoins = getValues('bot.baseCoinAuthorized')
+        setValue('bot.baseCoinAuthorized', [...(currentCoins || []), coin])
     }
 
     const removeCoin = (coin: string) => {
-        const currentCoins = getValues('order.baseCoinAuthorized')
+        const currentCoins = getValues('bot.baseCoinAuthorized')
         const newCoin = currentCoins?.filter((c) => c !== coin);
-        setValue('order.baseCoinAuthorized', newCoin?.length === 0 ? undefined : newCoin)
+        setValue('bot.baseCoinAuthorized', newCoin?.length === 0 ? undefined : newCoin)
     }
     return (
         <Row className="basecoin-authorized">

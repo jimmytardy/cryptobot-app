@@ -1,5 +1,4 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
-import { FuturesHoldSide } from 'bitget-api'
 import { SchemaTypes, Types } from 'mongoose'
 import { HydratedDocument } from 'mongoose'
 import { IOrderStrategy } from 'src/interfaces/order-strategy.interface'
@@ -14,13 +13,13 @@ export type OrderDocument = HydratedDocument<Strategy>
 export class Strategy {
     _id: Types.ObjectId
 
-    @Prop({ required: true, type: String })
+    @Prop({ required: true, type: String, min: 3 })
     name: string
 
-    @Prop({ required: true, type: String })
+    @Prop({ required: true, type: String, min: 3 })
     description: string
 
-    @Prop({ required: true, type: String })
+    @Prop({ required: true, type: SchemaTypes.Mixed })
     strategy: IOrderStrategy
 
     @Prop({ required: true, default: true })

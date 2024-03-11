@@ -1,7 +1,7 @@
-import { Inject, Injectable, Logger, OnApplicationBootstrap, forwardRef } from '@nestjs/common'
+import { Inject, Injectable, Logger, OnApplicationBootstrap, OnModuleInit, forwardRef } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { FilterQuery, Model, ProjectionType, QueryOptions, Types } from 'mongoose'
-import { User } from 'src/model/User'
+import { IUserPreferences, User } from 'src/model/User'
 import { CreateUserDTO, ProfileUpdateDTO, UpdatePreferencesDTO } from './user.dto'
 import { genSalt, hash } from 'bcrypt'
 import { PlateformsService } from '../plateforms/plateforms.service'
@@ -14,16 +14,39 @@ import _ from 'underscore'
 import { SubscriptionEnum } from 'src/model/Subscription'
 import { RightService } from '../right/right.service'
 import { UtilService } from 'src/util/util.service'
+import { StrategyService } from '../strategy/strategy.service'
+import { IOrderStrategy } from 'src/interfaces/order-strategy.interface'
+import { Strategy } from 'src/model/Stategy'
 
 @Injectable()
-export class UserService implements OnApplicationBootstrap {
+export class UserService implements OnApplicationBootstrap, OnModuleInit {
     logger: Logger = new Logger('UserService')
     constructor(
         @InjectModel(User.name) private userModel: Model<User>,
         @Inject(forwardRef(() => PlateformsService)) private plateformsService: PlateformsService,
         private orderService: OrderService,
-        private rightService: RightService
+        private rightService: RightService,
+        private strategyService: StrategyService,
     ) {}
+
+    async onModuleInit() {
+        const users = await this.findAll({ 'preferences.order': { $exists: true } })
+        const strategyDefault = await this.strategyService.getDefaultStrategy()
+        for (const user of users) {
+            const preferences: any = user.preferences
+            const newPreferences: IUserPreferences = {
+                bot: {
+                    marginCoin: preferences.order.marginCoin || 'USDT',
+                    automaticUpdate: preferences.order.automaticUpdate || false,
+                    pourcentage: preferences.order.pourcentage || 4,
+                    quantity: preferences.order.quantity || 0,
+                    strategy: this.getStrategyForPreference(strategyDefault), 
+                },
+            }
+            user.preferences = newPreferences
+            await this.updateOne(user)
+        }
+    }
 
     async onApplicationBootstrap() {
         const users = await this.getListOfTraders()
@@ -53,52 +76,67 @@ export class UserService implements OnApplicationBootstrap {
         return await this.userModel.findByIdAndUpdate(order._id, { $set: order }, options)
     }
 
+    getStrategyForPreference(strategy: Strategy): IOrderStrategy {
+        return {
+            ...strategy.strategy,
+            strategyId: strategy._id,
+        }
+    }
+
     async create(user: CreateUserDTO) {
         const salt = await genSalt()
 
         const exists = await this.findByEmail(user.email)
         if (exists) throw new Error("L'email existe déjà")
+        const newUser = new this.userModel({
+            ...user,
+            _id: new Types.ObjectId(),
+            password: await hash(user.password, salt),
+        })
+        let account = null
 
         try {
-            // A voir la vérification
-            const client = new FuturesClient({
-                apiKey: user.bitget.api_key,
-                apiPass: user.bitget.api_pass,
-                apiSecret: user.bitget.api_secret_key,
-            })
-            await client.getAccounts(BitgetService.PRODUCT_TYPE)
+            this.plateformsService.addNewTrader(newUser)
+            account = await this.plateformsService.getProfile(newUser._id)
+
+            let referrer = null
+            if (user.referralCode) {
+                const referrerUser = await this.findOne({ referralCode: user.referralCode }, '_id')
+                if (referrerUser) {
+                    referrer = referrerUser._id
+                }
+                delete user.referralCode
+            }
+
+            let referralUnique = false
+            while (!referralUnique) {
+                const referralCode = UtilService.generateReferralCode()
+                const userWithReferralCode = await this.findOne({ referralCode }, '_id')
+                if (!userWithReferralCode) {
+                    user.referralCode = referralCode
+                    referralUnique = true
+                }
+            }
+            const strategyDefault = await this.strategyService.getDefaultStrategy()
+            newUser.preferences = {
+                bot: {
+                    marginCoin: 'USDT',
+                    automaticUpdate: false,
+                    pourcentage: 4,
+                    quantity: account.totalPnL,
+                    strategy: this.getStrategyForPreference(strategyDefault),
+                },
+            }
+
+            const newUserSave = await newUser.save()
+            return newUserSave
         } catch (e) {
+            this.plateformsService.removeTrader(newUser)
             throw new Error('Les informations de la clé API ne sont pas correctes')
         }
-        let referrer = null;
-        if (user.referralCode) {
-            const referrerUser = await this.findOne({ referralCode: user.referralCode }, '_id');
-            if (referrerUser) {
-                referrer = referrerUser._id;
-            }
-            delete user.referralCode;
-        }
-        
-        let referralUnique = false;
-        while (!referralUnique) {
-            const referralCode = UtilService.generateReferralCode();
-            const userWithReferralCode = await this.findOne({ referralCode }, '_id');
-            if (!userWithReferralCode) {
-                user.referralCode = referralCode;
-                referralUnique = true;
-            }
-        }
-
-        const newUser = await new this.userModel({
-            ...user, 
-            referrer,
-            password: await hash(user.password, salt),
-        }).save()
-        this.plateformsService.addNewTrader(newUser)
-        return newUser
     }
 
-    async getUsersWithSubscription(subscription: SubscriptionEnum , filter: FilterQuery<User> = {}, select?: ProjectionType<User>): Promise<User[]> {
+    async getUsersWithSubscription(subscription: SubscriptionEnum, filter: FilterQuery<User> = {}, select?: ProjectionType<User>): Promise<User[]> {
         return await this.userModel.find({ ...filter, 'subscription.rights': subscription, 'subscription.active': true }, select).lean()
     }
 
@@ -163,7 +201,7 @@ export class UserService implements OnApplicationBootstrap {
                 '5': 0,
             },
             totalPnL: 0,
-            positions: []
+            positions: [],
         }
 
         for (const order of orders) {
@@ -190,7 +228,7 @@ export class UserService implements OnApplicationBootstrap {
                 results.nbSL[order.SL.step]++
             }
         }
-        results.positions = await this.orderService.getActivePositions(userId);
+        results.positions = await this.orderService.getActivePositions(userId)
         return results
     }
 }

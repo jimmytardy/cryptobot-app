@@ -1,57 +1,47 @@
 import { useEffect, useState } from 'react'
-import { Col, Container, FormCheck, FormControl, FormLabel, Row } from 'react-bootstrap'
+import { Button, Col, Container, FormCheck, FormControl, FormLabel, Row } from 'react-bootstrap'
 import { FormProvider, useForm } from 'react-hook-form'
 import { Navigate, useNavigate, useParams } from 'react-router'
 import Loader from '../../../../utils/Loader'
-import { IStrategyPayload, SLStepEnum, TPSizeType } from '../../../../../interfaces/stategy.interface'
+import { IStrategyPayload, defaultStrategy } from '../../../../../interfaces/stategy.interface'
 import StrategyForm from '../../../../StrategyForm'
+import axiosClient from '../../../../../axiosClient'
 
-export const TPSizeDefault: TPSizeType = {
-    1: [1],
-    2: [0.5, 0.5],
-    3: [0.25, 0.5, 0.25],
-    4: [0.2, 0.3, 0.3, 0.2],
-    5: [0.15, 0.2, 0.3, 0.2, 0.15],
-    6: [0.1, 0.15, 0.25, 0.25, 0.15, 0.1],
-}
 
 const StategieEdit = () => {
     const methods = useForm<IStrategyPayload>({
-        defaultValues: {
-            name: '',
-            description: '',
-            active: true,
-            strategy: {
-                SL: {
-                    '0': SLStepEnum.Default,
-                    '1': SLStepEnum.Default,
-                    '2': SLStepEnum.Default,
-                    '3': SLStepEnum.Default,
-                    '4': SLStepEnum.Default,
-                    '5': SLStepEnum.Default,
-                },
-                TP: {
-                    numAutorized: [true, true, true, true, true, true],
-                    TPSize: TPSizeDefault,
-                },
-            },
-        },
-    })
-    
+        defaultValues: defaultStrategy,
+    });
     const [loading, setLoading] = useState<boolean>(true)
+    const [message, setMessage] = useState<string>('')
+    const navigate = useNavigate()
+    
     let { id } = useParams()
     if (!id) return <Navigate to={'/admin/strategy'} />
 
     useEffect(() => {
         if (id !== 'new') {
-        }
-        setLoading(false)
+            (async () => {
+                const response = await axiosClient.get('/strategy/' + id)
+                methods.reset(response.data);
+                setLoading(false)
+            })();
+        } else setLoading(false)
     }, [])
 
     if (loading) return <Loader />
 
-    const submitData = (data: IStrategyPayload) => {
-        console.log(data)
+    const submitData = async (data: IStrategyPayload) => {
+        try {
+            await axiosClient.post('/strategy/' + id, data);
+            if (id === 'new') {
+                navigate('/admin/strategy');
+            } else {
+                setMessage('La stratégie a bien été modifiée')
+            }
+        } catch (e: any) {
+            setMessage(e.message || e.data?.message || 'Une erreur est survenue');
+        }
     }
 
     return (
@@ -62,6 +52,7 @@ const StategieEdit = () => {
                     <Row>
                         <Col xs={12} md={6} lg={4}>
                             <FormCheck id="active" {...methods.register('active')} type="switch" label="Activer la stratégie" />
+                            <FormCheck id="default" {...methods.register('default')} type="switch" label="Stratégie par défaut" />
                         </Col>
                     </Row>
                     <Row>
@@ -71,6 +62,7 @@ const StategieEdit = () => {
                                 id="name"
                                 {...methods.register('name', {
                                     required: 'Le nom est requis!',
+                                    min: 3
                                 })}
                             />
                         </Col>
@@ -83,14 +75,19 @@ const StategieEdit = () => {
                                 rows={3}
                                 className="form-control shadow-none"
                                 id="description"
-                                {...methods.register('name', {
+                                {...methods.register('description', {
                                     required: 'Le nom est requis!',
+                                    min: 3
                                 })}
                             />
                         </Col>
                     </Row>
                     <Row>
                         <StrategyForm name="strategy" />
+                    </Row>
+                    <Row className='p-5'>
+                        {message && <p className='text-success'>{message}</p>}
+                        <Button type='submit' className='m-auto' style={{ width: '150px'}}>Sauvegarder</Button>
                     </Row>
                 </form>
             </FormProvider>

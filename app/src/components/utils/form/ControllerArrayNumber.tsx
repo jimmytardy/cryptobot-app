@@ -91,7 +91,7 @@ const ControllerArrayNumber = <T extends FieldValues>({
                 return (
                     <Row
                         className={
-                            'pb-4 pt-4' + (className ? ' ' + className : '')
+                            'pb-2 pt-2' + (className ? ' ' + className : '')
                         }
                     >
                         {(renderField.value as (number | undefined)[]).map(
