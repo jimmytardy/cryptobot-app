@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { FilterQuery, Model, ProjectionType, QueryOptions, Types } from 'mongoose'
 import { Order } from 'src/model/Order'
@@ -19,7 +19,7 @@ export interface IOrderPopulated extends Omit<Omit<Order, 'SL'>, 'TPs'> {
 }
 
 @Injectable()
-export class OrderService{
+export class OrderService {
     logger: Logger = new Logger('OrderService')
 
     constructor(

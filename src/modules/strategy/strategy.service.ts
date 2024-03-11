@@ -6,48 +6,13 @@ import { Strategy } from 'src/model/Stategy'
 import { User } from 'src/model/User'
 
 @Injectable()
-export class StrategyService implements OnModuleInit {
+export class StrategyService {
     logger: Logger = new Logger(StrategyService.name)
 
     constructor(
         @InjectModel(Strategy.name) private stategyModel: Model<Strategy>,
         @InjectModel(User.name) private userModel: Model<User>,
     ) {}
-
-    async onModuleInit() {
-        const defaultStrategy = await this.findOne({ default: true })
-        if (!defaultStrategy) {
-            this.logger.log('No default strategy found, creating one')
-            await this.create({
-                name: 'Stratégie Prudente',
-                description:
-                    "L'objectif de cette stratégie est de faire monter au plus tôt la SL pour ensuite qu'elle suive la progression en ce retirant rapidement en cas de baisse du prix du marché. Cette stratégie d'avoir une progression lente mais sûr.",
-                strategy: {
-                    PE: [true, true],
-                    SL: {
-                        '0': SLStepEnum.PE_BAS,
-                        '1': SLStepEnum.PE_HAUT,
-                        '2': SLStepEnum.TP1,
-                        '3': SLStepEnum.TP2,
-                        '4': SLStepEnum.TP3,
-                    },
-                    TP: {
-                        numAuthorized: [true, true, true, true, true, true],
-                        TPSize: {
-                            '1': [1],
-                            '2': [0.5, 0.5],
-                            '3': [0.25, 0.5, 0.25],
-                            '4': [0.2, 0.3, 0.3, 0.2],
-                            '5': [0.15, 0.2, 0.3, 0.2, 0.15],
-                            '6': [0.1, 0.15, 0.25, 0.25, 0.15, 0.1],
-                        },
-                    },
-                },
-                active: true,
-                default: true,
-            })
-        }
-    }
 
     async findAll(filter?: FilterQuery<Strategy>, select?: ProjectionType<Strategy>, options?: QueryOptions<Strategy>) {
         return await this.stategyModel.find(filter, select, options).exec()

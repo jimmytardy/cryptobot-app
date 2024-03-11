@@ -16,7 +16,7 @@ import * as exactMath from 'exact-math'
 import { Symbol } from 'src/model/Symbol'
 
 @Injectable()
-export class OrderBotService implements OnModuleInit {
+export class OrderBotService {
     logger: Logger = new Logger('OrderBotService')
     constructor(
         @InjectModel(OrderBot.name) private orderBotModel: Model<OrderBot>,
@@ -27,22 +27,6 @@ export class OrderBotService implements OnModuleInit {
         private bitgetService: BitgetService,
         private orderService: OrderService,
     ) {}
-
-    async onModuleInit() {
-        const orders = await this.orderModel.find({ terminated: false }).exec()
-        const stepsMemo: { [key: string]: number[] } = {}
-
-        for (const order of orders) {
-            if (!stepsMemo[order.linkOrderId.toString()]) {
-                const orderBot = await this.orderBotModel.findOne({ linkOrderId: order.linkOrderId }).lean().exec()
-                stepsMemo[order.linkOrderId.toString()] = UtilService.sortBySide(orderBot.PEs.concat(orderBot.TPs), orderBot.side)
-            }
-            order.steps = stepsMemo[order.linkOrderId.toString()]
-            order.markModified('steps')
-            await order.save()
-        }
-    }
-
     orderBotFromText(message: string): OrderBot | null {
         const lines = (message || '')
             .replaceAll(/🟢|🔴|🔰|🎯|📛/g, '')

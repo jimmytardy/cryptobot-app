@@ -19,7 +19,7 @@ import { IOrderStrategy } from 'src/interfaces/order-strategy.interface'
 import { Strategy } from 'src/model/Stategy'
 
 @Injectable()
-export class UserService implements OnApplicationBootstrap, OnModuleInit {
+export class UserService implements OnApplicationBootstrap {
     logger: Logger = new Logger('UserService')
     constructor(
         @InjectModel(User.name) private userModel: Model<User>,
@@ -28,25 +28,6 @@ export class UserService implements OnApplicationBootstrap, OnModuleInit {
         private rightService: RightService,
         private strategyService: StrategyService,
     ) {}
-
-    async onModuleInit() {
-        const users = await this.findAll({ 'preferences.order': { $exists: true } })
-        const strategyDefault = await this.strategyService.getDefaultStrategy()
-        for (const user of users) {
-            const preferences: any = user.preferences
-            const newPreferences: IUserPreferences = {
-                bot: {
-                    marginCoin: preferences.order.marginCoin || 'USDT',
-                    automaticUpdate: preferences.order.automaticUpdate || false,
-                    pourcentage: preferences.order.pourcentage || 4,
-                    quantity: preferences.order.quantity || 0,
-                    strategy: this.getStrategyForPreference(strategyDefault),
-                },
-            }
-            user.preferences = newPreferences
-            await this.updateOne(user)
-        }
-    }
 
     async onApplicationBootstrap() {
         const users = await this.getListOfTraders()
