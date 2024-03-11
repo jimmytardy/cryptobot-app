@@ -1,4 +1,4 @@
-import { HttpException, Injectable, Logger } from '@nestjs/common'
+import { HttpException, Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model, ProjectionType, Types } from 'mongoose'
 import { OrderBot } from 'src/model/OrderBot'
@@ -12,9 +12,11 @@ import { User } from 'src/model/User'
 import * as _ from 'underscore'
 import { OrderService } from '../order/order.service'
 import { UserService } from '../user/user.service'
+import * as exactMath from 'exact-math'
+import { Symbol } from 'src/model/Symbol'
 
 @Injectable()
-export class OrderBotService {
+export class OrderBotService implements OnModuleInit {
     logger: Logger = new Logger('OrderBotService')
     constructor(
         @InjectModel(OrderBot.name) private orderBotModel: Model<OrderBot>,
@@ -25,6 +27,21 @@ export class OrderBotService {
         private bitgetService: BitgetService,
         private orderService: OrderService,
     ) {}
+
+    async onModuleInit() {
+        const orders = await this.orderModel.find({ terminated: false }).exec()
+        const stepsMemo: { [key: string]: number[] } = {}
+
+        for (const order of orders) {
+            if (!stepsMemo[order.linkOrderId.toString()]) {
+                const orderBot = await this.orderBotModel.findOne({ linkOrderId: order.linkOrderId }).lean().exec()
+                stepsMemo[order.linkOrderId.toString()] = UtilService.sortBySide(orderBot.PEs.concat(orderBot.TPs), orderBot.side)
+            }
+            order.steps = stepsMemo[order.linkOrderId.toString()]
+            order.markModified('steps')
+            await order.save()
+        }
+    }
 
     orderBotFromText(message: string): OrderBot | null {
         const lines = (message || '')
@@ -119,7 +136,7 @@ export class OrderBotService {
             if (!symbolRules) throw new Error(`Symbol ${orderBot.baseCoin} not found`)
             return await Promise.all(
                 userFiltered.map(async (user) => {
-                    const alreadyPlaced = await this.orderService.findOne({ symbol: symbolRules.symbol, userId: user._id, terminated: false });
+                    const alreadyPlaced = await this.orderService.findOne({ symbol: symbolRules.symbol, userId: user._id, terminated: false })
                     if (!alreadyPlaced) {
                         const orderCloned = JSON.parse(JSON.stringify(orderBot)) // if shift PE/TPs/SL, not share array
                         await this.bitgetService.placeOrder(orderCloned, user, orderBot.linkOrderId, price).catch((error) => {
@@ -173,9 +190,12 @@ export class OrderBotService {
         oldOrder.markModified('SL')
         await oldOrder.save()
 
+        const newSteps = UtilService.sortBySide((oldOrder.PEs.length === 1 ? [oldOrder.PEs[0], oldOrder.PEs[0]] : oldOrder.PEs).concat(oldOrder.TPs), oldOrder.side)
+        await this.orderModel.updateMany({ linkOrderId: oldOrder.linkOrderId, terminated: false }, { $set: { steps: newSteps } }).exec()
         const orders = await this.orderModel.find({ linkOrderId: oldOrder.linkOrderId, terminated: false }).exec()
         const userMemo: { [key: string]: User } = {}
         const priceMemo: { [key: string]: number } = {}
+        const symbolMemo: { [key: string]: Symbol } = {}
         let success = 0
         let errors = 0
         await Promise.all(
@@ -187,8 +207,24 @@ export class OrderBotService {
                     const PECurrentModif = PEModif.find((modif) => modif.oldNumber === order.PE)
                     // update or remove
                     if (PECurrentModif && PECurrentModif.action === 'update') {
-                        if (PECurrentModif.action === 'update') {
-                            await this.bitgetService.updateOrderPE(order, PECurrentModif.newNumber)
+                        if (PECurrentModif.action === 'update' && !order.activated) {
+                            let newPE = PECurrentModif.newNumber
+                            if (!symbolMemo[order.symbol]) symbolMemo[order.symbol] = await this.bitgetService.getSymbolBy('symbol', order.symbol)
+                            if (!priceMemo[order.symbol]) priceMemo[order.symbol] = await this.bitgetService.getCurrentPrice('symbol', order.symbol)
+                            let tabSizeMultiplier = symbolMemo[order.symbol].sizeMultiplier.split('.')
+                            let place = 0
+                            if (tabSizeMultiplier.length > 1) {
+                                place = tabSizeMultiplier[1].length
+                            } else {
+                                place = tabSizeMultiplier[0].length
+                            }
+                            if (newPE > priceMemo[order.symbol] && order.side === 'long') {
+                                newPE = exactMath.mul(priceMemo[order.symbol], exactMath.add(1, exactMath.div(Number(symbolMemo[order.symbol].buyLimitPriceRatio), 2)))
+                            } else if (newPE < priceMemo[order.symbol] && order.side === 'short') {
+                                newPE = exactMath.mul(priceMemo[order.symbol], exactMath.sub(1, exactMath.div(Number(symbolMemo[order.symbol].sellLimitPriceRatio), 2)))
+                            }
+                            newPE = exactMath.round(newPE, place)
+                            await this.bitgetService.updateOrderPE(order, newPE)
                             success++
                         }
                     }
@@ -247,8 +283,8 @@ export class OrderBotService {
 
     async synchronizePositionOrderBot(orderBotId: string) {
         const orderBot = await this.orderBotModel.findById(orderBotId).lean().exec()
-        const userIds = await this.orderModel.distinct('userId', { linkOrderId: orderBot.linkOrderId, terminated: false, activated: true }).exec();
-        const users = await this.userService.getUsersWithSubscription(SubscriptionEnum.BOT, { _id: { $in: userIds }});
+        const userIds = await this.orderModel.distinct('userId', { linkOrderId: orderBot.linkOrderId, terminated: false, activated: true }).exec()
+        const users = await this.userService.getUsersWithSubscription(SubscriptionEnum.BOT, { _id: { $in: userIds } })
         const symbolRules = await this.bitgetService.getSymbolBy('baseCoin', orderBot.baseCoin)
         const request = []
         for (const user of users) {

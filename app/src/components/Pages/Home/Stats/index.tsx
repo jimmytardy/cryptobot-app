@@ -1,73 +1,79 @@
 import { useEffect, useState } from 'react'
-import { Col, Container, FormControl, FormLabel, Row } from 'react-bootstrap'
+import { Col, Container, Row } from 'react-bootstrap'
 import { IStats } from './stat.interface'
 import axiosClient from '../../../../axiosClient'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
-import { Pie } from 'react-chartjs-2'
 import Loader from '../../../utils/Loader'
 import './index.scss'
-import { getFormatDateForInput } from '../../../../utils'
 import StatsPositions from './StatsPositions'
 
 ChartJS.register(ArcElement, Tooltip, Legend)
 
-interface IStatsPayload {
-    dateFrom?: string
-    dateTo?: string
-}
+// interface IStatsPayload {
+//     dateFrom?: string
+//     dateTo?: string
+// }
 
 const Stats = () => {
     const [stats, setStats] = useState<IStats>()
-    const colors = {
-        red: ['#ffc100', '#ff9a00', '	#ff7400', '#ff4d00', '	#ff0000', '#b30000'],
-        green: ['#0eff00', '#0de600', '#1fc600', '#089000', '#0a5d00', '#063b00'],
-    }
+    // const colors = {
+    //     red: ['#ffc100', '#ff9a00', '	#ff7400', '#ff4d00', '	#ff0000', '#b30000'],
+    //     green: ['#0eff00', '#0de600', '#1fc600', '#089000', '#0a5d00', '#063b00'],
+    // }
 
-    const [dates, setDates] = useState<IStatsPayload>({
-        dateFrom: undefined,
-        dateTo: undefined,
-    })
-    const [messageDate, setMessageDate] = useState<string>('')
+    // const [dates, setDates] = useState<IStatsPayload>({
+    //     dateFrom: undefined,
+    //     dateTo: undefined,
+    // })
+    // const [messageDate, setMessageDate] = useState<string>('')
 
     useEffect(() => {
-        if (dates.dateFrom && dates.dateTo && new Date(dates.dateFrom) > new Date(dates.dateTo))
-            return setMessageDate('La date de début doit être inférieur ou égal à la date de fin')
-        else setMessageDate('')
+        // if (dates.dateFrom && dates.dateTo && new Date(dates.dateFrom) > new Date(dates.dateTo))
+        //     return setMessageDate('La date de début doit être inférieur ou égal à la date de fin')
+        // else setMessageDate('')
         ;(async () => {
-            const params: { dateTo?: string; dateFrom?: string } = {}
-            if (dates.dateFrom) params['dateFrom'] = new Date(dates.dateFrom).toISOString()
-            if (dates.dateTo) params.dateTo = new Date(dates.dateTo).toISOString()
-            const result = await axiosClient.get<IStats>('/user/stats', { params: params })
+            // const params: { dateTo?: string; dateFrom?: string } = {}
+            // if (dates.dateFrom) params['dateFrom'] = new Date(dates.dateFrom).toISOString()
+            // if (dates.dateTo) params.dateTo = new Date(dates.dateTo).toISOString()
+            const result = await axiosClient.get<IStats>('/user/stats', /*{ params: params }*/)
             setStats(result.data)
         })()
-    }, [dates])
+    }, [])
 
-    const handleChangeDate = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setDates({ ...dates, [e.target.name]: e.target.value })
-    }
+    // const handleChangeDate = (e: React.ChangeEvent<HTMLInputElement>) => {
+    //     setDates({ ...dates, [e.target.name]: e.target.value })
+    // }
 
     if (!stats) return <Loader />
 
-    const rules = {
-        dateFrom: {
-            max: dates.dateTo && getFormatDateForInput(new Date(dates.dateTo)),
-        },
-        dateTo: {
-            min: dates.dateFrom && getFormatDateForInput(new Date(dates.dateFrom)),
-        },
-    }
+    // const rules = {
+    //     dateFrom: {
+    //         max: dates.dateTo && getFormatDateForInput(new Date(dates.dateTo)),
+    //     },
+    //     dateTo: {
+    //         min: dates.dateFrom && getFormatDateForInput(new Date(dates.dateFrom)),
+    //     },
+    // }
 
     return (
         <Container className="stats">
             <Row>
-                <Col xs={12}>
-                    <div className="section-title">Positions en cours</div>
-                </Col>
-                <Col xs={12}>
-                    <StatsPositions positions={stats.positions} />
-                </Col>
+                {stats.positions.length > 0 ? (
+                    <>
+                        <Col xs={12}>
+                            <div className="section-title">Positions en cours</div>
+                        </Col>
+                        <Col xs={12}>
+                            <StatsPositions positions={stats.positions} />
+                        </Col>
+                    </>
+                ) : (
+                    <Col xs={12}>
+                        <div className="section-title" style={{border: 'none'}}>Aucune position en cours</div>
+                    </Col>
+                )}
             </Row>
-            <Row>
+            {/* <Row>
                 <Col xs={12}>
                     <div className="section-title">Dates de lancement des ordres</div>
                 </Col>
@@ -151,7 +157,7 @@ const Stats = () => {
                         />
                     </div>
                 </Col>
-            </Row>
+            </Row> */}
         </Container>
     )
 }

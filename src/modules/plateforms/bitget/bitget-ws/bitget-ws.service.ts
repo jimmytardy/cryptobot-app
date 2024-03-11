@@ -279,7 +279,7 @@ export class BitgetWsService {
 
             const TPNotTrigger = await this.orderService.getTakeProfitNotTriggered(order._id)
             if (quantityAvailable === 0 || TPNotTrigger.length === 0) {
-                await this.bitgetService.cancelOrder(order, false)
+                await this.bitgetService.closePosition(order.symbol, order.userId)
             } else {
                 // cancel other order that not actived
                 await this.bitgetService.disabledOrderLinkFromOrder(order)

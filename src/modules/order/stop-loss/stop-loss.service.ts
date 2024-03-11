@@ -51,8 +51,4 @@ export class StopLossService {
         this.logger.debug(`cancel: filter=${JSON.stringify(filter)}`)
         return await this.stopLossModel.updateMany({ ...filter, terminated: false }, { $set: { terminated: true, cancelled: true } })
     }
-
-    getNewStep(numTPTrigger: number, strategy: IOrderStrategy): number {
-        return strategy ? strategy.SL[numTPTrigger] : numTPTrigger - 1 // numTPTrigger + 1 = Place dans la liste des steps, -2 pour obtenir le step actuel => numTPTrigger - 1
-    }
 }

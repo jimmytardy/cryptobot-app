@@ -118,6 +118,7 @@ export class BitgetService implements OnModuleInit {
         if (!symbolRules) {
             return
         }
+        const steps: number[] = UtilService.sortBySide((PEs.length === 1 ? [PEs[0], PEs[0]] : PEs).concat(TPs), side);
         const client = BitgetService.getClient(user._id)
 
         PEs = UtilService.sortBySide(PEs, side).filter((pe, index) => pe > 0 && user.preferences.bot.strategy.PE[index])
@@ -163,7 +164,7 @@ export class BitgetService implements OnModuleInit {
                     }
                 }
                 results.success.push(
-                    await this.bitgetFuturesService.placeOrder(client, user, symbolRules, fullSide, PECalculate, TPs, SL, size, leverage, currentPrice, linkOrderId),
+                    await this.bitgetFuturesService.placeOrder(client, user, symbolRules, fullSide, PECalculate, TPs, SL, size, leverage, steps, currentPrice, linkOrderId),
                 )
             } catch (error) {
                 results.errors.push({

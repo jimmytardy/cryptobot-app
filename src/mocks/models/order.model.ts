@@ -24,6 +24,7 @@ export const createMockOrder = (order: Partial<Order> = {}): Order => {
         usdt: 500,
         sendToPlateform: true,
         leverage: 50,
+        steps: [],
         ...order
     }
 }

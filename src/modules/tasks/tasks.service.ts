@@ -76,7 +76,7 @@ export class TasksService implements OnApplicationBootstrap, OnModuleInit {
 
     @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_MIDNIGHT)
     async updateQuantity() {
-        const users = await this.userService.findAll({ 'preferences.order.automaticUpdate': true, 'subscription.active': true }, undefined, { lean: true })
+        const users = await this.userService.findAll({ 'preferences.bot.automaticUpdate': true, 'subscription.active': true }, undefined, { lean: true })
         await Promise.all(
             users.map(async (user) => {
                 const account = await this.bitgetService.getProfile(user._id)

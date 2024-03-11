@@ -68,6 +68,7 @@ export class BitgetFuturesService {
         stopLoss: number,
         size: number,
         leverage: number,
+        steps: number[] = [],
         currentPrice: number,
         linkOrderId?: Types.ObjectId,
         marginCoin = BitgetService.MARGIN_MODE,
@@ -97,6 +98,7 @@ export class BitgetFuturesService {
                 linkOrderId,
                 quantity: size,
                 marginCoin,
+                steps,
                 usdt: margin,
                 userId: user._id,
                 sendToPlateform: false,
@@ -421,7 +423,7 @@ export class BitgetFuturesService {
                 return stopLoss
             }
 
-            let newStep = this.stopLossService.getNewStep(numTP, order.strategy)
+            let newStep = await this.orderService.getSLStepFromOrder(order)
             const triggerPrice = await this.orderService.getSLTriggerFromStep(order, newStep)
             stopLoss.quantity = await this.orderService.getQuantityAvailable(order._id, order)
             stopLoss.step = newStep
@@ -574,6 +576,7 @@ export class BitgetFuturesService {
                         takeProfitNotTerminated.push(takeProfits[i])
                     }
                 }
+                takeProfitNotTerminated.sort((a, b) => a.num - b.num)
                 TPList = TPList.filter((tp) => tp > currentPrice)
                 const { TPPrice: newTPPricesCalculate, TPSize: newTPSizeCalculate } = this.bitgetUtilsService.caculateTPsToUse(
                     TPList,
@@ -582,11 +585,17 @@ export class BitgetFuturesService {
                     symbolRules,
                     order.side,
                 )
-                await this.cancelTakeProfitsFromOrder(BitgetService.getClientV2(order.userId), order._id, order, null, true)
-                // Enfin on ajoute les nouveaux trades
-                for (let i = 0; i < newTPPricesCalculate.length; i++) {
-                    const newSize = newTPSizeCalculate[i]
-                    await this.addTakeProfit(client, order, newTPPricesCalculate[i], startNum + i, newSize)
+                if (takeProfitNotTerminated.length !== newTPSizeCalculate.length || !takeProfitNotTerminated.every((tp, index) => tp.quantity === newTPSizeCalculate[index])) {
+                    await this.cancelTakeProfitsFromOrder(BitgetService.getClientV2(order.userId), order._id, order, null, true)
+                    // Enfin on ajoute les nouveaux trades
+                    for (let i = 0; i < newTPPricesCalculate.length; i++) {
+                        const newSize = newTPSizeCalculate[i]
+                        await this.addTakeProfit(client, order, newTPPricesCalculate[i], startNum + i, newSize)
+                    }
+                } else {
+                    for (let i = 0; i < takeProfitNotTerminated.length; i++) {
+                        await this.updateTakeProfit(BitgetService.getClientV2(order.userId), order, takeProfitNotTerminated[i], TPList[i], newTPSizeCalculate[i])
+                    }
                 }
 
                 order.TPs = [...TPPriceTerminated, ...newTPPricesCalculate]
@@ -608,33 +617,28 @@ export class BitgetFuturesService {
 
     async updatePE(client: FuturesClient, order: Order, newPE: number): Promise<boolean> {
         try {
-            if (order.sendToPlateform) {
-                if (!order.activated && (order.orderId || order.clOrderId)) {
-                    const newClientOid = new Types.ObjectId()
-                    const params: ModifyFuturesOrder = {
-                        symbol: order.symbol,
-                        clientOid: order.clOrderId?.toString(),
-                        newClientOid: newClientOid.toString(),
-                        price: String(newPE),
-                        size: order.quantity.toString(),
-                    }
-                    await client.modifyOrder(params)
-                    order.clOrderId = newClientOid
-                    order.PE = newPE
-                    await this.orderService.updateOne(order)
-                    return true
-                } else {
-                    this.errorTraceService.createErrorTrace('updatePE', order.userId, ErrorTraceSeverity.INFO, {
-                        order,
-                        newPE,
-                        error: 'Order activated',
-                    })
-                    return false
+            if (order.sendToPlateform && !order.activated && (order.orderId || order.clOrderId)) {
+                const newClientOid = new Types.ObjectId()
+                const params: ModifyFuturesOrder = {
+                    symbol: order.symbol,
+                    clientOid: order.clOrderId?.toString(),
+                    newClientOid: newClientOid.toString(),
+                    price: String(newPE),
+                    size: order.quantity.toString(),
+
                 }
-            } else {
+                await client.modifyOrder(params)
+                order.clOrderId = newClientOid
                 order.PE = newPE
                 await this.orderService.updateOne(order)
                 return true
+            } else {
+                this.errorTraceService.createErrorTrace('updatePE', order.userId, ErrorTraceSeverity.INFO, {
+                    order,
+                    newPE,
+                    error: 'Order activated',
+                })
+                return false
             }
         } catch (e) {
             this.errorTraceService.createErrorTrace('updatePE', order.userId, ErrorTraceSeverity.ERROR, {
@@ -821,6 +825,20 @@ export class BitgetFuturesService {
                     productType: BitgetService.PRODUCT_TYPEV2,
                 })
             }
+            const orders = await client.getFuturesOpenOrders({
+                symbol: symbolV2,
+                productType: BitgetService.PRODUCT_TYPEV2,
+                marginCoin: BitgetService.MARGIN_MODE,
+                status: 'live',
+            })
+            if (orders.data && orders.data.entrustedList?.length > 0) {
+                await client.futuresBatchCancelOrders({
+                    symbol: symbolV2,
+                    productType: BitgetService.PRODUCT_TYPEV2,
+                    marginCoin: BitgetService.MARGIN_MODE,
+                })
+            }
+
             await this.orderService.closeAllOrderOnSymbol(userId, symbol)
         } catch (e) {
             this.errorTraceService.createErrorTrace('closePosition', userId, ErrorTraceSeverity.ERROR, {

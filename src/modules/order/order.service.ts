@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { FilterQuery, Model, ProjectionType, QueryOptions, Types } from 'mongoose'
 import { Order } from 'src/model/Order'
@@ -19,7 +19,7 @@ export interface IOrderPopulated extends Omit<Omit<Order, 'SL'>, 'TPs'> {
 }
 
 @Injectable()
-export class OrderService {
+export class OrderService{
     logger: Logger = new Logger('OrderService')
 
     constructor(
@@ -83,32 +83,20 @@ export class OrderService {
     }
 
     async getStepsTriggers(order: Order): Promise<number[]> {
-        let stepsTriggers: number[] = order.PEsTriggered || []
-        if (stepsTriggers.length === 0) stepsTriggers.push(order.PE)
-        if (stepsTriggers.length < 2) {
-            const orderLinked = await this.findOne(
-                {
-                    linkOrderId: order.linkOrderId,
-                    _id: { $ne: order._id },
-                    userId: order.userId,
-                },
-                'PE',
-            )
-            if (orderLinked) {
-                stepsTriggers.push(orderLinked.PE)
-            } else {
-                stepsTriggers.push(order.PE)
-            }
-        }
         // Array of PE + TPs for triggerPrice
-        return UtilService.sortBySide(stepsTriggers.concat(order.TPs), order.side)
+        return order.steps;
     }
 
     async getSLTriggerCurrentFromOrder(order: Order, currentPrice?: number): Promise<number> {
         const takeProfitLastTrigger = await this.takeProfitService.findOne({ orderParentId: order._id, cancelled: false, terminated: true }, undefined, { sort: { num: -1 } })
         if (!takeProfitLastTrigger) return order.SL
-        const step = this.stopLossService.getNewStep(takeProfitLastTrigger.num, order.strategy)
-        return await this.getSLTriggerFromStep(order, step, currentPrice)
+        return await this.getSLTriggerFromStep(order, takeProfitLastTrigger.num - 1, currentPrice)
+    }
+
+    async getSLStepFromOrder(order: Order): Promise<number> {
+        const takeProfitLastTrigger = await this.takeProfitService.findOne({ orderParentId: order._id, cancelled: false, terminated: true }, undefined, { sort: { num: -1 } })
+        if (!takeProfitLastTrigger) return -1
+        return takeProfitLastTrigger.num - 1
     }
 
     async getSLTriggerFromStep(order: Order, step: number, currentPrice?: number): Promise<number> {

@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react'
 import { FormProvider, useForm, useFormState } from 'react-hook-form'
 import axiosClient from '../../../axiosClient'
 import Loader from '../../utils/Loader'
-import { Accordion, Button, Col, Container, Form, FormCheck, FormControl, FormGroup, FormLabel, FormText, Row } from 'react-bootstrap'
+import {Button, Col, Container, Form, FormCheck, FormControl, FormGroup, FormLabel, FormText, Row } from 'react-bootstrap'
 import './index.scss'
 import Strategies from './Strategies'
 import BaseCoinAuthorized from './BaseCoinAuthorized'
-import { IOrderStrategy, TPSizeType } from '../../../interfaces/stategy.interface'
+import { IOrderStrategySL, TPSizeType } from '../../../interfaces/stategy.interface'
 
 export interface IPreferencePayload {
     bot: {
@@ -14,7 +14,7 @@ export interface IPreferencePayload {
         quantity?: number
         TPSize: TPSizeType
         marginCoin: string
-        strategy?: IOrderStrategy
+        strategy?: IOrderStrategySL
         baseCoinAuthorized?: string[]
         automaticUpdate?: number
     }
@@ -54,7 +54,7 @@ const Preferences = () => {
                                     <FormLabel>
                                         <b>Mise à jour automatique du solde (le 1er du mois)</b>
                                     </FormLabel>
-                                    <FormCheck type="switch" label="Désactiver / Activer" {...methods.register('order.automaticUpdate')} />
+                                    <FormCheck type="switch" label="Désactiver / Activer" {...methods.register('bot.automaticUpdate')} />
                                 </FormGroup>
                             </Col>
                             <Row className="mb-4">

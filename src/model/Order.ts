@@ -76,6 +76,9 @@ export class Order {
     PEsTriggered?: number[]
 
     @Prop({ type: Array })
+    steps: number[]
+
+    @Prop({ type: Array })
     clientOids?: Types.ObjectId[]
 
     createdAt: Date;

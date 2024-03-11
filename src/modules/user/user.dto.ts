@@ -10,6 +10,7 @@ import {
     IsString,
     ValidateNested,
 } from 'class-validator'
+import { IOrderStrategy } from 'src/interfaces/order-strategy.interface'
 import {
     IUserCryptoExchange,
     TPSizeType,
@@ -49,7 +50,7 @@ class UpdatePreferencesOrderDTO {
     @IsNotEmptyObject()
     @ValidateNested()
     @Type(() => Object)
-    TPSize: TPSizeType
+    strategy: IOrderStrategy
 
     @IsOptional()
     @IsString()
@@ -62,7 +63,7 @@ export class UpdatePreferencesDTO {
     @IsObject()
     @ValidateNested()
     @Type(() => UpdatePreferencesOrderDTO)
-    order: UpdatePreferencesOrderDTO
+    bot: UpdatePreferencesOrderDTO
 }
 
 export class ProfileUpdateDTO {

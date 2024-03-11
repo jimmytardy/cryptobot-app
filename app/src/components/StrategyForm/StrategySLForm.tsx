@@ -43,7 +43,6 @@ const StrategySLForm = <T extends object>({ name }: IStrategyFormProps<T>) => {
                 const path = `${name}.SL.${key}` as Path<T>
 
                 const minStep = key === '0' ? SLStepEnum.Default : strategySL[String(Number(key) - 1) as keyof IOrderStrategySL]
-                key === '0' && console.log('minStep', minStep, strategySL[key] !== minStep, strategyTPAuthorized[key], minStep, strategySL[key])
                 if (strategySL[key] !== minStep && (!strategyTPAuthorized[key] || minStep > strategySL[key])) {
                     setValue(path, minStep as PathValue<T, Path<T>>)
                 }

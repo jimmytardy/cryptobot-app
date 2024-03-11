@@ -40,7 +40,7 @@ export class UserService implements OnApplicationBootstrap, OnModuleInit {
                     automaticUpdate: preferences.order.automaticUpdate || false,
                     pourcentage: preferences.order.pourcentage || 4,
                     quantity: preferences.order.quantity || 0,
-                    strategy: this.getStrategyForPreference(strategyDefault), 
+                    strategy: this.getStrategyForPreference(strategyDefault),
                 },
             }
             user.preferences = newPreferences
@@ -150,7 +150,11 @@ export class UserService implements OnApplicationBootstrap, OnModuleInit {
 
     async setPreferences(userId: Types.ObjectId, updatePreferencesDTO: UpdatePreferencesDTO) {
         try {
-            await this.userModel.updateOne({ _id: userId }, { $set: { preferences: updatePreferencesDTO } })
+            const newPreference = { ...updatePreferencesDTO }
+            if (newPreference.bot?.strategy?.strategyId) {
+                newPreference.bot.strategy.strategyId = new Types.ObjectId(String(updatePreferencesDTO.bot.strategy.strategyId))
+            }
+            await this.userModel.updateOne({ _id: userId }, { $set: { preferences: newPreference } })
             return { success: true }
         } catch (e) {
             this.logger.error(e)
