@@ -10,11 +10,17 @@ import {
     IsString,
     ValidateNested,
 } from 'class-validator'
+import { Types } from 'mongoose'
 import { IOrderStrategy } from 'src/interfaces/order-strategy.interface'
 import {
     IUserCryptoExchange,
     TPSizeType,
 } from 'src/model/User'
+
+export class CreateSubAccountDTO {
+    @Type(() => IUserCryptoExchange)
+    bitget: IUserCryptoExchange
+}
 
 export class CreateUserDTO {
     @IsString()
@@ -35,6 +41,14 @@ export class CreateUserDTO {
     @IsOptional()
     @IsString()
     referralCode?: string
+
+    @IsOptional()
+    @Type(() => Object)
+    mainAccountId?: Types.ObjectId
+
+    @IsOptional()
+    @IsNumber()
+    numAccount?: number
 }
 
 class UpdatePreferencesOrderDTO {

@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger, OnApplicationBootstrap, OnModuleInit, forwa
 import { InjectModel } from '@nestjs/mongoose'
 import { FilterQuery, Model, ProjectionType, QueryOptions, Types } from 'mongoose'
 import { IUserPreferences, User } from 'src/model/User'
-import { CreateUserDTO, ProfileUpdateDTO, UpdatePreferencesDTO } from './user.dto'
+import { CreateSubAccountDTO, CreateUserDTO, ProfileUpdateDTO, UpdatePreferencesDTO } from './user.dto'
 import { genSalt, hash } from 'bcrypt'
 import { PlateformsService } from '../plateforms/plateforms.service'
 import { FuturesClient } from 'bitget-api'
@@ -27,7 +27,7 @@ export class UserService implements OnApplicationBootstrap {
         private orderService: OrderService,
         private rightService: RightService,
         private strategyService: StrategyService,
-    ) {}
+    ) { }
 
     async onApplicationBootstrap() {
         const users = await this.getListOfTraders()
@@ -64,7 +64,7 @@ export class UserService implements OnApplicationBootstrap {
         }
     }
 
-    async create(user: CreateUserDTO) {
+    async create(user: CreateUserDTO, isSubAccount = false) {
         const salt = await genSalt()
 
         const exists = await this.findByEmail(user.email)
@@ -72,32 +72,34 @@ export class UserService implements OnApplicationBootstrap {
         const newUser = new this.userModel({
             ...user,
             _id: new Types.ObjectId(),
-            password: await hash(user.password, salt),
+            password: isSubAccount ? user.password :  await hash(user.password, salt),
         })
         let account = null
 
         try {
             this.plateformsService.addNewTrader(newUser)
             account = await this.plateformsService.getProfile(newUser._id)
-
-            let referrer = null
-            if (user.referralCode) {
-                const referrerUser = await this.findOne({ referralCode: user.referralCode }, '_id')
-                if (referrerUser) {
-                    referrer = referrerUser._id
+            if (!isSubAccount) {
+                let referrer = null
+                if (user.referralCode) {
+                    const referrerUser = await this.findOne({ referralCode: user.referralCode }, '_id')
+                    if (referrerUser) {
+                        referrer = referrerUser._id
+                    }
+                    delete user.referralCode
                 }
-                delete user.referralCode
+
+                let referralUnique = false
+                while (!referralUnique) {
+                    const referralCode = UtilService.generateReferralCode()
+                    const userWithReferralCode = await this.findOne({ referralCode }, '_id')
+                    if (!userWithReferralCode) {
+                        user.referralCode = referralCode
+                        referralUnique = true
+                    }
+                }
             }
 
-            let referralUnique = false
-            while (!referralUnique) {
-                const referralCode = UtilService.generateReferralCode()
-                const userWithReferralCode = await this.findOne({ referralCode }, '_id')
-                if (!userWithReferralCode) {
-                    user.referralCode = referralCode
-                    referralUnique = true
-                }
-            }
             const strategyDefault = await this.strategyService.getDefaultStrategy()
             newUser.preferences = {
                 bot: {
@@ -112,6 +114,7 @@ export class UserService implements OnApplicationBootstrap {
             const newUserSave = await newUser.save()
             return newUserSave
         } catch (e) {
+            console.log('e', e)
             this.plateformsService.removeTrader(newUser)
             throw new Error('Les informations de la clé API ne sont pas correctes')
         }
@@ -215,5 +218,22 @@ export class UserService implements OnApplicationBootstrap {
         }
         results.positions = await this.orderService.getActivePositions(userId)
         return results
+    }
+
+    async createSubAccount(userId: Types.ObjectId, subAccountDTO: CreateSubAccountDTO) {
+        const user = await this.findById(userId, '+password')
+        if (!user) throw new Error('Utilisateur non trouvé');
+        const nbSubAccounts = await this.userModel.countDocuments({ mainAccountId: userId });
+        const numSubAccount = nbSubAccounts + 1;
+        const newSubAccount = new CreateUserDTO()
+        newSubAccount.bitget = subAccountDTO.bitget;
+        newSubAccount.numAccount = numSubAccount;
+        newSubAccount.email = user.email.replace('@', `_sc_${numSubAccount}@`);
+        newSubAccount.referralCode = String(new Types.ObjectId());
+        newSubAccount.firstname = user.firstname;
+        newSubAccount.lastname = user.lastname;
+        newSubAccount.password = user.password;
+        newSubAccount.mainAccountId = user._id;
+        return await this.create(newSubAccount, true)
     }
 }

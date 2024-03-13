@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
 import { SchemaTypes, Types } from 'mongoose'
 import { HydratedDocument } from 'mongoose'
-import { IOrderStrategy } from 'src/interfaces/order-strategy.interface'
+import { IOrderStrategySL, IOrderStrategyTP } from 'src/interfaces/order-strategy.interface'
 import { ISubscriptionUser } from 'src/modules/payment/payments.interface'
 
 export type UserDocument = HydratedDocument<User>
@@ -9,6 +9,21 @@ export type UserDocument = HydratedDocument<User>
 export type TPSizeType = { [x: string]: number[] }
 
 export type LeviersSizeType = { minPrice: number; value: number }[]
+
+@Schema({ _id: false })
+export class IOrderStrategy {
+    @Prop({ type: SchemaTypes.Mixed })
+    SL: IOrderStrategySL;
+
+    @Prop({ type: SchemaTypes.Mixed })
+    TP: IOrderStrategyTP;
+
+    @Prop({ type: SchemaTypes.Array })
+    PE: boolean[]
+
+    @Prop({ type: SchemaTypes.ObjectId, ref: 'Strategy' })
+    strategyId?: Types.ObjectId
+}
 
 @Schema({ _id: false })
 export class IUserCryptoExchange {
@@ -91,6 +106,12 @@ export class User {
 
     @Prop({ type: SchemaTypes.ObjectId, ref: 'User' })
     referrer: Types.ObjectId
+
+    @Prop({ type: SchemaTypes.ObjectId, ref: 'User' })
+    mainAccountId: Types.ObjectId
+
+    @Prop({ type: Number })
+    numAccount: number
 }
 
 export const UserSchema = SchemaFactory.createForClass(User)

@@ -34,6 +34,11 @@ const Profile = () => {
                         Email: <b>{user.email}</b>
                     </FormText>
                 </Col>
+                <Col xs={12}>
+                    <FormText>
+                        {user.mainAccountId ? 'Compte principal' : 'Sous-compte n°' + user.numAccount}
+                    </FormText>
+                </Col>
 
                 <Col xs={12}>
                     {user.subscription?.active && user.subscription?.status === 'active' ? (

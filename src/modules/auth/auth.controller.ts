@@ -47,4 +47,10 @@ export class AuthController {
         if (!req.user.isAdmin) throw new HttpException('Vous n\'avez pas les droits pour accéder à cette ressource', 403);
         return this.authService.connectIn(body.userId);
     }
+
+    @Post('sub-account/connect-in')
+    @UseGuards(JwtAuthGuard)
+    async connectInSubAccount(@Req() req, @Body() body: ConnectInDTO) {
+        return this.authService.connectInSubAccount(req.user._id, body.userId);
+    }
 }

@@ -29,6 +29,8 @@ export interface IUserSubscriptionItem {
 }
 export interface IUser extends Omit<IUserPayload, 'password'>, IUserUpdatePayload {
     _id: string
+    mainAccountId: string;
+    numAccount?: number;
     isAdmin: boolean;
     subscription: IUserSubscriptionItem;
     createdAt: Date

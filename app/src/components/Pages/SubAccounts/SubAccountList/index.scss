@@ -1,0 +1,15 @@
+.sub-account-list {
+    .sub-account-list__header {
+        margin-bottom: 20px;
+    }
+
+    .sub-account-list__header, .sub-account-list__item {
+        margin-bottom: 20px;
+        padding: 0 0.5rem;
+
+        svg {
+            font-size: 1.5em;
+            cursor: pointer;
+        }
+    }
+}

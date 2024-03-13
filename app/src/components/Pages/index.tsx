@@ -1,7 +1,6 @@
 import { Route, Routes, useLocation, useNavigate } from 'react-router'
 import NotFound from '../utils/NotFound'
 import Home from './Home'
-import Preferences from './Preferences'
 // import Positions from './Positions'
 import PlaceOrder from './PlaceOrder'
 import { useAuth } from '../../hooks/AuthContext'
@@ -20,6 +19,8 @@ import Users from './Admin/Users'
 import ErrorTraceRouter from './Admin/ErrorTrace/index.router'
 import TelegramChannel from './Admin/TelegramChannel'
 import StategyRouter from './Admin/Strategies/index.router'
+import SubAccountRouter from './SubAccounts/index.router'
+import Preferences from './Preferences'
 
 export interface ICryptobotRouterProps {
     routes: IRoute[]
@@ -30,19 +31,14 @@ const Pages = () => {
     const location = useLocation()
     const navigate = useNavigate()
     if (!user) return <div></div>
-    
+
     const cryptobotRoutes: IRoute[] = [
         {
-            path: 'home',
+            path: 'register',
             Component: Home,
-            title: 'Accueil',
         },
         {
             path: 'login',
-            Component: Home,
-        },
-        {
-            path: 'register',
             Component: Home,
         },
         {
@@ -50,21 +46,10 @@ const Pages = () => {
             Component: CGU,
         },
         {
-            path: 'place-order',
-            Component: PlaceOrder,
-            disabled: !isTrader(user),
-            title: 'Placer un ordre',
+            path: 'home',
+            Component: Home,
+            title: 'Accueil',
         },
-        {
-            path: 'preferences',
-            Component: Preferences,
-            title: 'Préférences',
-        },
-        // {
-        //     path: 'positions',
-        //     Component: Positions,
-        //     title: 'Positions',
-        // },
         {
             path: 'payment',
             Component: Payement,
@@ -75,7 +60,31 @@ const Pages = () => {
             Component: Home,
         },
     ]
-    
+
+    if (user.subscription?.name) {
+        cryptobotRoutes.splice(-1, 0, {
+            path: 'preferences',
+            Component: Preferences,
+            title: 'Préférences',
+        });
+    }
+    if (isTrader(user)) {
+        cryptobotRoutes.splice(-1, 0, {
+            path: 'place-order',
+            Component: PlaceOrder,
+            disabled: !isTrader(user),
+            title: 'Placer un ordre',
+        })
+    }
+
+    if (!user.mainAccountId && !user.numAccount ) {
+        cryptobotRoutes.splice(-1, 0, {
+            path: 'sub-accounts/*',
+            Component: SubAccountRouter,
+            title: 'Sous-Comptes',
+        });
+    }
+
     if (user.rights.includes('TELEGRAM_CHANNEL')) {
         cryptobotRoutes.splice(-1, 0, {
             path: 'telegram/channel',

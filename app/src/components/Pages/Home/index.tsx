@@ -2,14 +2,16 @@ import { Col, Container, Row } from "react-bootstrap";
 import Profile from "./Profile";
 import BitgetProfile from "./BitgetProfile";
 import Stats from "./Stats";
+import { useAuth } from "../../../hooks/AuthContext";
 
 const Home: React.FC = () => {
+  const { user} = useAuth()
     return (
       <Container fluid={true}>
         <Row>
           <Col sm={12} md={3}>
             <Profile />
-            <BitgetProfile />
+            {user.subscription?.name && <BitgetProfile />}
           </Col>
           <Col sm={12} md={9}>
             <Stats />

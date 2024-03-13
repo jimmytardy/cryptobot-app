@@ -14,7 +14,10 @@ declare global {
 }
 
 const Payement = () => {
-    const { user } = useAuth()
+    const { user } = useAuth();
+
+    const pricingTableId = user.mainAccountId ? import.meta.env.VITE_STRIPE_PRICING_TABLE_SUB_ACCOUNT : import.meta.env.VITE_STRIPE_PRICING_TABLE
+
     const handleRedirectAccount = async () => {
         const result = await axiosClient.post('/payment/stripe/create-customer-portal-session')
         window.location.href = result.data.url
@@ -58,7 +61,7 @@ const Payement = () => {
             {!user.subscription || Object.keys(user.subscription).length === 0 ? (
                 <Row>
                     <stripe-pricing-table
-                        pricing-table-id={import.meta.env.VITE_STRIPE_PRICING_TABLE}
+                        pricing-table-id={pricingTableId}
                         publishable-key={import.meta.env.VITE_STRIPE_KEY}
                         customer-email={user.email}
                     ></stripe-pricing-table>
