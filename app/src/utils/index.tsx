@@ -9,6 +9,10 @@ export const isTrader = (user: IUser): boolean => {
     return user.subscription && user.subscription.rights?.includes(UserSubscriptionEnum.TRADER);
 }
 
+export const hasSubAccount = (user: IUser): boolean => {
+    return !user.mainAccountId && !user.numAccount && user.subscription && user.subscription.rights?.includes(UserSubscriptionEnum.SUB_ACCOUNT);
+}
+
 export const getDifferenceDates = (
     date1: Date,
     date2: Date,

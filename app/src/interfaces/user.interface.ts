@@ -13,7 +13,8 @@ export interface IUserPayload {
 
 export enum UserSubscriptionEnum {
     BOT = 'bot',
-    TRADER = 'trader'
+    TRADER = 'trader',
+    SUB_ACCOUNT = 'sub-account'
 }
 
 export interface IUserUpdatePayload {
@@ -29,7 +30,7 @@ export interface IUserSubscriptionItem {
 }
 export interface IUser extends Omit<IUserPayload, 'password'>, IUserUpdatePayload {
     _id: string
-    mainAccountId: string;
+    mainAccountId?: Omit<Omit<IUser, 'bitget'>, 'preferences'>;
     numAccount?: number;
     isAdmin: boolean;
     subscription: IUserSubscriptionItem;

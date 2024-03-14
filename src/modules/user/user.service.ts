@@ -121,11 +121,11 @@ export class UserService implements OnApplicationBootstrap {
     }
 
     async getUsersWithSubscription(subscription: SubscriptionEnum, filter: FilterQuery<User> = {}, select?: ProjectionType<User>): Promise<User[]> {
-        return await this.userModel.find({ ...filter, 'subscription.rights': subscription, 'subscription.active': true }, select).lean()
+        return await this.userModel.find({ ...filter, 'subscription.rights': subscription, 'subscription.active': true, active: true }, select).lean()
     }
 
     async getListOfTraders(): Promise<User[]> {
-        return await this.userModel.find({ 'subscription.active': true }).lean()
+        return await this.userModel.find({ 'subscription.active': true, active: true  }).lean()
     }
 
     async getPreferences(userId: Types.ObjectId) {
@@ -157,9 +157,14 @@ export class UserService implements OnApplicationBootstrap {
     }
 
     async getProfile(user: User) {
-        const { bitget, preferences, stripeCustomerId, password, ...userInfo } = user
+        const { bitget, preferences, stripeCustomerId, password, ...userInfo } = user;
+        let mainAccount = undefined;
+        if (user.mainAccountId) {
+            mainAccount = await this.userModel.findById(user.mainAccountId, '-bitget -preferences');
+        }
         return {
             ...userInfo,
+            mainAccountId: mainAccount,
             rights: await this.rightService.getRights(user._id),
         }
     }
@@ -234,6 +239,7 @@ export class UserService implements OnApplicationBootstrap {
         newSubAccount.lastname = user.lastname;
         newSubAccount.password = user.password;
         newSubAccount.mainAccountId = user._id;
+        (newSubAccount as any).subscription = user.subscription;
         return await this.create(newSubAccount, true)
     }
 }

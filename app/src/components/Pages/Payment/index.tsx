@@ -63,7 +63,7 @@ const Payement = () => {
                     <stripe-pricing-table
                         pricing-table-id={pricingTableId}
                         publishable-key={import.meta.env.VITE_STRIPE_KEY}
-                        customer-email={user.email}
+                        customer-email={user.mainAccountId?.email || user.email}
                     ></stripe-pricing-table>
                 </Row>
             ) : (

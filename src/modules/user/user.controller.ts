@@ -20,7 +20,7 @@ export class UserController {
 
     @Get('referral/:referralCode')
     async get(@Param('referralCode') referralCode: string) {
-        return await this.userService.findOne({ referralCode, 'subscription.active': true, 'subscription.status': 'active' }, 'email firstname lastname');
+        return await this.userService.findOne({ referralCode, 'subscription.active': true, 'subscription.status': 'active', active: true }, 'email firstname lastname');
     }
 
     @UseGuards(JwtAuthGuard)

@@ -46,9 +46,9 @@ export class TasksService implements OnApplicationBootstrap, OnModuleInit {
 
     @Cron(CronExpression.EVERY_12_HOURS)
     async synchroSubscriptions() {
-        const users = await this.userService.findAll()
+        const users = await this.userService.findAll({ mainAccountId: undefined })
 
-        for (const user of users) {
+        for (const user of users) { 
             await this.paymentsService.actualizeSubscription(user)
         }
     }
@@ -76,7 +76,7 @@ export class TasksService implements OnApplicationBootstrap, OnModuleInit {
 
     @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_MIDNIGHT)
     async updateQuantity() {
-        const users = await this.userService.findAll({ 'preferences.bot.automaticUpdate': true, 'subscription.active': true }, undefined, { lean: true })
+        const users = await this.userService.findAll({ 'preferences.bot.automaticUpdate': true, 'subscription.active': true, active: true }, undefined, { lean: true })
         await Promise.all(
             users.map(async (user) => {
                 const account = await this.bitgetService.getProfile(user._id)

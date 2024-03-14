@@ -5,7 +5,7 @@ import Home from './Home'
 import PlaceOrder from './PlaceOrder'
 import { useAuth } from '../../hooks/AuthContext'
 import CGU from '../CGU'
-import { isTrader } from '../../utils'
+import { hasSubAccount, isTrader } from '../../utils'
 import Payement from './Payment'
 import AdminRouter from './Admin/admin.router'
 import { generateRoutes } from './utils.functions'
@@ -68,6 +68,7 @@ const Pages = () => {
             title: 'Préférences',
         });
     }
+
     if (isTrader(user)) {
         cryptobotRoutes.splice(-1, 0, {
             path: 'place-order',
@@ -77,7 +78,7 @@ const Pages = () => {
         })
     }
 
-    if (!user.mainAccountId && !user.numAccount ) {
+    if (hasSubAccount(user)) {
         cryptobotRoutes.splice(-1, 0, {
             path: 'sub-accounts/*',
             Component: SubAccountRouter,

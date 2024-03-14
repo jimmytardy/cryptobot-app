@@ -65,7 +65,7 @@ export class PaymentsService {
         const subscription = await this.getSubscription(user.stripeCustomerId) 
         if (!_.isEqual(user.subscription, subscription)) {
             user.subscription = subscription
-            await this.userModel.findByIdAndUpdate(user._id, { $set: { subscription } }).exec()
+            await this.userModel.updateMany({ $or: [{ _id: user._id }, { mainAccountId: user._id }] }, { $set: { subscription } }).exec()
             if (subscription?.active) {
                 this.plateformsService.addNewTrader(user)
             } else {

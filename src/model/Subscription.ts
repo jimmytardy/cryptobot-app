@@ -4,7 +4,8 @@ import { HydratedDocument, Types } from "mongoose";
 
 export enum SubscriptionEnum {
     BOT = 'bot',
-    TRADER = 'trader'
+    TRADER = 'trader',
+    SUB_ACCOUNT = 'sub-account'
 }
 
 export type SubscriptionDocument = HydratedDocument<Subscription>;

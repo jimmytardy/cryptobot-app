@@ -9,7 +9,7 @@ import { SubscriptionEnum } from 'src/model/Subscription';
 @Controller('bitget')
 export class BitgetController {
 
-    constructor(private bitgetService: BitgetService, private paymentsService: PaymentsService) { }
+    constructor(private bitgetService: BitgetService) { }
 
     @Post('placeOrder')
     async placeOrder(@Body() placeOrderDTO: PlaceOrderDTO, @Request() req) {
@@ -24,6 +24,11 @@ export class BitgetController {
 
     @Get('profile')
     async getProfile(@Request() req) {
+        return await this.bitgetService.getProfile(req.user._id);
+    }
+
+    @Get('sub-account/profile')
+    async getSubAccountProfile(@Request() req) {
         return await this.bitgetService.getProfile(req.user._id);
     }
 
