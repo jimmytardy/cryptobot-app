@@ -1,0 +1,11 @@
+.sub-account-profile {
+    padding: 1em;
+    .sub-account-profile-item {
+        padding: 0.5em;
+        box-shadow: 0px 0px 5px 5px black;
+        margin: 1.5em 0;
+        .sub-account-profile-item-title {
+            margin-bottom: 0.5rem;
+        }
+    }
+}

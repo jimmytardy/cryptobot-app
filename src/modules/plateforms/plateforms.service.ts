@@ -34,4 +34,8 @@ export class PlateformsService {
             bitget: await this.bitgetService.getProfile(userId),
         }
     }
+
+    async closeAllPositions(userId: Types.ObjectId) {
+        await this.bitgetService.closeAllPosition(userId);
+    }
 }

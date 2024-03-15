@@ -1,5 +1,5 @@
 import Stripe from 'stripe'
-import { Inject, Injectable, forwardRef } from '@nestjs/common'
+import { Inject, Injectable, OnApplicationBootstrap, forwardRef } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { User } from 'src/model/User'
 import { InjectModel } from '@nestjs/mongoose'
@@ -67,7 +67,7 @@ export class PaymentsService {
             user.subscription = subscription
             await this.userModel.updateMany({ $or: [{ _id: user._id }, { mainAccountId: user._id }] }, { $set: { subscription } }).exec()
             if (subscription?.active) {
-                this.plateformsService.addNewTrader(user)
+                this.plateformsService.addNewTrader(user) 
             } else {
                 this.plateformsService.removeTrader(user)
             }

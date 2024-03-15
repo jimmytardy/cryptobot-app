@@ -89,7 +89,7 @@ export class BitgetService implements OnModuleInit {
 
     async getProfile(userId: Types.ObjectId) {
         return await this.bitgetUtilsService.getProfile(BitgetService.client[userId.toString()])
-    }
+    } 
 
     async getBaseCoins(userId: Types.ObjectId) {
         return await this.bitgetUtilsService.getBaseCoins(BitgetService.client[userId.toString()])
@@ -317,5 +317,16 @@ export class BitgetService implements OnModuleInit {
         })
 
         return []
+    }
+
+    async closeAllPosition(userId: Types.ObjectId) {
+        try {
+            const positions = await this.orderService.getActivePositions(userId);
+            for (const position of positions) {
+                await this.bitgetFuturesService.closePosition(BitgetService.clientV2[userId.toString()], userId, position.symbol)
+            }
+        } catch (e) {
+            this.logger.error('closeAllPosition', e)
+        }
     }
 }

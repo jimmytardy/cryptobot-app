@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import 'react-toastify/dist/ReactToastify.min.css'
 import { Button, Col, Container, FormControl, FormGroup, FormLabel, Row } from 'react-bootstrap'
@@ -6,17 +6,17 @@ import { useState } from 'react'
 import { IUser, IUserPayload } from '../../../../interfaces/user.interface'
 import axiosClient from '../../../../axiosClient'
 import { ISubAccountPayload } from '../sub-account.interface'
+import { useAuth } from '../../../../hooks/AuthContext'
+import { hasSubAccount } from '../../../../utils'
 
 const SubAccounNew = () => {
+    const { user } = useAuth();
+    if (!hasSubAccount(user)) return <Navigate to="/" replace={true} />
     const {
         register,
         handleSubmit,
     } = useForm<ISubAccountPayload>({
         defaultValues: {
-            firstname: '',
-            lastname: '',
-            email: '',
-            password: '',
             bitget: {
                 api_key: '',
                 api_secret_key: '',
@@ -29,7 +29,7 @@ const SubAccounNew = () => {
 
     const navigate = useNavigate()
 
-    const submitData = async (data: IUserPayload) => {
+    const submitData = async (data: ISubAccountPayload) => {
         let params: any = {
             bitget: data.bitget
         }
@@ -77,7 +77,7 @@ const SubAccounNew = () => {
                     <Row>
                         <Col xs={12}>
                             <FormLabel>
-                                Information sur votre clé API. Il est interdit de:
+                                Information sur votre clé API. <b>Il est interdit de</b>:
                                 <ul>
                                     <li>Trader sur un compte utilisé par le bot</li>
                                     <li>Mettre 2 bot sur le même compte</li>

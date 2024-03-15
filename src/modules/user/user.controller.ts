@@ -1,12 +1,13 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Param, Post, Put, Query, Req, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpException, HttpStatus, Param, Patch, Post, Put, Query, Req, Request, UseGuards } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { User } from 'src/model/User';
 import { CreateSubAccountDTO, CreateUserDTO, ProfileUpdateDTO, UpdatePreferencesDTO, UserStatsDTO } from './user.dto';
 import { UserService } from './user.service';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 import { OrderService } from '../order/order.service';
 import { Strategy } from 'src/model/Stategy';
+import { SubscriptionEnum } from 'src/model/Subscription';
 
 @Controller('user')
 export class UserController {
@@ -63,16 +64,57 @@ export class UserController {
     @UseGuards(JwtAuthGuard)
     @Get('sub-accounts')
     async getSubAccounts(@Req() req) {
-        return await this.userService.findAll({ mainAccountId: req.user._id }, 'email numAccount createdAt preferences.bot.quantity preferences.bot.pourcentage preferences.bot.strategy.strategyId', { populate: { path: 'preferences.bot.strategy.strategyId', select: 'name', model: this.strategyModel } });
+        if (!(req.user as User).subscription?.rights?.includes(SubscriptionEnum.BOT) || !(req.user as User).subscription?.active) {
+            throw new HttpException('Vous n\'avez pas les droits pour accéder à cette ressource', 403);
+        }
+        return await this.userService.findAll({ mainAccountId: req.user._id }, 'email active numAccount createdAt preferences.bot.quantity preferences.bot.pourcentage preferences.bot.strategy.strategyId', { populate: { path: 'preferences.bot.strategy.strategyId', select: 'name', model: this.strategyModel } });
     }
 
     @UseGuards(JwtAuthGuard)
     @Post('sub-account')
     async createSubAccounts(@Req() req, @Body() subAccountDTO: CreateSubAccountDTO) {
+        if (!(req.user as User).subscription?.rights?.includes(SubscriptionEnum.BOT) || !(req.user as User).subscription?.active) {
+            throw new HttpException('Vous n\'avez pas les droits pour accéder à cette ressource', 403);
+        }
         try {
             return await this.userService.createSubAccount(req.user._id, subAccountDTO);
         } catch (e) {
             throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
         }
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Delete('sub-account/:id([0-9a-f]{24})')
+    async deleteSubAccounts(@Req() req, @Param('id') subAccountId: string, @Query() query: { deletePositionInProgress?: string }) {
+        if (!(req.user as User).subscription?.rights?.includes(SubscriptionEnum.BOT) || !(req.user as User).subscription?.active) {
+            throw new HttpException('Vous n\'avez pas les droits pour accéder à cette ressource', 403);
+        }
+        try {
+            return await this.userService.deleteSubAccount(new Types.ObjectId(subAccountId), query);
+        } catch (e) {
+            throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Patch('sub-account/:id([0-9a-f]{24})')
+    async reactivateSubAccount(@Req() req, @Param('id') subAccountId: string) {
+        if (!(req.user as User).subscription?.rights?.includes(SubscriptionEnum.BOT) || !(req.user as User).subscription?.active) {
+            throw new HttpException('Vous n\'avez pas les droits pour accéder à cette ressource', 403);
+        }
+        try {
+            return await this.userService.reactivateSubAccount(new Types.ObjectId(subAccountId));
+        } catch (e) {
+            throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('sub-accounts/profile')
+    async getSubAccountsProfile(@Request() req) {
+        if (!(req.user as User).subscription?.rights?.includes(SubscriptionEnum.BOT) || !(req.user as User).subscription?.active) {
+            throw new HttpException('Vous n\'avez pas les droits pour accéder à cette ressource', 403);
+        }
+        return await this.userService.getSubAccountsProfile(req.user._id);
     }
 }

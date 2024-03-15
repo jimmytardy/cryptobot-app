@@ -92,7 +92,7 @@ export class User {
     @Prop({ default: false })
     isAdmin: boolean
 
-    @Prop({ default: false })
+    @Prop({ default: true })
     active: boolean
 
     @Prop({ type: String })

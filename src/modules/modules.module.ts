@@ -13,8 +13,9 @@ import { ErrorTraceModule } from './error-trace/error-trace.module';
 import { PositionModule } from './position/position.module';
 import { RightModule } from './right/right.module';
 import { StrategyModule } from './strategy/strategy.module';
+import { SubscriptionModule } from './subscription/subscription.module';
 
 @Module({
-  imports: [OrderModule, PlateformsModule, AuthModule, UserModule, PaymentsModule, TasksModule, TelegramModule, OrderBotModule, AppConfigModule, ErrorTraceModule, PositionModule, RightModule, StrategyModule]
+  imports: [OrderModule, PlateformsModule, AuthModule, UserModule, PaymentsModule, TasksModule, TelegramModule, OrderBotModule, AppConfigModule, ErrorTraceModule, PositionModule, RightModule, StrategyModule, SubscriptionModule]
 })
 export class ModulesModule {}

@@ -27,11 +27,6 @@ export class BitgetController {
         return await this.bitgetService.getProfile(req.user._id);
     }
 
-    @Get('sub-account/profile')
-    async getSubAccountProfile(@Request() req) {
-        return await this.bitgetService.getProfile(req.user._id);
-    }
-
     @UseGuards(JwtAuthGuard)
     @Get('orders-active')
     async getOrdersActive(@Request() req) {

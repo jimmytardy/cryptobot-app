@@ -3,15 +3,20 @@ import axiosClient from '../../../../axiosClient'
 import { Button, Col, Container, FormText, Row } from 'react-bootstrap'
 import { ArrowClockwise } from 'react-bootstrap-icons'
 import './index.scss';
-interface IBitgetProfile {
+
+export interface IBitgetProfile {
     available: number
     totalPnL: number
     unrealizedPL: number
 }
 
-const BitgetProfile = () => {
-    const [bitGetProfile, setBitgetProfile] = useState<IBitgetProfile>()
-    const [isLoading, setIsLoading] = useState<boolean>(true)
+interface IBitgetProfileProps {
+    bitgetProfile?: IBitgetProfile
+}
+
+const BitgetProfile = ({ bitgetProfile: bitgetProfileProps }: IBitgetProfileProps) => {
+    const [bitGetProfile, setBitgetProfile] = useState<IBitgetProfile | undefined>(bitgetProfileProps)
+    const [isLoading, setIsLoading] = useState<boolean>(!bitgetProfileProps)
 
     const loadBitGetProfile = async () => {
         setIsLoading(true)
@@ -21,29 +26,33 @@ const BitgetProfile = () => {
         } catch (e) {
             console.error(e);
         }
-        
+
         setIsLoading(false)
     }
 
     useEffect(() => {
-        loadBitGetProfile()
+        if (!bitgetProfileProps) {
+            loadBitGetProfile()
+        }
     }, [])
 
     return (
         <Container className='bitget-profile'>
             <Row>
-                <Col xs={12}>
-                    <div className="form-title">
-                        <b>Solde</b>
-                        <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={loadBitGetProfile}
-                        >
-                            <ArrowClockwise size={15} />
-                        </Button>
-                    </div>
-                </Col>
+                {!bitgetProfileProps && (
+                    <Col xs={12}>
+                        <div className="form-title">
+                            <b>Solde</b>
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={loadBitGetProfile}
+                            >
+                                <ArrowClockwise size={15} />
+                            </Button>
+                        </div>
+                    </Col>
+                )}
                 {isLoading || !bitGetProfile ? (
                     <div>Chargement du profil bitget en cours...</div>
                 ) : (

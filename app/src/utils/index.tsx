@@ -6,7 +6,7 @@ export const isNumber = (value: string | number) => {
 }
 
 export const isTrader = (user: IUser): boolean => {
-    return user.subscription && user.subscription.rights?.includes(UserSubscriptionEnum.TRADER);
+    return !user.mainAccountId && user.subscription && user.subscription.rights?.includes(UserSubscriptionEnum.TRADER);
 }
 
 export const hasSubAccount = (user: IUser): boolean => {

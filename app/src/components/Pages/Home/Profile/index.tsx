@@ -36,27 +36,28 @@ const Profile = () => {
                 </Col>
                 <Col xs={12}>
                     <FormText>
-                        {user.mainAccountId ? 'Compte principal' : 'Sous-compte n°' + user.numAccount}
+                        {!user.mainAccountId ? 'Compte principal' : 'Sous-compte n°' + user.numAccount}
                     </FormText>
                 </Col>
-
-                <Col xs={12}>
-                    {user.subscription?.active && user.subscription?.status === 'active' ? (
-                        <FormText onClick={copyReferralLink} className="referral-code">
-                            Code de parrainage: <b>{user.referralCode}</b>{' '}
-                            {!hasCopy ? (
-                                <ClipboardFill />
-                            ) : (
-                                <>
-                                    <ClipboardCheckFill />
-                                    <i>Copié</i>
-                                </>
-                            )}
-                        </FormText>
-                    ) : (
-                        <FormText>Le parrainage sera disponible lorsque votre abonnement sera actif après la période d'essai</FormText>
-                    )}
-                </Col>
+                {!user.mainAccountId && (
+                    <Col xs={12}>
+                        {user.subscription?.active && user.subscription?.status === 'active' ? (
+                            <FormText onClick={copyReferralLink} className="referral-code">
+                                Code de parrainage: <b>{user.referralCode}</b>{' '}
+                                {!hasCopy ? (
+                                    <ClipboardFill />
+                                ) : (
+                                    <>
+                                        <ClipboardCheckFill />
+                                        <i>Copié</i>
+                                    </>
+                                )}
+                            </FormText>
+                        ) : (
+                            <FormText>Le parrainage sera disponible lorsque votre abonnement sera actif après la période d'essai</FormText>
+                        )}
+                    </Col>
+                )}
             </Row>
             <Row>
                 <Col xs={12}>

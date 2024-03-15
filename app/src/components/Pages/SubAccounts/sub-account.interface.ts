@@ -3,6 +3,7 @@ import { IUserPayload } from "../../../interfaces/user.interface";
 export interface ISubAccount {
     _id: string;
     email: string
+    active: boolean;
     numAccount: number
     preferences: {
         bot: {

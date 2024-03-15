@@ -42,7 +42,6 @@ export class AuthService {
     async connectInSubAccount(mainAccountId: Types.ObjectId, userId: string) {
         const user = await this.userService.findById(userId)
         if (!user) throw new NotFoundException('User not found')
-        console.log('user._id', user._id, mainAccountId)
         if (!user.mainAccountId.equals(mainAccountId)) throw new UnauthorizedException('Vous n\'êtes pas le propriétaire de ce sous compte')
         const payload = { email: user.email, sub: user._id }
         return {

@@ -30,7 +30,7 @@ export class UserService implements OnApplicationBootstrap {
     ) { }
 
     async onApplicationBootstrap() {
-        const users = await this.getListOfTraders()
+        const users = await this.getUserWithAnySubscription()
         await this.plateformsService.initializeTraders(users)
     }
 
@@ -124,7 +124,7 @@ export class UserService implements OnApplicationBootstrap {
         return await this.userModel.find({ ...filter, 'subscription.rights': subscription, 'subscription.active': true, active: true }, select).lean()
     }
 
-    async getListOfTraders(): Promise<User[]> {
+    async getUserWithAnySubscription(): Promise<User[]> {
         return await this.userModel.find({ 'subscription.active': true, active: true  }).lean()
     }
 
@@ -241,5 +241,33 @@ export class UserService implements OnApplicationBootstrap {
         newSubAccount.mainAccountId = user._id;
         (newSubAccount as any).subscription = user.subscription;
         return await this.create(newSubAccount, true)
+    }
+
+    async deleteSubAccount(subAccountId: Types.ObjectId, options: { deletePositionInProgress?: string }) {
+        const subAccount = await this.findById(subAccountId)
+        if (!subAccount) throw new Error('Sous compte non trouvé');
+        await this.userModel.updateOne({ _id: subAccountId }, { $set: { active: false } });
+        this.plateformsService.removeTrader(subAccount);
+        if (options.deletePositionInProgress && options.deletePositionInProgress === 'true') {
+            await this.plateformsService.closeAllPositions(subAccount._id)
+        }
+    }
+
+    async reactivateSubAccount(subAccountId: Types.ObjectId) {
+        const subAccount = await this.findById(subAccountId)
+        if (!subAccount) throw new Error('Sous compte non trouvé');
+        await this.userModel.updateOne({ _id: subAccountId }, { $set: { active: true } });
+        this.plateformsService.addNewTrader(subAccount);
+    }
+
+    async getSubAccountsProfile(userId: Types.ObjectId) {
+        const users = await this.userModel.find({ mainAccountId: userId, active: true }, 'numAccount preferences').sort('numAccount').populate('preferences.bot.strategy.strategyId').lean().exec();
+        return await Promise.all(users.map(async (user) => {
+            const plateforms = await this.plateformsService.getProfile(user._id);
+            return {
+                ...user,
+                ...plateforms,
+            }
+        }))
     }
 }

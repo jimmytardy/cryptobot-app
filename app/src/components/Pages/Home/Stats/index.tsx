@@ -6,6 +6,7 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
 import Loader from '../../../utils/Loader'
 import './index.scss'
 import StatsPositions from './StatsPositions'
+import SubAccountProfile from './SubAccountsProfile'
 
 ChartJS.register(ArcElement, Tooltip, Legend)
 
@@ -57,6 +58,7 @@ const Stats = () => {
 
     return (
         <Container className="stats">
+            <SubAccountProfile />
             <Row>
                 {stats.positions.length > 0 ? (
                     <>

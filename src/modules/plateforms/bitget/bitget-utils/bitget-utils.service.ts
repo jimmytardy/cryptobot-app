@@ -31,7 +31,7 @@ export class BitgetUtilsService {
         available: number
         totalPnL: number
         unrealizedPL: number
-    }> {
+    }> { 
         const accountFuture = await this.getAccount(client)
         const result = {
             available: Number(accountFuture.fixedMaxAvailable),

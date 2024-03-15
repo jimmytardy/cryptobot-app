@@ -21,6 +21,7 @@ import TelegramChannel from './Admin/TelegramChannel'
 import StategyRouter from './Admin/Strategies/index.router'
 import SubAccountRouter from './SubAccounts/index.router'
 import Preferences from './Preferences'
+import Subscriptions from './Admin/Subscriptions'
 
 export interface ICryptobotRouterProps {
     routes: IRoute[]
@@ -46,23 +47,26 @@ const Pages = () => {
             Component: CGU,
         },
         {
+            path: '/',
+            Component: Home,
+        },
+        {
             path: 'home',
             Component: Home,
             title: 'Accueil',
         },
-        {
+    ]
+
+    if (!user.mainAccountId && user.subscription?.name) {
+        cryptobotRoutes.push({
             path: 'payment',
             Component: Payement,
             title: 'Gérer mon abonnement',
-        },
-        {
-            path: '/',
-            Component: Home,
-        },
-    ]
+        });
+    }
 
     if (user.subscription?.name) {
-        cryptobotRoutes.splice(-1, 0, {
+        cryptobotRoutes.push({
             path: 'preferences',
             Component: Preferences,
             title: 'Préférences',
@@ -70,7 +74,7 @@ const Pages = () => {
     }
 
     if (isTrader(user)) {
-        cryptobotRoutes.splice(-1, 0, {
+        cryptobotRoutes.push({
             path: 'place-order',
             Component: PlaceOrder,
             disabled: !isTrader(user),
@@ -79,15 +83,15 @@ const Pages = () => {
     }
 
     if (hasSubAccount(user)) {
-        cryptobotRoutes.splice(-1, 0, {
+        cryptobotRoutes.push({
             path: 'sub-accounts/*',
             Component: SubAccountRouter,
-            title: 'Sous-Comptes',
+            title: 'Sous-comptes',
         });
     }
 
     if (user.rights.includes('TELEGRAM_CHANNEL')) {
-        cryptobotRoutes.splice(-1, 0, {
+        cryptobotRoutes.push({
             path: 'telegram/channel',
             Component: TelegramChannel,
             title: 'Télégram',
@@ -111,9 +115,9 @@ const Pages = () => {
             title: 'Utilisateurs',
         },
         {
-            Component: StategyRouter,
-            path: 'strategy/*',
-            title: 'Statégies',
+            Component: Subscriptions,
+            path: 'subscriptions',
+            title: 'Abonnements',
         },
         {
             title: 'Erreurs',
