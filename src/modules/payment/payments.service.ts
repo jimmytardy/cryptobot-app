@@ -100,7 +100,6 @@ export class PaymentsService {
                     user = await this.userModel.findOne({ stripeCustomerId: event.data.object.customer }).lean().exec();
                     await this.actualizeSubscription(user)
                 } else {
-                    this.logger.log(`Unhandled event type ${event.type}`)
                     console.info(`Unhandled event type ${event.type}`)
                 }
         }

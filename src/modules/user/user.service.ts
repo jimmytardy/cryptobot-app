@@ -82,6 +82,7 @@ export class UserService implements OnApplicationBootstrap {
             this.plateformsService.addNewTrader(newUser)
             if (!await this.plateformsService.checkAccessKey(newUser._id)) throw new Error('Les droits de la clé API ne sont pas suffisants')
             account = await this.plateformsService.getProfile(newUser._id)
+
             if (!isSubAccount) {
                 let referrer = null
                 if (user.referralCode) {
@@ -97,7 +98,7 @@ export class UserService implements OnApplicationBootstrap {
                     const referralCode = UtilService.generateReferralCode()
                     const userWithReferralCode = await this.findOne({ referralCode }, '_id')
                     if (!userWithReferralCode) {
-                        user.referralCode = referralCode
+                        newUser.referralCode = referralCode
                         referralUnique = true
                     }
                 }
