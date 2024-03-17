@@ -56,7 +56,7 @@ const Pages = () => {
         },
     ]
 
-    if (!user.mainAccountId && user.subscription?.name) {
+    if (!user.mainAccountId) {
         cryptobotRoutes.push({
             path: 'payment',
             Component: Payement,
