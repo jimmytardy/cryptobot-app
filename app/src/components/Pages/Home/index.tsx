@@ -3,7 +3,6 @@ import Profile from "./Profile";
 import BitgetProfile from "./BitgetProfile";
 import Stats from "./Stats";
 import { useAuth } from "../../../hooks/AuthContext";
-import SubAccountProfile from "./Stats/SubAccountsProfile";
 
 const Home: React.FC = () => {
   const { user } = useAuth()
