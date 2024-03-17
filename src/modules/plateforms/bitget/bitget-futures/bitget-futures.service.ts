@@ -989,4 +989,22 @@ export class BitgetFuturesService {
             await this.positionService.findOneAndUpdate({ userId, symbol: symbolV2 }, { 'synchroExchange.SL': true })
         }
     }
+
+    async checkAccessKey(client: FuturesClient) {
+        try {
+            await client.getAccount('', 'USDT')
+        } catch(e) {
+            if (e.body.code === '40014') {
+                return false
+            }
+            try {
+                await client.submitOrder({} as any);
+            } catch (e) {
+                if (e.body.code === '40014') {
+                    return false
+                }
+                return true;
+            }
+        }
+    }
 }

@@ -27,7 +27,7 @@ export class UserService implements OnApplicationBootstrap {
         private orderService: OrderService,
         private rightService: RightService,
         private strategyService: StrategyService,
-    ) { }
+    ) {}
 
     async onApplicationBootstrap() {
         const users = await this.getUserWithAnySubscription()
@@ -67,17 +67,20 @@ export class UserService implements OnApplicationBootstrap {
     async create(user: CreateUserDTO, isSubAccount = false) {
         const salt = await genSalt()
 
-        const exists = await this.findByEmail(user.email)
+        let exists = await this.findByEmail(user.email)
         if (exists) throw new Error("L'email existe déjà")
+        exists = await this.findOne({ 'bitget.api_key': user.bitget.api_key })
+        if (exists) throw new Error('Cette clé API existe déjà')
         const newUser = new this.userModel({
             ...user,
             _id: new Types.ObjectId(),
-            password: isSubAccount ? user.password :  await hash(user.password, salt),
+            password: isSubAccount ? user.password : await hash(user.password, salt),
         })
         let account = null
 
         try {
             this.plateformsService.addNewTrader(newUser)
+            if (!await this.plateformsService.checkAccessKey(newUser._id)) throw new Error('Les droits de la clé API ne sont pas suffisants')
             account = await this.plateformsService.getProfile(newUser._id)
             if (!isSubAccount) {
                 let referrer = null
@@ -114,9 +117,8 @@ export class UserService implements OnApplicationBootstrap {
             const newUserSave = await newUser.save()
             return newUserSave
         } catch (e) {
-            console.log('e', e)
             this.plateformsService.removeTrader(newUser)
-            throw new Error('Les informations de la clé API ne sont pas correctes')
+            throw new Error(e.message || 'Les informations de la clé API ne sont pas correctes')
         }
     }
 
@@ -125,7 +127,7 @@ export class UserService implements OnApplicationBootstrap {
     }
 
     async getUserWithAnySubscription(): Promise<User[]> {
-        return await this.userModel.find({ 'subscription.active': true, active: true  }).lean()
+        return await this.userModel.find({ 'subscription.active': true, active: true }).lean()
     }
 
     async getPreferences(userId: Types.ObjectId) {
@@ -157,10 +159,10 @@ export class UserService implements OnApplicationBootstrap {
     }
 
     async getProfile(user: User) {
-        const { bitget, preferences, stripeCustomerId, password, ...userInfo } = user;
-        let mainAccount = undefined;
+        const { bitget, preferences, stripeCustomerId, password, ...userInfo } = user
+        let mainAccount = undefined
         if (user.mainAccountId) {
-            mainAccount = await this.userModel.findById(user.mainAccountId, '-bitget -preferences');
+            mainAccount = await this.userModel.findById(user.mainAccountId, '-bitget -preferences')
         }
         return {
             ...userInfo,
@@ -227,27 +229,27 @@ export class UserService implements OnApplicationBootstrap {
 
     async createSubAccount(userId: Types.ObjectId, subAccountDTO: CreateSubAccountDTO) {
         const user = await this.findById(userId, '+password')
-        if (!user) throw new Error('Utilisateur non trouvé');
-        const nbSubAccounts = await this.userModel.countDocuments({ mainAccountId: userId });
-        const numSubAccount = nbSubAccounts + 1;
+        if (!user) throw new Error('Utilisateur non trouvé')
+        const nbSubAccounts = await this.userModel.countDocuments({ mainAccountId: userId })
+        const numSubAccount = nbSubAccounts + 1
         const newSubAccount = new CreateUserDTO()
-        newSubAccount.bitget = subAccountDTO.bitget;
-        newSubAccount.numAccount = numSubAccount;
-        newSubAccount.email = user.email.replace('@', `_sc_${numSubAccount}@`);
-        newSubAccount.referralCode = String(new Types.ObjectId());
-        newSubAccount.firstname = user.firstname;
-        newSubAccount.lastname = user.lastname;
-        newSubAccount.password = user.password;
-        newSubAccount.mainAccountId = user._id;
-        (newSubAccount as any).subscription = user.subscription;
+        newSubAccount.bitget = subAccountDTO.bitget
+        newSubAccount.numAccount = numSubAccount
+        newSubAccount.email = user.email.replace('@', `_sc_${numSubAccount}@`)
+        newSubAccount.referralCode = String(new Types.ObjectId())
+        newSubAccount.firstname = user.firstname
+        newSubAccount.lastname = user.lastname
+        newSubAccount.password = user.password
+        newSubAccount.mainAccountId = user._id
+        ;(newSubAccount as any).subscription = user.subscription
         return await this.create(newSubAccount, true)
     }
 
     async deleteSubAccount(subAccountId: Types.ObjectId, options: { deletePositionInProgress?: string }) {
         const subAccount = await this.findById(subAccountId)
-        if (!subAccount) throw new Error('Sous compte non trouvé');
-        await this.userModel.updateOne({ _id: subAccountId }, { $set: { active: false } });
-        this.plateformsService.removeTrader(subAccount);
+        if (!subAccount) throw new Error('Sous compte non trouvé')
+        await this.userModel.updateOne({ _id: subAccountId }, { $set: { active: false } })
+        this.plateformsService.removeTrader(subAccount)
         if (options.deletePositionInProgress && options.deletePositionInProgress === 'true') {
             await this.plateformsService.closeAllPositions(subAccount._id)
         }
@@ -255,19 +257,26 @@ export class UserService implements OnApplicationBootstrap {
 
     async reactivateSubAccount(subAccountId: Types.ObjectId) {
         const subAccount = await this.findById(subAccountId)
-        if (!subAccount) throw new Error('Sous compte non trouvé');
-        await this.userModel.updateOne({ _id: subAccountId }, { $set: { active: true } });
-        this.plateformsService.addNewTrader(subAccount);
+        if (!subAccount) throw new Error('Sous compte non trouvé')
+        await this.userModel.updateOne({ _id: subAccountId }, { $set: { active: true } })
+        this.plateformsService.addNewTrader(subAccount)
     }
 
     async getSubAccountsProfile(userId: Types.ObjectId) {
-        const users = await this.userModel.find({ mainAccountId: userId, active: true }, 'numAccount preferences').sort('numAccount').populate('preferences.bot.strategy.strategyId').lean().exec();
-        return await Promise.all(users.map(async (user) => {
-            const plateforms = await this.plateformsService.getProfile(user._id);
-            return {
-                ...user,
-                ...plateforms,
-            }
-        }))
+        const users = await this.userModel
+            .find({ mainAccountId: userId, active: true }, 'numAccount preferences')
+            .sort('numAccount')
+            .populate('preferences.bot.strategy.strategyId')
+            .lean()
+            .exec()
+        return await Promise.all(
+            users.map(async (user) => {
+                const plateforms = await this.plateformsService.getProfile(user._id)
+                return {
+                    ...user,
+                    ...plateforms,
+                }
+            }),
+        )
     }
 }

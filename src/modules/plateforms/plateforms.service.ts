@@ -38,4 +38,12 @@ export class PlateformsService {
     async closeAllPositions(userId: Types.ObjectId) {
         await this.bitgetService.closeAllPosition(userId);
     }
+
+    async checkAccessKey(userId: Types.ObjectId) {
+        try {
+            return await this.bitgetService.checkAccessKey(userId);
+        } catch (e) {
+            return false;
+        }
+    }
 }

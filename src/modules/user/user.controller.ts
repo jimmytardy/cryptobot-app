@@ -58,7 +58,7 @@ export class UserController {
     @Get('admin/users')
     async getUsers(@Req() req) {
         if (!req.user.isAdmin) throw new HttpException('Vous n\'avez pas les droits pour accéder à cette ressource', 403);
-        return await this.userService.findAll();
+        return await this.userService.findAll({ mainAccountId: undefined });
     }
 
     @UseGuards(JwtAuthGuard)

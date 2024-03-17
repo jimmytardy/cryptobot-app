@@ -41,14 +41,8 @@ const SubAccounNew = () => {
         }
     }
 
-    const connectTo = async () => {
-        if (subAccountCreated) {
-            const response = await axiosClient.post('/auth/sub-account/connect-in', { userId: subAccountCreated._id })
-            localStorage.setItem('token', response.data.access_token)
-            navigate('/', { replace: true })
-        } else {
-            setError('Veuillez créer un sous-compte avant de vous connecter');
-        }
+    const goToSubAccounts = async () => {
+        navigate('/sub-accounts')
     }
 
     return (
@@ -67,8 +61,8 @@ const SubAccounNew = () => {
                         </FormLabel>
                     </Col>
                     <Col xs={12}>
-                        <Button variant="outline-primary" className="text-center shadow-none mb-3" onClick={connectTo}>
-                            Se connecter
+                        <Button variant="outline-primary" className="text-center shadow-none mb-3" onClick={goToSubAccounts}>
+                            Retourner à la liste des sous-comptes
                         </Button>
                     </Col>
                 </Row>

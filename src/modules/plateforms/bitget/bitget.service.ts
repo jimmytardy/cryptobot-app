@@ -329,4 +329,12 @@ export class BitgetService implements OnModuleInit {
             this.logger.error('closeAllPosition', e)
         }
     }
+
+    async checkAccessKey(userId: Types.ObjectId) {
+        try {
+            return await this.bitgetFuturesService.checkAccessKey(BitgetService.client[userId.toString()])
+        } catch (e) {
+            return false;
+        }
+    }
 }
