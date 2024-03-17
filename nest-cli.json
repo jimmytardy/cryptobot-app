@@ -8,10 +8,6 @@
       "include": "../app/client",
       "watchAssets": true,
       "outDir": "dist"
-    },
-    {
-      "include": "../../cryptobot-telegram-react/telegram-client",
-      "outDir": "dist"
     }]
   }
 }
