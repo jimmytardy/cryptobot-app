@@ -1,5 +1,5 @@
 import Stripe from 'stripe'
-import { Inject, Injectable, OnApplicationBootstrap, forwardRef } from '@nestjs/common'
+import { Inject, Injectable, Logger, OnApplicationBootstrap, forwardRef } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { User } from 'src/model/User'
 import { InjectModel } from '@nestjs/mongoose'
@@ -12,6 +12,7 @@ import _ from 'underscore'
 @Injectable()
 export class PaymentsService {
     private stripe: Stripe
+    logger: Logger = new Logger(PaymentsService.name)
 
     constructor(
         private configService: ConfigService,
@@ -99,6 +100,7 @@ export class PaymentsService {
                     user = await this.userModel.findOne({ stripeCustomerId: event.data.object.customer }).lean().exec();
                     await this.actualizeSubscription(user)
                 } else {
+                    this.logger.log(`Unhandled event type ${event.type}`)
                     console.info(`Unhandled event type ${event.type}`)
                 }
         }
