@@ -17,6 +17,7 @@ import { UtilService } from 'src/util/util.service'
 import { StrategyService } from '../strategy/strategy.service'
 import { IOrderStrategy } from 'src/interfaces/order-strategy.interface'
 import { Strategy } from 'src/model/Stategy'
+import { PaymentsService } from '../payment/payments.service'
 
 @Injectable()
 export class UserService implements OnApplicationBootstrap {
@@ -27,6 +28,7 @@ export class UserService implements OnApplicationBootstrap {
         private orderService: OrderService,
         private rightService: RightService,
         private strategyService: StrategyService,
+        private paymentsService: PaymentsService
     ) {}
 
     async onApplicationBootstrap() {
@@ -165,8 +167,11 @@ export class UserService implements OnApplicationBootstrap {
         if (user.mainAccountId) {
             mainAccount = await this.userModel.findById(user.mainAccountId, '-bitget -preferences')
         }
+        const subscription = await this.paymentsService.actualizeSubscription(user);
+        
         return {
             ...userInfo,
+            subscription,
             mainAccountId: mainAccount,
             rights: await this.rightService.getRights(user._id),
         }

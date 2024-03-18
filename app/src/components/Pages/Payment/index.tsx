@@ -1,5 +1,5 @@
 import { Button, Col, Container, FormGroup, FormLabel, Row } from 'react-bootstrap'
-import * as React from 'react'
+import { DetailedHTMLProps, HTMLAttributes } from 'react'
 
 import { useAuth } from '../../../hooks/AuthContext'
 import axiosClient from '../../../axiosClient'
@@ -8,7 +8,7 @@ import { IUserSubscriptionItem } from '../../../interfaces/user.interface'
 declare global {
     namespace JSX {
         interface IntrinsicElements {
-            'stripe-pricing-table': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement>
+            'stripe-pricing-table': DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement>
         }
     }
 }
@@ -16,7 +16,7 @@ declare global {
 const Payement = () => {
     const { user } = useAuth();
 
-    const pricingTableId = user.mainAccountId ? import.meta.env.VITE_STRIPE_PRICING_TABLE_SUB_ACCOUNT : import.meta.env.VITE_STRIPE_PRICING_TABLE
+    const pricingTableId = import.meta.env.VITE_STRIPE_PRICING_TABLE;
 
     const handleRedirectAccount = async () => {
         const result = await axiosClient.post('/payment/stripe/create-customer-portal-session')

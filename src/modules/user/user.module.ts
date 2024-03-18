@@ -7,9 +7,10 @@ import { PlateformsModule } from '../plateforms/plateforms.module';
 import { OrderModule } from '../order/order.module';
 import { StrategyModule } from '../strategy/strategy.module';
 import { Strategy, StrategySchema } from 'src/model/Stategy';
+import { PaymentsModule } from '../payment/payments.module';
 
 @Module({
-  imports: [OrderModule, MongooseModule.forFeature([{ name: User.name, schema: UserSchema }, { name: Strategy.name, schema: StrategySchema }]), forwardRef(() => PlateformsModule), StrategyModule],
+  imports: [PaymentsModule, OrderModule, MongooseModule.forFeature([{ name: User.name, schema: UserSchema }, { name: Strategy.name, schema: StrategySchema }]), forwardRef(() => PlateformsModule), StrategyModule],
   providers: [UserService],
   controllers: [UserController],
   exports: [UserService]

@@ -15,7 +15,7 @@ export class AuthService {
     async validateUser(email: string, password: string): Promise<User> {
         const user = await this.userService.findByEmail(email, '+password');
         if (user && (await bcrypt.compare(password, user.password))) {
-            const { password, stripeCustomerId, ...result } = user
+            const { password, ...result } = user
             return result as User;
         }
         return null

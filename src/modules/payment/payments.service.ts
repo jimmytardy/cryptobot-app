@@ -61,7 +61,7 @@ export class PaymentsService {
         return null
     }
 
-    async actualizeSubscription(user: User) {
+    async actualizeSubscription(user: User): Promise<ISubscriptionUser> {
         if (!user?.stripeCustomerId) return
         const subscription = await this.getSubscription(user.stripeCustomerId) 
         if (!_.isEqual(user.subscription, subscription)) {
@@ -73,6 +73,7 @@ export class PaymentsService {
                 this.plateformsService.removeTrader(user)
             }
         }
+        return subscription;
     }
 
     subscriptionIsActive(status: string): boolean {
