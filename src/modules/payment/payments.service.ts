@@ -65,12 +65,19 @@ export class PaymentsService {
         if (!user?.stripeCustomerId) return
         const subscription = await this.getSubscription(user.stripeCustomerId) 
         if (!_.isEqual(user.subscription, subscription)) {
-            user.subscription = subscription
+            user.subscription = subscription;
             await this.userModel.updateMany({ $or: [{ _id: user._id }, { mainAccountId: user._id }] }, { $set: { subscription } }).exec()
             if (subscription?.active) {
                 this.plateformsService.addNewTrader(user) 
             } else {
                 this.plateformsService.removeTrader(user)
+            }
+            if (!user.subscription?.rights.includes(SubscriptionEnum.SUB_ACCOUNT)) {
+                const subAccounts = await this.userModel.find({ mainAccountId: user._id, active: true }).lean().exec();
+                await this.userModel.updateMany({ _id: { $in: subAccounts.map(sub => sub._id) } }, { $set: { active: false } }).exec()
+                for (const subAccount of subAccounts) {
+                    this.plateformsService.removeTrader(subAccount);
+                }
             }
         }
         return subscription;
